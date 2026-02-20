@@ -277,6 +277,16 @@ pre {
   font-family: var(--font-mono);
   font-size: 0.875rem;
   line-height: 1.7;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  color: inherit;
+  font-size: inherit;
 }
 
 /* Lists */
