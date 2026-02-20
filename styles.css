@@ -248,6 +248,8 @@ nav .container {
 
 .terminal-body {
   padding: 1.5rem;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .terminal-line {
