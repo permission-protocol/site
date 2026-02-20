@@ -397,6 +397,11 @@ ul.requirements li::before {
   line-height: 1.5;
 }
 
+/* Authorization Requirements Section */
+#authorization-requirements {
+  background: var(--gray-50);
+}
+
 /* Invariant Grid */
 .invariant-grid {
   display: grid;
@@ -408,7 +413,7 @@ ul.requirements li::before {
 .invariant-card {
   padding: 1.5rem;
   background: var(--white);
-  border: 1px solid var(--gray-200);
+  border: 1px solid var(--gray-300);
 }
 
 .invariant-card h3 {
@@ -494,12 +499,23 @@ ul.requirements li::before {
   font-size: 1rem;
 }
 
+/* Approval Not Authority Section */
+#approval-not-authority {
+  background: var(--gray-50);
+}
+
 /* Contrast Table */
 .contrast-table {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
   margin-top: 2rem;
+}
+
+.contrast-column {
+  background: var(--white);
+  padding: 1.5rem;
+  border: 1px solid var(--gray-300);
 }
 
 .contrast-column h3 {
@@ -544,6 +560,11 @@ ul.requirements li::before {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.75rem;
+}
+
+/* Designed For Section */
+#designed-for {
+  background: var(--gray-50);
 }
 
 /* Disqualification section */
