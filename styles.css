@@ -226,6 +226,11 @@ nav .container {
   margin-top: 1rem;
 }
 
+/* Mobile trust bullets - hidden on desktop */
+.hero-trust-bullets-mobile {
+  display: none;
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;
@@ -257,6 +262,17 @@ nav .container {
 
 .btn-secondary:hover {
   border-color: var(--gray-400);
+  color: var(--black);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--gray-600);
+  border: none;
+  padding: 0.75rem 0;
+}
+
+.btn-ghost:hover {
   color: var(--black);
 }
 
@@ -382,6 +398,10 @@ ul.requirements li::before {
 /* Demo section */
 .demo-container {
   margin-top: 2rem;
+}
+
+.demo-caption {
+  display: none;
 }
 
 .demo-status-panel {
@@ -1096,13 +1116,26 @@ footer {
 
 footer .container {
   display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.footer-main {
+  display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
 }
 
 .footer-text {
   font-size: 0.875rem;
   color: var(--gray-500);
+}
+
+.footer-trust {
+  font-size: 0.8125rem;
+  color: var(--gray-400);
+  text-align: center;
 }
 
 /* Mobile hamburger menu */
@@ -1181,7 +1214,7 @@ footer .container {
     width: 100%;
   }
   
-  /* Code blocks - bump font, increase padding */
+  /* Code blocks - bump font, increase padding, handle overflow */
   .terminal,
   pre {
     font-size: 0.8125rem;
@@ -1190,10 +1223,26 @@ footer .container {
   
   .terminal-body {
     padding: 1rem 1.25rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
   
   pre {
     padding: 1.25rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Subtle scroll indicator */
+  pre::-webkit-scrollbar,
+  .terminal-body::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  pre::-webkit-scrollbar-thumb,
+  .terminal-body::-webkit-scrollbar-thumb {
+    background: var(--gray-300);
+    border-radius: 2px;
   }
 }
 
@@ -1254,6 +1303,27 @@ footer .container {
     padding-bottom: 5rem;
   }
   
+  /* Demo touch targets - Apple HIG minimum 44x44px */
+  .terminal-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.5rem;
+    font-size: 1rem;
+  }
+  
+  .terminal-controls {
+    gap: 0.75rem;
+  }
+  
+  /* Demo caption for mobile context */
+  .demo-caption {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    margin-top: 0.75rem;
+    text-align: center;
+  }
+  
   /* Hero - tighter on mobile */
   .hero {
     padding: 7rem 0 4rem;
@@ -1268,6 +1338,20 @@ footer .container {
   .hero .subheadline {
     font-size: 1.125rem;
     margin-bottom: 2rem;
+  }
+  
+  /* Hero simplification - hide trust bullets on mobile, show after CTA */
+  .hero-trust-bullets {
+    display: none;
+  }
+  
+  .hero-trust-bullets-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--gray-200);
   }
   
   /* Invariant section - card spacing */

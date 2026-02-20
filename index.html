@@ -59,9 +59,15 @@
       </div>
       <div class="btn-group">
         <a href="/request-access" class="btn btn-primary" data-track="pp_home_cta_click">Request Access</a>
-        <a href="#enforcement-demo" class="btn btn-secondary" data-track="pp_home_cta_click">See the flow</a>
+        <a href="#enforcement-demo" class="btn btn-ghost" data-track="pp_home_cta_click">See the flow ↓</a>
       </div>
       <p class="hero-scarcity">Onboarding limited production environments</p>
+      <!-- Trust bullets shown below CTA on mobile -->
+      <div class="hero-trust-bullets-mobile">
+        <span class="trust-bullet">Fail-closed enforcement</span>
+        <span class="trust-bullet">Tamper-evident receipts</span>
+        <span class="trust-bullet">CI/CD + gateway integration</span>
+      </div>
     </div>
   </section>
 
@@ -152,6 +158,7 @@
               <div class="terminal-cursor">_</div>
             </div>
           </div>
+          <p class="demo-caption">Tap ▶ to see fail-closed enforcement in action</p>
         </div>
       </div>
     </div>
@@ -281,8 +288,13 @@
   <!-- Footer -->
   <footer>
     <div class="container">
-      <span class="footer-text">Permission Protocol</span>
-      <span class="footer-text">© 2025</span>
+      <div class="footer-main">
+        <span class="footer-text">Permission Protocol</span>
+        <span class="footer-text">© 2025</span>
+      </div>
+      <div class="footer-trust">
+        <span>Built for teams running GitHub Actions, ArgoCD, Terraform</span>
+      </div>
     </div>
   </footer>
 
