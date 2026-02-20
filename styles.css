@@ -745,9 +745,4 @@ footer .container {
   margin-top: 0;
 }
 
-/* Mobile nav */
-@media (max-width: 640px) {
-  .nav-links {
-    display: none;
-  }
-}
+/* Mobile nav handled above */
