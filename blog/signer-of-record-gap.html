@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your AI Just Deployed Code. Who Signed It? | Permission Protocol</title>
+  <meta name="description" content="Your AI agent pushed to main. It passed CI. It deployed to production. Who approved it? Not a human. Not a policy. Nobody. That's the gap.">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="Your AI Just Deployed Code. Who Signed It?">
+  <meta property="og:description" content="Your AI agent pushed to main. It passed CI. It deployed to production. Who approved it? Nobody. That's the gap.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://permissionprotocol.com/blog/signer-of-record-gap">
+  <meta property="og:image" content="https://permissionprotocol.com/assets/og-image.png">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Your AI Just Deployed Code. Who Signed It?">
+  <meta name="twitter:description" content="Your AI agent pushed to main. It passed CI. It deployed to production. Who approved it? Nobody.">
+  
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    .blog-post {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 4rem 1.5rem;
+    }
+    .blog-post h1 {
+      font-size: 2.5rem;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+    .blog-post .meta {
+      color: #666;
+      margin-bottom: 2rem;
+    }
+    .blog-post p {
+      font-size: 1.125rem;
+      line-height: 1.7;
+      margin-bottom: 1.5rem;
+    }
+    .blog-post .highlight {
+      background: #0a0a0a;
+      border-left: 3px solid #ff4444;
+      padding: 1.5rem;
+      margin: 2rem 0;
+      font-size: 1.25rem;
+    }
+    .blog-post .highlight p {
+      margin: 0;
+    }
+    .blog-post ul {
+      margin: 1.5rem 0;
+      padding-left: 1.5rem;
+    }
+    .blog-post li {
+      font-size: 1.125rem;
+      line-height: 1.7;
+      margin-bottom: 0.75rem;
+    }
+    .blog-post .cta {
+      margin-top: 3rem;
+      padding: 2rem;
+      background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
+      border-radius: 8px;
+      text-align: center;
+    }
+    .blog-post .cta a {
+      display: inline-block;
+      padding: 1rem 2rem;
+      background: #fff;
+      color: #0a0a0a;
+      text-decoration: none;
+      font-weight: 600;
+      border-radius: 4px;
+    }
+    .blog-post .cta a:hover {
+      background: #f0f0f0;
+    }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 2rem;
+      color: #888;
+      text-decoration: none;
+    }
+    .back-link:hover {
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <article class="blog-post">
+    <a href="/" class="back-link">← Back to Permission Protocol</a>
+    
+    <h1>Your AI Just Deployed Code. Who Signed It?</h1>
+    <p class="meta">February 2026</p>
+    
+    <p>Your AI agent just pushed to main.</p>
+    <p>It passed CI.</p>
+    <p>It deployed to production.</p>
+    
+    <div class="highlight">
+      <p><strong>Who approved it?</strong></p>
+      <p>Not a human. Not a policy. Nobody.</p>
+    </div>
+    
+    <p>That's the gap.</p>
+    
+    <h2>The Problem Isn't AI Writing Code</h2>
+    
+    <p>AI writing code is fine. AI agents committing to repos is fine. Autonomous systems making changes faster than humans can review—that's the whole point.</p>
+    
+    <p>The problem is the <em>authorization layer</em> between "code exists" and "code runs in production."</p>
+    
+    <p>Right now, that layer is:</p>
+    <ul>
+      <li>A merge button someone clicked</li>
+      <li>A CI pipeline that passed</li>
+      <li>An auto-deploy that triggered</li>
+    </ul>
+    
+    <p>None of these are authorization. They're <em>automation</em>.</p>
+    
+    <h2>The Signer of Record</h2>
+    
+    <p>Every production deployment needs a signer of record. Someone—or some policy—that explicitly says: <em>yes, this specific change is authorized to run in production.</em></p>
+    
+    <p>Not "the tests passed."<br>
+    Not "someone merged it."<br>
+    Not "it looks fine."</p>
+    
+    <p>A cryptographic receipt. Immutable. Auditable. Signed.</p>
+    
+    <h2>What This Looks Like</h2>
+    
+    <pre><code>{
+  "status": "APPROVED",
+  "scope": {
+    "repo": "acme/backend",
+    "sha": "abc123",
+    "env": "production"
+  },
+  "approver": "alice@acme.com",
+  "signature": "0x...",
+  "expiresAt": "2026-02-21T00:00:00Z"
+}</code></pre>
+    
+    <p>No receipt? No deploy. Period.</p>
+    
+    <p>This isn't bureaucracy. It's accountability.</p>
+    
+    <h2>The Question You Should Ask</h2>
+    
+    <p>Go look at your last production deployment.</p>
+    
+    <p>Can you answer:</p>
+    <ul>
+      <li>Who specifically authorized it?</li>
+      <li>What exactly did they authorize?</li>
+      <li>When did they authorize it?</li>
+      <li>Is there a cryptographic proof?</li>
+    </ul>
+    
+    <p>If you can't answer all four, you have a gap.</p>
+    
+    <p>And that gap grows wider every time you ship faster.</p>
+    
+    <div class="cta">
+      <p>Permission Protocol closes the gap.</p>
+      <a href="/#waitlist">Get Early Access →</a>
+    </div>
+  </article>
+</body>
+</html>
