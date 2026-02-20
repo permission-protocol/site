@@ -9,6 +9,43 @@
   'use strict';
 
   // ============================================
+  // Mobile Navigation
+  // ============================================
+  
+  const navToggle = document.getElementById('nav-toggle');
+  const navLinks = document.getElementById('nav-links');
+  const navOverlay = document.getElementById('nav-overlay');
+
+  function toggleNav() {
+    const isActive = navLinks.classList.toggle('active');
+    navToggle.classList.toggle('active', isActive);
+    navOverlay.classList.toggle('active', isActive);
+    document.body.style.overflow = isActive ? 'hidden' : '';
+  }
+
+  function closeNav() {
+    navLinks.classList.remove('active');
+    navToggle.classList.remove('active');
+    navOverlay.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  if (navToggle) {
+    navToggle.addEventListener('click', toggleNav);
+  }
+
+  if (navOverlay) {
+    navOverlay.addEventListener('click', closeNav);
+  }
+
+  // Close nav when clicking a link
+  if (navLinks) {
+    navLinks.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', closeNav);
+    });
+  }
+
+  // ============================================
   // PostHog Helpers
   // ============================================
   

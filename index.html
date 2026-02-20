@@ -19,14 +19,20 @@
   <nav>
     <div class="container">
       <a href="/" class="logo">Permission Protocol</a>
-      <ul class="nav-links">
+      <ul class="nav-links" id="nav-links">
         <li><a href="/deploy-gate">Deploy Gate</a></li>
         <li><a href="/architecture">Architecture</a></li>
         <li><a href="/receipt-model">Receipt Model</a></li>
         <li><a href="/request-access" class="primary">Request Access</a></li>
       </ul>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
     </div>
   </nav>
+  <div class="nav-overlay" id="nav-overlay"></div>
 
   <!-- Hero -->
   <section class="hero">
@@ -101,9 +107,12 @@
     <div class="container">
       <div class="content">
         <h2>Approval Is Not Authority.</h2>
-        <p>Code review approves changes. It does not issue a cryptographic authorization artifact.</p>
-        <p>Platform state satisfies rules. It does not produce a portable receipt.</p>
-        <p>In GitHub, approval satisfies policy <em>inside</em> the system. In Permission Protocol, approval generates a signed capability that must be redeemed at execution.</p>
+        <ul class="requirements">
+          <li><strong>Code review</strong> — approves changes, does not issue a cryptographic artifact</li>
+          <li><strong>Platform state</strong> — satisfies rules, does not produce a portable receipt</li>
+          <li><strong>GitHub approval</strong> — satisfies policy <em>inside</em> the system</li>
+          <li><strong>Permission Protocol</strong> — generates a signed capability redeemed at execution</li>
+        </ul>
         <p><strong>Authorization must be explicit and externally verifiable.</strong></p>
       </div>
     </div>
