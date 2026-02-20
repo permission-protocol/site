@@ -6,12 +6,10 @@
   <title>Permission Protocol — Authority Plane for Autonomous Systems</title>
   <meta name="description" content="Authorization must be external, explicit, and cryptographically bound to irreversible actions. Permission Protocol is the signer of record for AI systems.">
   <link rel="icon" href="/assets/favicon.ico">
-  <link rel="stylesheet" href="/styles.css?v=2">
+  <link rel="stylesheet" href="/styles.css?v=3">
   <!-- PostHog -->
   <script>
     !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys onSessionId".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
-    // Initialize with your PostHog key
-    // posthog.init('YOUR_POSTHOG_KEY', { api_host: 'https://app.posthog.com' });
   </script>
 </head>
 <body>
@@ -46,11 +44,20 @@
     </div>
   </section>
 
-  <!-- Immediate Structural Claim -->
+  <!-- Structural Claim -->
   <section id="structural-claim" class="claim-section">
     <div class="container">
       <div class="content">
         <p class="structural-claim">If your AI can deploy to production without redeeming a signed authorization receipt, you do not have separation of powers.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Inevitability Statement -->
+  <section id="inevitability">
+    <div class="container">
+      <div class="content">
+        <p class="inevitability-statement">As autonomous systems gain authority, authorization must become infrastructure.</p>
       </div>
     </div>
   </section>
@@ -82,6 +89,54 @@
     </div>
   </section>
 
+  <!-- Failure Mode -->
+  <section id="failure-mode">
+    <div class="container">
+      <div class="content">
+        <h2>When Authority Lives Inside the Execution Plane</h2>
+        <ul class="failure-list">
+          <li>Approval state can be modified with configuration changes</li>
+          <li>Execution system implicitly trusts its own authorization state</li>
+          <li>Deploy and authorization share a trust boundary</li>
+          <li>Post-hoc logs substitute for explicit authorization artifacts</li>
+        </ul>
+        <p class="failure-conclusion"><strong>This is not separation of powers.</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Before/After Comparison -->
+  <section id="before-after">
+    <div class="container">
+      <div class="content">
+        <div class="comparison-grid">
+          <div class="comparison-column">
+            <h3>Without External Authority</h3>
+            <div class="comparison-flow">
+              <span>PR approved</span>
+              <span class="flow-arrow">→</span>
+              <span>merge</span>
+              <span class="flow-arrow">→</span>
+              <span>deploy auto-triggers</span>
+            </div>
+            <p class="comparison-note">Authorization state stored as metadata</p>
+          </div>
+          <div class="comparison-column highlight">
+            <h3>With Permission Protocol</h3>
+            <div class="comparison-flow">
+              <span>PR approved</span>
+              <span class="flow-arrow">→</span>
+              <span>receipt issued</span>
+              <span class="flow-arrow">→</span>
+              <span>receipt redeemed at deploy</span>
+            </div>
+            <p class="comparison-note">Execution requires cryptographic authorization artifact</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Enforcement Demo -->
   <section id="enforcement-demo">
     <div class="container">
@@ -100,7 +155,6 @@
               <span class="terminal-dot green"></span>
             </div>
             <div class="terminal-body" id="demo-output">
-              <!-- Rejected state (default) -->
               <div class="demo-state" id="state-rejected">
                 <div class="terminal-line dimmed">$ deploy --env production</div>
                 <div class="terminal-line">&nbsp;</div>
@@ -112,7 +166,6 @@
                 <div class="terminal-line"><span class="reason">Missing signed authorization receipt</span></div>
                 <div class="terminal-line dimmed">exit 1</div>
               </div>
-              <!-- Approved state -->
               <div class="demo-state" id="state-approved" style="display: none;">
                 <div class="terminal-line dimmed">$ deploy --env production --receipt pp_rcpt_7f3d...</div>
                 <div class="terminal-line">&nbsp;</div>
@@ -132,7 +185,53 @@
     </div>
   </section>
 
-  <!-- ICP Diagnostic Block -->
+  <!-- Receipt Specificity -->
+  <section id="receipt-example" data-track="receipt_example_view">
+    <div class="container">
+      <div class="content">
+        <h2>The Receipt</h2>
+<pre class="receipt-payload"><code>{
+  "commit": "a81f2c3",
+  "environment": "production",
+  "policy": "prod-deploy-v1",
+  "signer": "production-authority",
+  "signature": "ed25519:x7Kj9..."
+}</code></pre>
+        <p class="technical-note"><strong>Deploy fails if signature verification fails.</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trust Boundary Diagram -->
+  <section id="trust-boundary">
+    <div class="container">
+      <div class="content">
+        <h2>Trust Boundary Separation</h2>
+        <div class="boundary-diagram">
+          <div class="plane execution-plane">
+            <h4>Execution Plane</h4>
+            <div class="plane-items">
+              <span>GitHub</span>
+              <span>CI/CD</span>
+              <span>Agent</span>
+            </div>
+          </div>
+          <div class="boundary-line">
+            <span class="boundary-label">Trust Boundary</span>
+          </div>
+          <div class="plane authority-plane">
+            <h4>Authority Plane</h4>
+            <div class="plane-items">
+              <span>Permission Protocol</span>
+              <span>Signer Domain</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ICP Diagnostic -->
   <section id="diagnostic" data-track="diagnostic_block_view">
     <div class="container">
       <div class="content">
@@ -143,15 +242,17 @@
           <li>Agents or bots hold execution privileges</li>
           <li>Production changes are irreversible</li>
         </ul>
-        <p class="diagnostic-conclusion"><strong>If yes, authorization must be external.</strong></p>
+        <p class="diagnostic-trigger"><strong>Can your AI cause production changes without redeeming a signed receipt from an external authority domain?</strong></p>
+        <p class="diagnostic-conclusion">If yes, authorization must be external.</p>
         <div style="margin-top: 2rem;">
           <a href="/request-access" class="btn btn-primary" data-track="diagnostic_cta_click">Request Access</a>
+          <p class="cta-microcopy">For teams whose AI systems can affect production.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Delegation Without Surrender -->
+  <!-- Delegation -->
   <section id="delegation">
     <div class="container">
       <div class="content">
@@ -162,7 +263,7 @@
     </div>
   </section>
 
-  <!-- Approval Is Not Authority -->
+  <!-- Approval Not Authority -->
   <section id="approval-not-authority">
     <div class="container">
       <div class="content">
@@ -196,21 +297,6 @@
       <div class="content">
         <h2>Deploy Gate</h2>
         <p>Receipt verification step in your CI pipeline.</p>
-        
-        <div class="diagram">
-          <div class="diagram-flow">
-            <div class="diagram-node">Agent</div>
-            <div class="diagram-arrow">↓</div>
-            <div class="diagram-node">GitHub</div>
-            <div class="diagram-arrow">↓</div>
-            <div class="diagram-node">CI</div>
-            <div class="diagram-arrow">↓</div>
-            <div class="diagram-node highlight">Permission Protocol</div>
-            <div class="diagram-arrow">↓</div>
-            <div class="diagram-node">Production</div>
-          </div>
-        </div>
-
 <pre><code>- name: Verify Authorization
   run: |
     pp verify \
@@ -221,15 +307,13 @@
 - name: Deploy
   if: success()
   run: ./deploy.sh</code></pre>
-
         <p class="technical-note"><strong>If receipt verification fails, deploy exits non-zero.</strong></p>
-        
-        <a href="/deploy-gate" class="btn btn-secondary" data-track="deploy-gate-cta">View Integration Guide</a>
+        <a href="/deploy-gate" class="btn btn-secondary" data-track="deploy_gate_cta">View Integration Guide</a>
       </div>
     </div>
   </section>
 
-  <!-- Designed for Irreversible Systems -->
+  <!-- Designed For -->
   <section id="designed-for">
     <div class="container">
       <div class="content">
@@ -251,7 +335,7 @@
     <div class="container">
       <h2>Add separation of powers to your AI systems.</h2>
       <a href="/request-access" class="btn btn-primary" data-track="final_cta_click">Request Access</a>
-      <p class="cta-subtext">Onboarding a limited number of teams running AI-driven deploys.</p>
+      <p class="cta-subtext">Onboarding a limited number of production environments.</p>
     </div>
   </section>
 
@@ -263,6 +347,6 @@
     </div>
   </footer>
 
-  <script src="/main.js"></script>
+  <script src="/main.js?v=3"></script>
 </body>
 </html>

@@ -95,8 +95,13 @@
   
   const sections = [
     { id: 'structural-claim', name: 'Structural Claim' },
+    { id: 'inevitability', name: 'Inevitability' },
     { id: 'authorization-requirements', name: 'Authorization Requirements' },
+    { id: 'failure-mode', name: 'Failure Mode' },
+    { id: 'before-after', name: 'Before After' },
     { id: 'enforcement-demo', name: 'Enforcement Demo' },
+    { id: 'receipt-example', name: 'Receipt Example' },
+    { id: 'trust-boundary', name: 'Trust Boundary' },
     { id: 'diagnostic', name: 'ICP Diagnostic' },
     { id: 'delegation', name: 'Delegation' },
     { id: 'approval-not-authority', name: 'Approval Not Authority' },
