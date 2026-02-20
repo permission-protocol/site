@@ -136,6 +136,50 @@ nav .container {
   font-weight: 500;
 }
 
+/* Nav CTA button - always visible */
+.nav-cta-btn {
+  display: none;
+  padding: 0.5rem 1rem;
+  background: var(--black);
+  color: var(--white) !important;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  transition: background 0.15s;
+  margin-left: auto;
+  margin-right: 0.75rem;
+}
+
+.nav-cta-btn:hover {
+  background: var(--gray-700);
+}
+
+/* Sticky Mobile CTA bar */
+.mobile-sticky-cta {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--white);
+  padding: 0.75rem 1rem;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+  z-index: 99;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.mobile-sticky-cta .btn {
+  width: 100%;
+  max-width: 300px;
+}
+
+.sticky-cta-subtext {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+}
+
 /* Hero */
 .hero {
   padding: 10rem 0 6rem;
@@ -174,6 +218,12 @@ nav .container {
 .trust-bullet::before {
   content: "✓ ";
   color: var(--gray-400);
+}
+
+.hero-scarcity {
+  font-size: 0.875rem;
+  color: var(--gray-500);
+  margin-top: 1rem;
 }
 
 /* Buttons */
@@ -1153,6 +1203,16 @@ footer .container {
     display: block;
   }
   
+  /* Show nav CTA button on mobile */
+  .nav-cta-btn {
+    display: block;
+  }
+  
+  /* Hide Request Access in hamburger menu on mobile */
+  .nav-links .mobile-hide {
+    display: none;
+  }
+  
   .nav-links {
     display: none;
     position: fixed;
@@ -1182,6 +1242,16 @@ footer .container {
     min-height: 44px;
     line-height: 44px;
     padding: 0;
+  }
+  
+  /* Sticky bottom CTA bar */
+  .mobile-sticky-cta {
+    display: flex;
+  }
+  
+  /* Add padding to footer so sticky CTA doesn't cover content */
+  footer {
+    padding-bottom: 5rem;
   }
   
   /* Hero - tighter on mobile */

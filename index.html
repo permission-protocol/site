@@ -5,6 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Permission Protocol — Signer of Record for Autonomous Systems</title>
   <meta name="description" content="No AI action without an explicit signer. Permission Protocol is the Signer of Record for autonomous systems — cryptographically signed receipts, not internal logs.">
+  
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://permissionprotocol.com/">
+  <meta property="og:title" content="Permission Protocol — Signer of Record for Autonomous Systems">
+  <meta property="og:description" content="Fail-closed enforcement for AI deployments. Cryptographically signed receipts, not internal logs. No AI action without an explicit signer.">
+  <meta property="og:image" content="https://permissionprotocol.com/assets/og-image.png">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Permission Protocol — Signer of Record for Autonomous Systems">
+  <meta name="twitter:description" content="Fail-closed enforcement for AI deployments. Cryptographically signed receipts, not internal logs.">
+  <meta name="twitter:image" content="https://permissionprotocol.com/assets/og-image.png">
+  
   <link rel="icon" href="/assets/favicon.ico">
   <link rel="stylesheet" href="/styles.css?v=5">
   <!-- PostHog -->
@@ -21,8 +35,9 @@
         <li><a href="/deploy-gate">Deploy Gate</a></li>
         <li><a href="/architecture">Architecture</a></li>
         <li><a href="/receipt-model">Receipt Model</a></li>
-        <li><a href="/request-access" class="primary">Request Access</a></li>
+        <li class="mobile-hide"><a href="/request-access" class="primary">Request Access</a></li>
       </ul>
+      <a href="/request-access" class="nav-cta-btn" data-track="pp_nav_cta_click">Request Access</a>
       <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
         <span></span>
         <span></span>
@@ -46,6 +61,7 @@
         <a href="/request-access" class="btn btn-primary" data-track="pp_home_cta_click">Request Access</a>
         <a href="#enforcement-demo" class="btn btn-secondary" data-track="pp_home_cta_click">See the flow</a>
       </div>
+      <p class="hero-scarcity">Onboarding limited production environments</p>
     </div>
   </section>
 
@@ -255,6 +271,12 @@
       <p class="cta-subtext">Onboarding a limited number of production environments.</p>
     </div>
   </section>
+
+  <!-- Sticky Mobile CTA -->
+  <div class="mobile-sticky-cta">
+    <a href="/request-access" class="btn btn-primary" data-track="pp_sticky_cta_click">Request Access</a>
+    <span class="sticky-cta-subtext">Limited onboarding slots</span>
+  </div>
 
   <!-- Footer -->
   <footer>
