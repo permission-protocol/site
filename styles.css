@@ -89,9 +89,7 @@ section {
   padding: 6rem 0;
 }
 
-section:nth-child(even) {
-  background: var(--gray-50);
-}
+/* Explicit section backgrounds - no alternating pattern */
 
 /* Navigation */
 nav {
@@ -397,9 +395,11 @@ ul.requirements li::before {
   line-height: 1.5;
 }
 
-/* Authorization Requirements Section */
-#authorization-requirements {
-  background: var(--gray-50);
+/* Section Backgrounds */
+#authorization-requirements,
+#diagnostic,
+#deploy-gate {
+  background: var(--gray-100);
 }
 
 /* Invariant Grid */
@@ -499,10 +499,7 @@ ul.requirements li::before {
   font-size: 1rem;
 }
 
-/* Approval Not Authority Section */
-#approval-not-authority {
-  background: var(--gray-50);
-}
+/* Approval Not Authority Section - keep white for contrast table visibility */
 
 /* Contrast Table */
 .contrast-table {
@@ -564,7 +561,7 @@ ul.requirements li::before {
 
 /* Designed For Section */
 #designed-for {
-  background: var(--gray-50);
+  background: var(--gray-100);
 }
 
 /* Disqualification section */
