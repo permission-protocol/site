@@ -1,380 +1,180 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Permission Protocol — Signer of Record</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="No receipt, no merge. Permission Protocol is the signer of record for production changes." />
-
-  <link rel="icon" href="/assets/favicon.ico" />
-  <link rel="canonical" href="https://permissionprotocol.com" />
-
-  <meta property="og:title" content="Permission Protocol" />
-  <meta property="og:description" content="Agents can write code. Only Permission Protocol can authorize production." />
-  <meta property="og:type" content="website" />
-
-  <style>
-    :root {
-      --bg: #0a0a0a;
-      --text: #e8e8e8;
-      --muted: #888;
-      --red: #ef4444;
-      --green: #22c55e;
-      --line: rgba(255,255,255,0.1);
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    
-    body {
-      font-family: ui-monospace, 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      min-height: 100vh;
-    }
-
-    a { color: inherit; text-decoration: none; }
-
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 0 24px;
-    }
-
-    /* Header */
-    header {
-      position: sticky;
-      top: 0;
-      background: rgba(10,10,10,0.9);
-      backdrop-filter: blur(8px);
-      border-bottom: 1px solid var(--line);
-      z-index: 100;
-    }
-
-    .header-inner {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px 0;
-    }
-
-    .logo {
-      font-weight: 700;
-      font-size: 15px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      letter-spacing: -0.3px;
-    }
-
-    .logo img {
-      height: 24px;
-      width: auto;
-    }
-
-    .logo-text {
-      display: flex;
-      gap: 6px;
-    }
-
-    .logo-text .permission {
-      color: var(--text);
-    }
-
-    .logo-text .protocol {
-      color: #2dd4bf;
-    }
-
-    .header-links {
-      display: flex;
-      align-items: center;
-      gap: 24px;
-      font-size: 14px;
-    }
-
-    .header-links a {
-      color: var(--muted);
-      transition: color 0.15s;
-    }
-
-    .header-links a:hover {
-      color: var(--text);
-    }
-
-    .btn-access {
-      background: #fff;
-      color: #0a0a0a;
-      padding: 8px 16px;
-      border-radius: 4px;
-      font-weight: 600;
-      border: none;
-    }
-
-    .btn-access:hover {
-      background: #fff;
-    }
-
-    /* Hero */
-    .hero {
-      padding: 80px 0 60px;
-      text-align: center;
-    }
-
-    h1 {
-      font-size: clamp(28px, 5vw, 42px);
-      font-weight: 700;
-      line-height: 1.2;
-      margin-bottom: 16px;
-      letter-spacing: -0.5px;
-    }
-
-    .subhead {
-      font-size: clamp(16px, 2.5vw, 20px);
-      color: var(--muted);
-      margin-bottom: 12px;
-    }
-
-    .support {
-      font-size: 14px;
-      color: var(--muted);
-      margin-bottom: 40px;
-    }
-
-    /* Demo */
-    .demo-section {
-      padding: 0 0 60px;
-    }
-
-    .demo-container {
-      background: #111;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      overflow: hidden;
-    }
-
-    .demo-container img {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
-
-    /* Proof bullets */
-    .proof {
-      padding: 40px 0;
-      border-top: 1px solid var(--line);
-    }
-
-    .proof-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 24px;
-      list-style: none;
-    }
-
-    .proof-list li {
-      font-size: 15px;
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-    }
-
-    .proof-list .icon {
-      font-size: 18px;
-      flex-shrink: 0;
-    }
-
-    /* CTA */
-    .cta-section {
-      padding: 40px 0;
-      text-align: center;
-      border-top: 1px solid var(--line);
-    }
-
-    .btn-demo {
-      display: inline-block;
-      background: var(--text);
-      color: var(--bg);
-      padding: 14px 28px;
-      border-radius: 4px;
-      font-weight: 700;
-      font-size: 16px;
-      margin-bottom: 16px;
-      transition: transform 0.15s;
-    }
-
-    .btn-demo:hover {
-      transform: translateY(-2px);
-    }
-
-    .btn-docs {
-      display: inline-block;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .btn-docs:hover {
-      color: var(--text);
-    }
-
-    /* How it works */
-    .how-section {
-      padding: 60px 0;
-      border-top: 1px solid var(--line);
-    }
-
-    h2 {
-      font-size: 20px;
-      font-weight: 700;
-      margin-bottom: 24px;
-    }
-
-    .steps {
-      list-style: none;
-      counter-reset: step;
-    }
-
-    .steps li {
-      counter-increment: step;
-      margin-bottom: 16px;
-      font-size: 15px;
-      color: var(--muted);
-    }
-
-    .steps li::before {
-      content: counter(step) ". ";
-      color: var(--text);
-      font-weight: 600;
-    }
-
-    /* Why */
-    .why-section {
-      padding: 40px 0;
-      border-top: 1px solid var(--line);
-    }
-
-    .why-section p {
-      font-size: 15px;
-      color: var(--muted);
-      max-width: 65ch;
-    }
-
-    .docs-link {
-      display: inline-block;
-      margin-top: 20px;
-      color: var(--text);
-      font-size: 14px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .docs-link:hover {
-      border-color: var(--text);
-    }
-
-    /* Footer */
-    footer {
-      padding: 40px 0;
-      border-top: 1px solid var(--line);
-      text-align: center;
-      font-size: 13px;
-      color: var(--muted);
-    }
-
-    footer a {
-      margin: 0 12px;
-    }
-
-    footer a:hover {
-      color: var(--text);
-    }
-
-    @media (max-width: 600px) {
-      .header-links {
-        gap: 12px;
-        font-size: 13px;
-      }
-      .proof-list {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Permission Protocol — Authority Plane for Autonomous Systems</title>
+  <meta name="description" content="Authorization must be external, explicit, and cryptographically bound to irreversible actions. Permission Protocol is the signer of record for AI systems.">
+  <link rel="icon" href="/assets/favicon.ico">
+  <link rel="stylesheet" href="/styles.css">
+  <!-- PostHog -->
+  <script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys onSessionId".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+    // Initialize with your PostHog key
+    // posthog.init('YOUR_POSTHOG_KEY', { api_host: 'https://app.posthog.com' });
+  </script>
 </head>
-
 <body>
-  <header>
-    <div class="container header-inner">
-      <a class="logo" href="/">
-        <img src="/assets/logo-dark.png" alt="Permission Protocol" />
-        <span class="logo-text"><span class="permission">Permission</span><span class="protocol">Protocol</span></span>
-      </a>
-      <div class="header-links">
-        <a class="btn-access" href="https://kickofflabs.com/waitlist/f210b46c">Request Access</a>
-        <a href="https://app.permissionprotocol.com/auth/signin">Sign in</a>
+  <!-- Navigation -->
+  <nav>
+    <div class="container">
+      <a href="/" class="logo">Permission Protocol</a>
+      <ul class="nav-links">
+        <li><a href="/deploy-gate">Deploy Gate</a></li>
+        <li><a href="/architecture">Architecture</a></li>
+        <li><a href="/receipt-model">Receipt Model</a></li>
+        <li><a href="/request-access" class="primary">Request Access</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <h1>AI systems act.<br>Authority must live outside the system acting.</h1>
+      <p class="subheadline">Permission Protocol is the signer of record for irreversible AI actions.</p>
+      <div class="btn-group">
+        <a href="/request-access" class="btn btn-primary" data-track="hero-cta-primary">Request Access</a>
+        <a href="/deploy-gate" class="btn btn-secondary" data-track="hero-cta-secondary">See Deploy Gate</a>
       </div>
     </div>
-  </header>
+  </section>
 
-  <main>
-    <section class="hero">
-      <div class="container">
-        <h1>No receipt, no merge.<br>Permission Protocol is the signer of record.</h1>
-        <p class="subhead">Agents can write code. Only Permission Protocol can authorize production.</p>
-        <p class="support">Every production change requires a signed, single-use receipt — enforced at CI.</p>
+  <!-- Core Invariant Section -->
+  <section id="separation-of-powers">
+    <div class="container">
+      <div class="content">
+        <h2>Separation of Powers for Autonomous Systems</h2>
+        <p>As AI systems become autonomous actors, authorization must be:</p>
+        <ul class="requirements">
+          <li><strong>Explicit</strong> — produce a concrete decision artifact</li>
+          <li><strong>Portable</strong> — independent of the execution platform</li>
+          <li><strong>Externally Verifiable</strong> — verifiable without trusting the system performing the action</li>
+          <li><strong>Action-Bound</strong> — cryptographically bound to the exact irreversible action</li>
+        </ul>
+        <p>If these properties are missing, you do not have separation of powers.</p>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="demo-section" id="demo">
-      <div class="container">
+  <!-- Enforcement Demo -->
+  <section id="enforcement-demo">
+    <div class="container">
+      <div class="content">
+        <h2>Enforcement</h2>
         <div class="demo-container">
-          <img src="/assets/demo.gif" alt="Permission Protocol demo showing PR blocked, receipt issued, merge allowed, reuse blocked" loading="eager" />
+          <div class="demo-controls">
+            <button class="demo-btn" id="demo-trigger" data-track="demo-interaction">Attempt Production Deploy Without Receipt</button>
+          </div>
+          <div class="terminal" id="demo-terminal">
+            <div class="terminal-header">
+              <span class="terminal-dot red"></span>
+              <span class="terminal-dot yellow"></span>
+              <span class="terminal-dot green"></span>
+            </div>
+            <div class="terminal-body" id="demo-output">
+              <div class="terminal-line dimmed">$ deploy --env production</div>
+            </div>
+          </div>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="proof">
-      <div class="container">
-        <ul class="proof-list">
-          <li><span class="icon">❌</span> No receipt → merge blocked</li>
-          <li><span class="icon">✅</span> Receipt issued → merge allowed</li>
-          <li><span class="icon">🔐</span> Receipt redeemed at execution</li>
-          <li><span class="icon">♻️</span> Reuse fails. No replay. No bypass.</li>
+  <!-- Delegation Without Surrender -->
+  <section id="delegation">
+    <div class="container">
+      <div class="content">
+        <h2>Delegate execution without delegating authority.</h2>
+        <p>Agents and automation can operate with broad access. Irreversible authority remains isolated in a separate signer domain.</p>
+        <p>Actions require a production-signed receipt. No receipt → no action.</p>
+        <div class="example">
+          <div class="example-title">Example</div>
+          <p style="margin-bottom: 0;">An internal agent may access repositories and CI. It cannot issue a production deploy receipt. Without that receipt, production deploy cannot execute.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Why PR Approval Is Not Authority -->
+  <section id="approval-not-authority">
+    <div class="container">
+      <div class="content">
+        <h2>Approval Is Not Authority.</h2>
+        <p>Code review approves changes. It does not issue a cryptographic authorization artifact.</p>
+        <p>Platform state satisfies rules. It does not produce a portable receipt.</p>
+        <p>In GitHub, approval satisfies policy <em>inside</em> the system. In Permission Protocol, approval generates a signed capability that must be redeemed at execution.</p>
+        <p><strong>Authorization must be explicit and externally verifiable.</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Deploy Gate -->
+  <section id="deploy-gate">
+    <div class="container">
+      <div class="content">
+        <h2>Start with Deploy Gate.</h2>
+        <p>Deploy Gate enforces receipt redemption before production execution.</p>
+        <ul class="requirements">
+          <li>GitHub integration</li>
+          <li>CI enforcement step</li>
+          <li>Receipt verification</li>
+          <li>Fail-closed behavior</li>
+          <li>Environment-scoped authority domains</li>
         </ul>
+        <div class="diagram">
+          <div class="diagram-flow">
+            <div class="diagram-node">Agent</div>
+            <div class="diagram-arrow">↓</div>
+            <div class="diagram-node">GitHub</div>
+            <div class="diagram-arrow">↓</div>
+            <div class="diagram-node">CI</div>
+            <div class="diagram-arrow">↓</div>
+            <div class="diagram-node highlight">Permission Protocol<span class="diagram-note">(receipt required)</span></div>
+            <div class="diagram-arrow">↓</div>
+            <div class="diagram-node">Production</div>
+          </div>
+        </div>
+        <a href="/deploy-gate" class="btn btn-secondary" data-track="deploy-gate-cta">View Integration Guide</a>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="cta-section">
-      <div class="container">
-        <a class="btn-demo" href="#demo">Watch the 60-second demo</a>
-        <br>
-        <a class="btn-docs" href="https://github.com/permission-protocol/reference/blob/main/docs/receipt-signing.md">Read the docs →</a>
+  <!-- Disqualification Section -->
+  <section id="designed-for">
+    <div class="container">
+      <div class="content">
+        <h2>Designed for Irreversible Systems.</h2>
+        <p>Permission Protocol is built for teams where AI systems can:</p>
+        <ul class="disqualify-list">
+          <li>Merge code</li>
+          <li>Deploy to production</li>
+          <li>Modify infrastructure</li>
+          <li>Move funds</li>
+          <li>Delete data</li>
+        </ul>
+        <p><strong>If AI cannot affect production, this is not necessary.</strong></p>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="how-section">
-      <div class="container">
-        <h2>How it works</h2>
-        <ol class="steps">
-          <li>An agent attempts a production change.</li>
-          <li>Permission Protocol verifies a signed receipt at CI.</li>
-          <li>The change proceeds or is blocked — no bypass.</li>
-        </ol>
-      </div>
-    </section>
+  <!-- Final CTA -->
+  <section class="cta-section">
+    <div class="container">
+      <h2>Add separation of powers to your AI systems.</h2>
+      <a href="/request-access" class="btn btn-primary" data-track="final-cta">Request Access</a>
+      <p class="cta-subtext">Onboarding a limited number of teams running AI-driven deploys.</p>
+    </div>
+  </section>
 
-    <section class="why-section">
-      <div class="container">
-        <h2>Why this exists</h2>
-        <p>Autonomous systems can act faster than human oversight. Permission Protocol ensures authority stays human — explicit, auditable, and enforced at execution.</p>
-        <a class="docs-link" href="https://github.com/permission-protocol/reference/blob/main/docs/receipt-signing.md">Docs</a>
-      </div>
-    </section>
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <span class="footer-text">Permission Protocol</span>
+      <span class="footer-text">© 2025</span>
+    </div>
+  </footer>
 
-    <footer>
-      <div class="container">
-        <a href="https://github.com/permission-protocol/reference">GitHub</a>
-        <a href="https://github.com/permission-protocol/reference/blob/main/docs/receipt-signing.md">Docs</a>
-        <a href="mailto:contact@permissionprotocol.com">contact@permissionprotocol.com</a>
-      </div>
-    </footer>
-  </main>
+  <script src="/main.js"></script>
 </body>
 </html>

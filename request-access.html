@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Request Access — Permission Protocol</title>
+  <meta name="description" content="Request access to Permission Protocol. Onboarding teams running AI-driven deploys.">
+  <link rel="icon" href="/assets/favicon.ico">
+  <link rel="stylesheet" href="/styles.css">
+  <script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys onSessionId".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+  </script>
+  <style>
+    .form-success {
+      display: none;
+      text-align: center;
+      padding: 3rem 2rem;
+    }
+    .form-success.show {
+      display: block;
+    }
+    .form-success h2 {
+      margin-bottom: 1rem;
+    }
+    .form-error {
+      color: #dc2626;
+      font-size: 0.875rem;
+      margin-top: 0.5rem;
+      display: none;
+    }
+    .form-error.show {
+      display: block;
+    }
+    .form-container.submitted form {
+      display: none;
+    }
+    .form-container.submitted .form-success {
+      display: block;
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="container">
+      <a href="/" class="logo">Permission Protocol</a>
+      <ul class="nav-links">
+        <li><a href="/deploy-gate">Deploy Gate</a></li>
+        <li><a href="/architecture">Architecture</a></li>
+        <li><a href="/receipt-model">Receipt Model</a></li>
+        <li><a href="/request-access" class="primary">Request Access</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <header class="page-header">
+    <div class="container">
+      <h1>Request Access</h1>
+      <p class="lead">Onboarding a limited number of teams running AI-driven deploys.</p>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <div class="container">
+      <div class="form-container" id="form-container">
+        
+        <form id="access-form" autocomplete="on">
+          <div class="form-group">
+            <label class="form-label" for="company">Company Name</label>
+            <input type="text" id="company" name="company" class="form-input" required autocomplete="organization">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="github_org">GitHub Organization</label>
+            <input type="text" id="github_org" name="github_org" class="form-input" placeholder="e.g., acme-corp" autocomplete="off">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="engineers">Number of Engineers</label>
+            <select id="engineers" name="engineers" class="form-select" required>
+              <option value="">Select...</option>
+              <option value="1-5">1–5</option>
+              <option value="6-20">6–20</option>
+              <option value="21-50">21–50</option>
+              <option value="51-200">51–200</option>
+              <option value="200+">200+</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Does AI influence your deploy process?</label>
+            <div class="form-radio-group">
+              <label class="form-radio">
+                <input type="radio" name="ai_deploy" value="yes" required>
+                <span>Yes</span>
+              </label>
+              <label class="form-radio">
+                <input type="radio" name="ai_deploy" value="no">
+                <span>No</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="action">What irreversible action are you protecting?</label>
+            <textarea id="action" name="action" class="form-textarea" placeholder="e.g., Production deploys, infrastructure changes, database migrations..." required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="email">Email</label>
+            <input type="email" id="email" name="email" class="form-input" required autocomplete="email">
+          </div>
+
+          <div class="form-error" id="form-error"></div>
+
+          <div class="form-group" style="margin-top: 2rem;">
+            <button type="submit" class="btn btn-primary" style="width: 100%;" id="submit-btn">
+              Request Access
+            </button>
+          </div>
+        </form>
+
+        <div class="form-success">
+          <h2>Request received.</h2>
+          <p>We'll review your request and respond within 24 hours.</p>
+          <p style="margin-top: 2rem;"><a href="/" class="btn btn-secondary">Back to Home</a></p>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span class="footer-text">Permission Protocol</span>
+      <span class="footer-text">© 2025</span>
+    </div>
+  </footer>
+
+  <script src="/main.js"></script>
+  <script>
+    (function() {
+      const form = document.getElementById('access-form');
+      const container = document.getElementById('form-container');
+      const errorEl = document.getElementById('form-error');
+      const submitBtn = document.getElementById('submit-btn');
+
+      // Track form start
+      let formStarted = false;
+      form.addEventListener('focusin', function() {
+        if (!formStarted) {
+          formStarted = true;
+          if (window.posthog) {
+            posthog.capture('form_started', { form: 'request_access' });
+          }
+        }
+      });
+
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Disable button
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+        errorEl.classList.remove('show');
+
+        // Collect form data
+        const formData = new FormData(form);
+        const data = {
+          company: formData.get('company'),
+          github_org: formData.get('github_org'),
+          engineers: formData.get('engineers'),
+          ai_deploy: formData.get('ai_deploy'),
+          action: formData.get('action'),
+          email: formData.get('email'),
+          source: new URLSearchParams(window.location.search).get('utm_source') || 'direct',
+          submitted_at: new Date().toISOString()
+        };
+
+        try {
+          const response = await fetch('/api/request-access', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+
+          if (!response.ok) {
+            throw new Error('Submission failed');
+          }
+
+          // Track success
+          if (window.posthog) {
+            posthog.capture('form_submitted', { 
+              form: 'request_access',
+              company: data.company,
+              engineers: data.engineers,
+              ai_deploy: data.ai_deploy
+            });
+          }
+
+          // Show success
+          container.classList.add('submitted');
+
+        } catch (err) {
+          errorEl.textContent = 'Something went wrong. Please try again or email us directly.';
+          errorEl.classList.add('show');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Request Access';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
