@@ -40,25 +40,44 @@
       <h1>AI systems act.<br>Authority must live outside the system acting.</h1>
       <p class="subheadline">Permission Protocol is the signer of record for irreversible AI actions.</p>
       <div class="btn-group">
-        <a href="/request-access" class="btn btn-primary" data-track="hero-cta-primary">Request Access</a>
-        <a href="/deploy-gate" class="btn btn-secondary" data-track="hero-cta-secondary">See Deploy Gate</a>
+        <a href="/request-access" class="btn btn-primary" data-track="hero_cta_click">Request Access</a>
+        <a href="/deploy-gate" class="btn btn-secondary" data-track="hero_cta_click">View Deploy Gate</a>
       </div>
     </div>
   </section>
 
-  <!-- Core Invariant Section -->
-  <section id="separation-of-powers">
+  <!-- Immediate Structural Claim -->
+  <section id="structural-claim" class="claim-section">
     <div class="container">
       <div class="content">
-        <h2>Separation of Powers for Autonomous Systems</h2>
-        <p>As AI systems become autonomous actors, authorization must be:</p>
-        <ul class="requirements">
-          <li><strong>Explicit</strong> — produce a concrete decision artifact</li>
-          <li><strong>Portable</strong> — independent of the execution platform</li>
-          <li><strong>Externally Verifiable</strong> — verifiable without trusting the system performing the action</li>
-          <li><strong>Action-Bound</strong> — cryptographically bound to the exact irreversible action</li>
-        </ul>
-        <p>If these properties are missing, you do not have separation of powers.</p>
+        <p class="structural-claim">If your AI can deploy to production without redeeming a signed authorization receipt, you do not have separation of powers.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Authorization Requirements -->
+  <section id="authorization-requirements">
+    <div class="container">
+      <div class="content">
+        <h2>Authorization Requirements for Autonomous Systems</h2>
+        <div class="invariant-grid">
+          <div class="invariant-card">
+            <h3>Explicit</h3>
+            <p>Authorization produces a concrete decision artifact, not implicit platform state.</p>
+          </div>
+          <div class="invariant-card">
+            <h3>Portable</h3>
+            <p>The artifact is independent of any execution platform or runtime context.</p>
+          </div>
+          <div class="invariant-card">
+            <h3>Externally Verifiable</h3>
+            <p>Verification does not require trusting the system performing the action.</p>
+          </div>
+          <div class="invariant-card">
+            <h3>Action-Bound</h3>
+            <p>The artifact is cryptographically bound to the exact irreversible action.</p>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -68,20 +87,65 @@
     <div class="container">
       <div class="content">
         <h2>Enforcement</h2>
+        <p class="demo-intro">Deploy cannot execute without redeeming a production-signed receipt.</p>
         <div class="demo-container">
-          <div class="demo-controls">
-            <button class="demo-btn" id="demo-trigger" data-track="demo-interaction">Attempt Production Deploy Without Receipt</button>
+          <div class="demo-toggle">
+            <button class="demo-tab active" data-state="rejected" data-track="demo_interaction">Missing Receipt</button>
+            <button class="demo-tab" data-state="approved" data-track="demo_interaction">Valid Receipt</button>
           </div>
-          <div class="terminal" id="demo-terminal">
+          <div class="terminal">
             <div class="terminal-header">
               <span class="terminal-dot red"></span>
               <span class="terminal-dot yellow"></span>
               <span class="terminal-dot green"></span>
             </div>
             <div class="terminal-body" id="demo-output">
-              <div class="terminal-line dimmed">$ deploy --env production</div>
+              <!-- Rejected state (default) -->
+              <div class="demo-state" id="state-rejected">
+                <div class="terminal-line dimmed">$ deploy --env production</div>
+                <div class="terminal-line">&nbsp;</div>
+                <div class="terminal-line"><span class="label">Target:</span> <span class="value">production</span></div>
+                <div class="terminal-line"><span class="label">Commit:</span> <span class="value">a81f2c3</span></div>
+                <div class="terminal-line"><span class="label">Receipt:</span> <span class="value">not provided</span></div>
+                <div class="terminal-line">&nbsp;</div>
+                <div class="terminal-line"><span class="label">Status:</span> <span class="status-rejected">REJECTED</span></div>
+                <div class="terminal-line"><span class="reason">Missing signed authorization receipt</span></div>
+                <div class="terminal-line dimmed">exit 1</div>
+              </div>
+              <!-- Approved state -->
+              <div class="demo-state" id="state-approved" style="display: none;">
+                <div class="terminal-line dimmed">$ deploy --env production --receipt pp_rcpt_7f3d...</div>
+                <div class="terminal-line">&nbsp;</div>
+                <div class="terminal-line"><span class="label">Target:</span> <span class="value">production</span></div>
+                <div class="terminal-line"><span class="label">Commit:</span> <span class="value">a81f2c3</span></div>
+                <div class="terminal-line"><span class="label">Receipt:</span> <span class="status-approved">verified</span></div>
+                <div class="terminal-line"><span class="label">Signer:</span> <span class="value">production-authority</span></div>
+                <div class="terminal-line"><span class="label">Policy:</span> <span class="value">prod-deploy-v1</span></div>
+                <div class="terminal-line">&nbsp;</div>
+                <div class="terminal-line"><span class="label">Status:</span> <span class="status-approved">APPROVED</span></div>
+                <div class="terminal-line dimmed">Deploying to production...</div>
+              </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ICP Diagnostic Block -->
+  <section id="diagnostic" data-track="diagnostic_block_view">
+    <div class="container">
+      <div class="content">
+        <h2>Does This Apply to Your Stack?</h2>
+        <ul class="diagnostic-checklist">
+          <li>AI systems generate or modify production-bound code</li>
+          <li>Deploy is automated through CI/CD</li>
+          <li>Agents or bots hold execution privileges</li>
+          <li>Production changes are irreversible</li>
+        </ul>
+        <p class="diagnostic-conclusion"><strong>If yes, authorization must be external.</strong></p>
+        <div style="margin-top: 2rem;">
+          <a href="/request-access" class="btn btn-primary" data-track="diagnostic_cta_click">Request Access</a>
         </div>
       </div>
     </div>
@@ -92,28 +156,36 @@
     <div class="container">
       <div class="content">
         <h2>Delegate execution without delegating authority.</h2>
-        <p>Agents and automation can operate with broad access. Irreversible authority remains isolated in a separate signer domain.</p>
-        <p>Actions require a production-signed receipt. No receipt → no action.</p>
-        <div class="example">
-          <div class="example-title">Example</div>
-          <p style="margin-bottom: 0;">An internal agent may access repositories and CI. It cannot issue a production deploy receipt. Without that receipt, production deploy cannot execute.</p>
-        </div>
+        <p>Execution privileges can be broad. Authority to authorize production must remain isolated.</p>
+        <p>Production deploy requires a receipt from the production signer domain. No receipt → no execution.</p>
       </div>
     </div>
   </section>
 
-  <!-- Why PR Approval Is Not Authority -->
+  <!-- Approval Is Not Authority -->
   <section id="approval-not-authority">
     <div class="container">
       <div class="content">
         <h2>Approval Is Not Authority.</h2>
-        <ul class="requirements">
-          <li><strong>Code review</strong> — approves changes, does not issue a cryptographic artifact</li>
-          <li><strong>Platform state</strong> — satisfies rules, does not produce a portable receipt</li>
-          <li><strong>GitHub approval</strong> — satisfies policy <em>inside</em> the system</li>
-          <li><strong>Permission Protocol</strong> — generates a signed capability redeemed at execution</li>
-        </ul>
-        <p><strong>Authorization must be explicit and externally verifiable.</strong></p>
+        <div class="contrast-table">
+          <div class="contrast-column">
+            <h3>GitHub Approval</h3>
+            <ul>
+              <li>Satisfies platform policy</li>
+              <li>Stored as repository metadata</li>
+              <li>Valid inside GitHub trust boundary</li>
+            </ul>
+          </div>
+          <div class="contrast-column">
+            <h3>Permission Protocol</h3>
+            <ul>
+              <li>Produces signed authorization artifact</li>
+              <li>Portable across systems</li>
+              <li>Required at execution time</li>
+              <li>Verifiable outside execution plane</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -122,15 +194,9 @@
   <section id="deploy-gate">
     <div class="container">
       <div class="content">
-        <h2>Start with Deploy Gate.</h2>
-        <p>Deploy Gate enforces receipt redemption before production execution.</p>
-        <ul class="requirements">
-          <li>GitHub integration</li>
-          <li>CI enforcement step</li>
-          <li>Receipt verification</li>
-          <li>Fail-closed behavior</li>
-          <li>Environment-scoped authority domains</li>
-        </ul>
+        <h2>Deploy Gate</h2>
+        <p>Receipt verification step in your CI pipeline.</p>
+        
         <div class="diagram">
           <div class="diagram-flow">
             <div class="diagram-node">Agent</div>
@@ -139,30 +205,43 @@
             <div class="diagram-arrow">↓</div>
             <div class="diagram-node">CI</div>
             <div class="diagram-arrow">↓</div>
-            <div class="diagram-node highlight">Permission Protocol<span class="diagram-note">(receipt required)</span></div>
+            <div class="diagram-node highlight">Permission Protocol</div>
             <div class="diagram-arrow">↓</div>
             <div class="diagram-node">Production</div>
           </div>
         </div>
+
+<pre><code>- name: Verify Authorization
+  run: |
+    pp verify \
+      --scope "${{ github.repository }}" \
+      --commit "${{ github.sha }}" \
+      --env production
+    
+- name: Deploy
+  if: success()
+  run: ./deploy.sh</code></pre>
+
+        <p class="technical-note"><strong>If receipt verification fails, deploy exits non-zero.</strong></p>
+        
         <a href="/deploy-gate" class="btn btn-secondary" data-track="deploy-gate-cta">View Integration Guide</a>
       </div>
     </div>
   </section>
 
-  <!-- Disqualification Section -->
+  <!-- Designed for Irreversible Systems -->
   <section id="designed-for">
     <div class="container">
       <div class="content">
         <h2>Designed for Irreversible Systems.</h2>
-        <p>Permission Protocol is built for teams where AI systems can:</p>
+        <p>Built for teams where AI systems can:</p>
         <ul class="disqualify-list">
-          <li>Merge code</li>
           <li>Deploy to production</li>
           <li>Modify infrastructure</li>
           <li>Move funds</li>
           <li>Delete data</li>
         </ul>
-        <p><strong>If AI cannot affect production, this is not necessary.</strong></p>
+        <p><strong>If AI cannot affect production, this is unnecessary.</strong></p>
       </div>
     </div>
   </section>
@@ -171,7 +250,7 @@
   <section class="cta-section">
     <div class="container">
       <h2>Add separation of powers to your AI systems.</h2>
-      <a href="/request-access" class="btn btn-primary" data-track="final-cta">Request Access</a>
+      <a href="/request-access" class="btn btn-primary" data-track="final_cta_click">Request Access</a>
       <p class="cta-subtext">Onboarding a limited number of teams running AI-driven deploys.</p>
     </div>
   </section>

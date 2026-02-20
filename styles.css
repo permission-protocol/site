@@ -383,6 +383,152 @@ ul.requirements li::before {
   color: var(--gray-600);
 }
 
+/* Structural Claim */
+.claim-section {
+  padding: 4rem 0;
+  background: var(--gray-900);
+}
+
+.structural-claim {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--white);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Invariant Grid */
+.invariant-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.invariant-card {
+  padding: 1.5rem;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+}
+
+.invariant-card h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.invariant-card p {
+  font-size: 0.9375rem;
+  color: var(--gray-600);
+  margin: 0;
+}
+
+/* Demo Toggle */
+.demo-intro {
+  font-size: 1rem;
+  color: var(--gray-700);
+  margin-bottom: 1.5rem;
+}
+
+.demo-toggle {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1rem;
+  border: 1px solid var(--gray-300);
+  border-radius: 4px;
+  overflow: hidden;
+  width: fit-content;
+}
+
+.demo-tab {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  padding: 0.625rem 1.25rem;
+  background: var(--white);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-right: 1px solid var(--gray-300);
+}
+
+.demo-tab:last-child {
+  border-right: none;
+}
+
+.demo-tab:hover {
+  background: var(--gray-50);
+}
+
+.demo-tab.active {
+  background: var(--gray-900);
+  color: var(--white);
+}
+
+/* Diagnostic Checklist */
+.diagnostic-checklist {
+  list-style: none;
+  margin: 1.5rem 0;
+}
+
+.diagnostic-checklist li {
+  position: relative;
+  padding: 0.75rem 0 0.75rem 2rem;
+  color: var(--gray-700);
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.diagnostic-checklist li:last-child {
+  border-bottom: none;
+}
+
+.diagnostic-checklist li::before {
+  content: "☐";
+  position: absolute;
+  left: 0;
+  color: var(--gray-400);
+  font-size: 1.125rem;
+}
+
+.diagnostic-conclusion {
+  margin-top: 1.5rem;
+  font-size: 1rem;
+}
+
+/* Contrast Table */
+.contrast-table {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.contrast-column h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.contrast-column ul {
+  list-style: none;
+  margin: 0;
+}
+
+.contrast-column li {
+  padding: 0.5rem 0;
+  color: var(--gray-700);
+  font-size: 0.9375rem;
+}
+
+/* Technical Note */
+.technical-note {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--gray-700);
+  margin: 1.5rem 0;
+}
+
 /* Example block */
 .example {
   margin-top: 2rem;
@@ -713,6 +859,35 @@ footer .container {
   /* Container padding on mobile */
   .container {
     padding: 0 1.5rem;
+  }
+  
+  /* v2 components mobile */
+  .structural-claim {
+    font-size: 1.125rem;
+  }
+  
+  .invariant-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .invariant-card {
+    padding: 1.25rem;
+  }
+  
+  .demo-toggle {
+    width: 100%;
+  }
+  
+  .demo-tab {
+    flex: 1;
+    text-align: center;
+    padding: 0.75rem 0.5rem;
+  }
+  
+  .contrast-table {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
 }
 
