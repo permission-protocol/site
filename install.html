@@ -3,322 +3,248 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Install Deploy Gate — Permission Protocol</title>
-  <meta name="description" content="Add Deploy Gate to your repo in under 5 minutes. No receipt, no deploy. Fail-closed enforcement for AI-driven production changes.">
-
-  <!-- Open Graph -->
+  <title>Install Deploy Gate — 2 Minutes to Protected | Permission Protocol</title>
+  <meta name="description" content="Add cryptographic deploy authorization to any GitHub repo in under 2 minutes. One workflow file, one secret. No dependencies.">
+  <meta property="og:title" content="Install Deploy Gate — 2 Minutes to Protected">
+  <meta property="og:description" content="Add cryptographic deploy authorization to any GitHub repo in 2 minutes. One workflow, one secret.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://permissionprotocol.com/install">
-  <meta property="og:title" content="Install Deploy Gate — Permission Protocol">
-  <meta property="og:description" content="Add Deploy Gate to your repo in under 5 minutes. No receipt, no deploy.">
   <meta property="og:image" content="https://permissionprotocol.com/assets/og-image.png">
-
-  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Install Deploy Gate — Permission Protocol">
-  <meta name="twitter:description" content="Add Deploy Gate to your repo in under 5 minutes. No receipt, no deploy.">
-  <meta name="twitter:image" content="https://permissionprotocol.com/assets/og-image.png">
+  <meta name="twitter:title" content="Install Deploy Gate — 2 Minutes to Protected">
+  <meta name="twitter:description" content="One workflow. One secret. No dependencies. No merge without approval.">
   <link rel="icon" href="/assets/favicon.ico">
-  <link rel="stylesheet" href="/styles.css?v=5">
-  <script>
-    !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys onSessionId".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
-    posthog.init("phc_p8CF1B4nuU6nDEYHj4GfOZrOejgkN8BX75kzPZrE6bc", { api_host: "https://us.i.posthog.com", person_profiles: "identified_only" });
-  </script>
+  <link rel="stylesheet" href="/styles.css?v=4">
   <style>
-    .install-steps {
-      counter-reset: step;
-      margin: 3rem 0;
+    .install-page { max-width: 720px; margin: 0 auto; padding: 4rem 1.5rem; }
+    .install-page h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .install-page .subtitle { color: var(--gray-500); font-size: 1.25rem; margin-bottom: 3rem; }
+    
+    .step { margin-bottom: 3rem; position: relative; padding-left: 3.5rem; }
+    .step-number {
+      position: absolute; left: 0; top: 0;
+      width: 2.5rem; height: 2.5rem;
+      background: var(--black); color: var(--white);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-weight: 600; font-size: 1rem;
     }
-    .install-step {
-      position: relative;
-      padding: 2rem 0 2rem 4rem;
-      border-left: 2px solid var(--gray-200);
-      margin-left: 1rem;
-    }
-    .install-step:last-child {
-      border-left-color: transparent;
-    }
-    .install-step::before {
-      counter-increment: step;
-      content: counter(step);
-      position: absolute;
-      left: -1rem;
-      top: 2rem;
-      width: 2rem;
-      height: 2rem;
-      background: var(--black);
-      color: var(--white);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      font-size: 0.875rem;
-    }
-    .install-step h3 {
-      margin-bottom: 0.75rem;
-      font-size: 1.25rem;
-    }
-    .install-step p {
-      margin-bottom: 1rem;
-      color: var(--gray-600);
-    }
+    .step h2 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .step .time { color: var(--gray-400); font-size: 0.875rem; margin-bottom: 1rem; }
+    .step p { color: var(--gray-600); margin-bottom: 1rem; line-height: 1.7; }
+    .step ol { color: var(--gray-600); padding-left: 1.25rem; margin-bottom: 1rem; }
+    .step li { margin-bottom: 0.5rem; line-height: 1.6; }
+
     .code-block {
       position: relative;
-      background: var(--gray-900);
-      color: var(--gray-100);
-      border-radius: 8px;
-      padding: 1.25rem 1.5rem;
-      font-family: var(--font-mono);
-      font-size: 0.85rem;
-      line-height: 1.7;
-      overflow-x: auto;
-      margin: 1rem 0;
+      background: var(--gray-900); color: #e0e0e0;
+      border-radius: 8px; padding: 1.25rem 1.5rem;
+      font-family: var(--font-mono); font-size: 0.875rem;
+      line-height: 1.6; overflow-x: auto; margin-bottom: 1rem;
     }
-    .code-block .copy-btn {
-      position: absolute;
-      top: 0.75rem;
-      right: 0.75rem;
-      background: var(--gray-700);
-      color: var(--gray-300);
-      border: none;
-      border-radius: 4px;
-      padding: 0.35rem 0.75rem;
-      font-size: 0.75rem;
-      cursor: pointer;
-      font-family: var(--font-sans);
-      transition: background 0.15s;
+    .code-block .filename {
+      display: block; color: var(--gray-400);
+      font-size: 0.75rem; margin-bottom: 0.75rem;
+      letter-spacing: 0.05em; text-transform: uppercase;
     }
-    .code-block .copy-btn:hover {
-      background: var(--gray-600);
-      color: var(--white);
+    .copy-btn {
+      position: absolute; top: 0.75rem; right: 0.75rem;
+      background: var(--gray-700); color: var(--white);
+      border: none; border-radius: 4px; padding: 0.35rem 0.75rem;
+      font-size: 0.75rem; cursor: pointer; font-family: var(--font-sans);
     }
-    .code-block .copy-btn.copied {
-      background: #16a34a;
-      color: var(--white);
+    .copy-btn:hover { background: var(--gray-600); }
+    .copy-btn.copied { background: #16a34a; }
+
+    .note {
+      background: #fefce8; border: 1px solid #fde68a; border-radius: 6px;
+      padding: 1rem 1.25rem; font-size: 0.875rem; color: #713f12; margin-bottom: 1rem;
     }
-    .time-badge {
-      display: inline-block;
-      background: var(--gray-100);
-      border: 1px solid var(--gray-200);
-      border-radius: 100px;
-      padding: 0.35rem 1rem;
-      font-size: 0.85rem;
-      color: var(--gray-600);
-      margin-bottom: 1.5rem;
+    .note strong { color: #854d0e; }
+
+    .result-box {
+      background: var(--gray-900); color: #e0e0e0;
+      border-radius: 8px; padding: 1.5rem;
+      font-family: var(--font-mono); font-size: 0.8rem;
+      line-height: 1.7; margin-bottom: 1rem;
     }
-    .install-hero {
-      padding: 6rem 0 3rem;
+    .result-box .fail { color: #ef4444; }
+    .result-box .success { color: #22c55e; }
+    .result-box .link { color: #60a5fa; }
+
+    .done-box {
+      background: #f0fdf4; border: 2px solid #86efac; border-radius: 8px;
+      padding: 2rem; text-align: center; margin-top: 3rem;
     }
-    .install-hero h1 {
-      font-size: 2.75rem;
-      margin-bottom: 1rem;
-      letter-spacing: -0.03em;
+    .done-box h2 { color: #166534; margin-bottom: 0.5rem; }
+    .done-box p { color: #15803d; }
+
+    .faq { margin-top: 3rem; border-top: 1px solid var(--gray-200); padding-top: 2rem; }
+    .faq h2 { font-size: 1.5rem; margin-bottom: 1.5rem; }
+    .faq details { margin-bottom: 1rem; }
+    .faq summary {
+      font-weight: 500; cursor: pointer; padding: 0.75rem 0;
+      color: var(--gray-700); list-style: none;
     }
-    .install-hero .lead {
-      font-size: 1.2rem;
-      color: var(--gray-500);
-      max-width: 560px;
-    }
-    .prereq-list {
-      list-style: none;
-      padding: 0;
-      margin: 1rem 0;
-    }
-    .prereq-list li {
-      padding: 0.5rem 0;
-      padding-left: 1.75rem;
-      position: relative;
-      color: var(--gray-600);
-    }
-    .prereq-list li::before {
-      content: "✓";
-      position: absolute;
-      left: 0;
-      color: var(--black);
-      font-weight: 600;
-    }
-    .help-box {
-      background: var(--gray-50);
-      border: 1px solid var(--gray-200);
-      border-radius: 8px;
-      padding: 1.5rem 2rem;
-      margin: 3rem 0 2rem;
-    }
-    .help-box h3 {
-      margin-bottom: 0.5rem;
-    }
-    .help-box p {
-      margin-bottom: 0;
-      color: var(--gray-500);
-    }
-    .help-box a {
-      text-decoration: underline;
-    }
-    .yaml-comment {
-      color: #6b7280;
-    }
-    .yaml-key {
-      color: #93c5fd;
-    }
-    .yaml-string {
-      color: #86efac;
-    }
-    .yaml-var {
-      color: #fbbf24;
-    }
-    @media (max-width: 640px) {
-      .install-hero h1 {
-        font-size: 2rem;
-      }
-      .install-step {
-        padding-left: 3rem;
-      }
-    }
+    .faq summary::before { content: '▸ '; color: var(--gray-400); }
+    .faq details[open] summary::before { content: '▾ '; }
+    .faq .answer { color: var(--gray-600); padding: 0 0 1rem 1rem; line-height: 1.7; }
+
+    .back-link { display: inline-block; margin-bottom: 2rem; color: var(--gray-400); text-decoration: none; }
+    .back-link:hover { color: var(--black); }
   </style>
 </head>
 <body>
-  <nav>
-    <div class="container">
-      <a href="/" class="logo">Permission Protocol</a>
-      <ul class="nav-links" id="nav-links">
-        <li><a href="/deploy-gate">Deploy Gate</a></li>
-        <li><a href="/install" class="primary">Install</a></li>
-        <li><a href="/architecture">Architecture</a></li>
-        <li class="mobile-hide"><a href="/request-access" class="primary">Request Access</a></li>
-      </ul>
-      <a href="/request-access" class="nav-cta-btn" data-track="pp_nav_cta_click">Request Access</a>
-      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
-    </div>
-  </nav>
-  <div class="nav-overlay" id="nav-overlay"></div>
+  <div class="install-page">
+    <a href="/" class="back-link">← Permission Protocol</a>
 
-  <header class="install-hero">
-    <div class="container">
-      <span class="time-badge">⏱ Under 5 minutes</span>
-      <h1>Install Deploy Gate</h1>
-      <p class="lead">Add fail-closed enforcement to any GitHub repo. No receipt → no deploy. Three steps, one workflow file.</p>
-    </div>
-  </header>
+    <h1>Protect This Repo</h1>
+    <p class="subtitle">No merge without approval. 2 minutes. Zero dependencies.</p>
 
-  <main class="page-content">
-    <div class="container">
-      <div class="content">
-
-        <h2>Prerequisites</h2>
-        <ul class="prereq-list">
-          <li>A GitHub repository with a CI/CD workflow</li>
-          <li>A Permission Protocol account (<a href="/request-access">request access</a> if you don't have one)</li>
-          <li>Your PP API key and Tenant ID (from your dashboard)</li>
-        </ul>
-
-        <div class="install-steps">
-
-          <div class="install-step">
-            <h3>Add your API key to GitHub Secrets</h3>
-            <p>In your repo, go to <strong>Settings → Secrets and variables → Actions</strong> and add two repository secrets:</p>
-            <div class="code-block">
-              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-<span class="yaml-comment"># Secret 1</span>
-Name:  <span class="yaml-key">PP_API_KEY</span>
-Value: <span class="yaml-string">&lt;your API key from the PP dashboard&gt;</span>
-
-<span class="yaml-comment"># Secret 2</span>
-Name:  <span class="yaml-key">PP_TENANT_ID</span>
-Value: <span class="yaml-string">&lt;your tenant ID from the PP dashboard&gt;</span>
-            </div>
-          </div>
-
-          <div class="install-step">
-            <h3>Add the Deploy Gate workflow</h3>
-            <p>Create <code>.github/workflows/deploy-gate.yml</code> in your repo:</p>
-            <div class="code-block">
-              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-<span class="yaml-key">name:</span> <span class="yaml-string">Deploy Gate</span>
-
-<span class="yaml-key">on:</span>
-  <span class="yaml-key">pull_request:</span>
-    <span class="yaml-key">types:</span> [opened, synchronize, reopened]
-
-<span class="yaml-key">jobs:</span>
-  <span class="yaml-key">deploy-gate:</span>
-    <span class="yaml-key">runs-on:</span> <span class="yaml-string">ubuntu-latest</span>
-    <span class="yaml-key">steps:</span>
-      - <span class="yaml-key">name:</span> <span class="yaml-string">Verify Deploy Authorization</span>
-        <span class="yaml-key">uses:</span> <span class="yaml-string">permission-protocol/verify-action@v1</span>
-        <span class="yaml-key">with:</span>
-          <span class="yaml-key">api-key:</span> <span class="yaml-var">${{ secrets.PP_API_KEY }}</span>
-          <span class="yaml-key">tenant-id:</span> <span class="yaml-var">${{ secrets.PP_TENANT_ID }}</span>
-          <span class="yaml-key">scope:</span> <span class="yaml-string">|</span>
-            {
-              "scopeType": "GIT_REF_COMMIT",
-              "ref": <span class="yaml-var">${{ github.sha }}</span>,
-              "repo": <span class="yaml-var">${{ github.repository }}</span>,
-              "environment": "production"
-            }
-            </div>
-          </div>
-
-          <div class="install-step">
-            <h3>Enable branch protection</h3>
-            <p>Lock it down so the gate can't be skipped. In your repo, go to <strong>Settings → Branches → Branch protection rules</strong>:</p>
-            <div class="code-block">
-              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-Branch name pattern: <span class="yaml-string">main</span>
-
-<span class="yaml-comment">Enable these:</span>
-☑ Require status checks to pass before merging
-  → Search and add: <span class="yaml-key">deploy-gate</span>
-☑ Require branches to be up to date
-☑ Do not allow bypassing the above settings
-            </div>
-            <p>That's it. Every PR to <code>main</code> now requires a valid authorization receipt before it can merge. No receipt → merge blocked → nothing reaches production.</p>
-          </div>
-
-        </div>
-
-        <h2>Verify it works</h2>
-        <p>Open a test PR against <code>main</code>. You should see the Deploy Gate check appear as "pending" — it will block until a valid receipt is issued through Permission Protocol.</p>
-        <p>To approve a deploy, create a deploy request in your <a href="https://app.permissionprotocol.com">PP dashboard</a>. Once approved and the receipt is issued, the check turns green and the PR can merge.</p>
-
-        <div class="help-box">
-          <h3>Need help?</h3>
-          <p>Check the <a href="/deploy-gate">Deploy Gate docs</a> for detailed configuration options, or <a href="/request-access">contact us</a> and we'll help you get set up.</p>
-        </div>
-
+    <div class="step">
+      <div class="step-number">1</div>
+      <h2>Get Your API Key</h2>
+      <div class="time">~1 minute</div>
+      <ol>
+        <li>Go to <a href="https://app.permissionprotocol.com" target="_blank"><strong>app.permissionprotocol.com</strong></a></li>
+        <li>Sign up or log in</li>
+        <li>Go to <strong>Settings → API Keys → Create Key</strong></li>
+        <li>Name it <code>deploy-gate</code></li>
+        <li>Scopes: <code>receipts.verify, deployRequests.create</code></li>
+        <li>Copy the key (shown only once)</li>
+      </ol>
+      <div class="note">
+        <strong>🔒 Least privilege:</strong> This key can create approval requests and verify receipts. It cannot approve requests or access other tenants.
       </div>
     </div>
-  </main>
 
-  <footer>
-    <div class="container">
-      <div class="footer-content">
-        <p>&copy; 2025 Permission Protocol. All rights reserved.</p>
+    <div class="step">
+      <div class="step-number">2</div>
+      <h2>Add Secret to Your Repo</h2>
+      <div class="time">~30 seconds</div>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <code>gh secret set PP_API_KEY -b "pp_live_your_key_here"</code>
+      </div>
+      <p>Or: Repo → <strong>Settings → Secrets → Actions → New repository secret</strong></p>
+    </div>
+
+    <div class="step">
+      <div class="step-number">3</div>
+      <h2>Add the Workflow</h2>
+      <div class="time">~30 seconds</div>
+      <p>Create <code>.github/workflows/deploy-gate.yml</code> in your repo:</p>
+      <div class="code-block">
+        <span class="filename">.github/workflows/deploy-gate.yml</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <code id="workflow-yaml">name: Deploy Gate
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: permission-protocol/deploy-gate@v1
+        with:
+          pp-api-key: ${{ secrets.PP_API_KEY }}</code>
+      </div>
+      <p>Commit and push to <code>main</code>.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-number">4</div>
+      <h2>Test It</h2>
+      <div class="time">~30 seconds</div>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <code>git checkout -b test-gate
+echo "# test" >> .github/workflows/test.yml
+git add . && git commit -m "test: trigger deploy gate"
+git push origin test-gate</code>
+      </div>
+      <p>Open a PR to <code>main</code>. The check will fail immediately:</p>
+      <div class="result-box">
+═══════════════════════════════════════════<br>
+&nbsp;&nbsp;<span class="fail">🔐 DEPLOY AUTHORIZATION REQUIRED</span><br>
+<br>
+&nbsp;&nbsp;<span class="fail">❌ NO RECEIPT — Human approval required</span><br>
+<br>
+&nbsp;&nbsp;This PR changes protected deployment files.<br>
+&nbsp;&nbsp;A human must approve before merge.<br>
+<br>
+&nbsp;&nbsp;<span class="link">👉 APPROVE: https://app.permissionprotocol.com/pp/deploy-requests/dr_...</span><br>
+═══════════════════════════════════════════
+      </div>
+      <p>Click the approval link. Approve. Re-run the workflow.</p>
+      <div class="result-box">
+&nbsp;&nbsp;<span class="success">✅ RECEIPT VERIFIED — Deploy authorized</span><br>
+&nbsp;&nbsp;Receipt: <span class="success">rcpt_dg_...</span> | Approved by: you@company.com
       </div>
     </div>
-  </footer>
 
-  <script src="/main.js"></script>
+    <div class="done-box">
+      <h2>✅ You're protected.</h2>
+      <p>No PR touching protected paths can merge without a signed receipt.</p>
+    </div>
+
+    <div class="faq">
+      <h2>Common Questions</h2>
+      
+      <details>
+        <summary>What paths are protected by default?</summary>
+        <div class="answer">
+          <code>deploy/*</code> and <code>.github/workflows/*</code>. Customize with the <code>protected-paths</code> input:<br><br>
+          <code>protected-paths: '^(src/critical/|infra/|terraform/)'</code>
+        </div>
+      </details>
+
+      <details>
+        <summary>What if the check fails unexpectedly?</summary>
+        <div class="answer">
+          Check that your <code>PP_API_KEY</code> secret is set correctly (starts with <code>pp_live_</code> or <code>pp_test_</code>) and has the right scopes. See the <a href="https://github.com/permission-protocol/deploy-gate/blob/main/INSTALL.md#common-errors">troubleshooting guide</a>.
+        </div>
+      </details>
+
+      <details>
+        <summary>Can I use this with branch protection rules?</summary>
+        <div class="answer">
+          Yes — and you should. Go to <strong>Settings → Branches → Branch protection rules</strong> and add "Deploy Gate" as a required status check. This makes the gate mandatory.
+        </div>
+      </details>
+
+      <details>
+        <summary>How is the receipt signed?</summary>
+        <div class="answer">
+          Ed25519 signature over a canonical JSON payload. Each receipt is scoped to a specific repo, commit SHA, and environment. Receipts expire. See <a href="/receipt-model">Receipt Model</a> for the full spec.
+        </div>
+      </details>
+
+      <details>
+        <summary>Is it free?</summary>
+        <div class="answer">
+          Deploy Gate is open source. During early access, the hosted approval service is free. We'll announce pricing well before any changes.
+        </div>
+      </details>
+    </div>
+  </div>
+
   <script>
     function copyCode(btn) {
       const block = btn.parentElement;
-      const text = block.innerText.replace('Copy', '').replace('Copied!', '').trim();
+      const code = block.querySelector('code');
+      const text = code.textContent || code.innerText;
       navigator.clipboard.writeText(text).then(() => {
         btn.textContent = 'Copied!';
         btn.classList.add('copied');
-        posthog.capture('install_code_copied', { step: block.closest('.install-step')?.querySelector('h3')?.textContent || 'unknown' });
         setTimeout(() => {
           btn.textContent = 'Copy';
           btn.classList.remove('copied');
         }, 2000);
       });
     }
-    // Track install page view
-    posthog.capture('install_page_viewed');
   </script>
 </body>
 </html>
