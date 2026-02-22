@@ -34,16 +34,16 @@
       "destination": "/receipt-model.html"
     },
     {
-      "source": "/install",
-      "destination": "/install.html"
-    },
-    {
       "source": "/request-access",
       "destination": "/request-access.html"
     },
     {
       "source": "/install",
       "destination": "/install.html"
+    },
+    {
+      "source": "/challenge",
+      "destination": "/challenge.html"
     }
   ]
 }
