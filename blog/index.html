@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog — Permission Protocol</title>
+    <meta name="description" content="Insights on AI agent governance, deployment security, and cryptographic authorization for autonomous systems.">
+    <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="/" class="brand-link">Permission Protocol</a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="/deploy-gate">Deploy Gate</a></li>
+                <li><a href="/install">Install</a></li>
+                <li><a href="/blog" class="active">Blog</a></li>
+                <li><a href="/request-access" class="cta-button">Request Access</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="main">
+        <section class="hero-section">
+            <div class="container">
+                <div class="hero-content">
+                    <h1>Blog</h1>
+                    <p class="hero-subtitle">Insights on AI agent governance, deployment security, and the future of autonomous system authorization.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="blog-list">
+            <div class="container">
+                <div class="blog-grid">
+                    
+                    <article class="blog-card">
+                        <div class="blog-meta">
+                            <time datetime="2026-02">February 2026</time>
+                            <span class="blog-tag">AI Governance</span>
+                        </div>
+                        <h2 class="blog-title">
+                            <a href="/blog/aws-kiro-outage-ai-governance.html">What AWS Kiro's 13-Hour Outage Teaches Us About AI Agent Governance</a>
+                        </h2>
+                        <p class="blog-excerpt">
+                            Amazon's AI coding agent Kiro caused a 13-hour AWS outage by deleting and recreating an entire environment without human approval. Here's why this keeps happening and how Deploy Gate prevents it.
+                        </p>
+                        <a href="/blog/aws-kiro-outage-ai-governance.html" class="blog-link">Read more →</a>
+                    </article>
+
+                    <article class="blog-card">
+                        <div class="blog-meta">
+                            <time datetime="2026-02">February 2026</time>
+                            <span class="blog-tag">Security</span>
+                        </div>
+                        <h2 class="blog-title">
+                            <a href="/blog/openclaw-security-nightmare.html">OpenClaw Proved AI Agents Work. Now Prove They Can Be Trusted.</a>
+                        </h2>
+                        <p class="blog-excerpt">
+                            42,000 exposed OpenClaw instances. 93.4% with auth bypasses. Cisco called it a "security nightmare." Every breakthrough in AI autonomy creates new attack vectors without proper governance.
+                        </p>
+                        <a href="/blog/openclaw-security-nightmare.html" class="blog-link">Read more →</a>
+                    </article>
+
+                    <article class="blog-card">
+                        <div class="blog-meta">
+                            <time datetime="2026-02">February 2026</time>
+                            <span class="blog-tag">Framework</span>
+                        </div>
+                        <h2 class="blog-title">
+                            <a href="/blog/signer-of-record-gap.html">Your AI Just Deployed Code. Who Signed It?</a>
+                        </h2>
+                        <p class="blog-excerpt">
+                            Your AI agent passed CI, deployed to production, and is now serving users. But who approved it? Not a human. Not a policy. Nobody. That's the signer of record gap.
+                        </p>
+                        <a href="/blog/signer-of-record-gap.html" class="blog-link">Read more →</a>
+                    </article>
+
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3>Permission Protocol</h3>
+                    <p>Signer of Record for Autonomous Systems</p>
+                </div>
+                <div class="footer-links">
+                    <div class="footer-section">
+                        <h4>Product</h4>
+                        <ul>
+                            <li><a href="/deploy-gate">Deploy Gate</a></li>
+                            <li><a href="/install">Install</a></li>
+                            <li><a href="/request-access">Request Access</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-section">
+                        <h4>Resources</h4>
+                        <ul>
+                            <li><a href="/blog">Blog</a></li>
+                            <li><a href="/docs">Documentation</a></li>
+                            <li><a href="https://github.com/permission-protocol/pp-demo">Demo Repo</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Permission Protocol. Signer of Record for Autonomous Systems.</p>
+            </div>
+        </div>
+    </footer>
+
+    <style>
+    .blog-list {
+        padding: 4rem 0;
+    }
+    
+    .blog-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+    
+    .blog-card {
+        background: #ffffff;
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        padding: 2rem;
+        transition: all 0.2s ease;
+    }
+    
+    .blog-card:hover {
+        border-color: #3b82f6;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+    }
+    
+    .blog-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+    
+    .blog-tag {
+        background: #eff6ff;
+        color: #1d4ed8;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-weight: 500;
+    }
+    
+    .blog-title {
+        margin: 0 0 1rem 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        line-height: 1.4;
+    }
+    
+    .blog-title a {
+        color: #111827;
+        text-decoration: none;
+    }
+    
+    .blog-title a:hover {
+        color: #3b82f6;
+    }
+    
+    .blog-excerpt {
+        color: #6b7280;
+        line-height: 1.6;
+        margin-bottom: 1.5rem;
+    }
+    
+    .blog-link {
+        color: #3b82f6;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.2s ease;
+    }
+    
+    .blog-link:hover {
+        color: #1d4ed8;
+    }
+    
+    @media (max-width: 768px) {
+        .blog-grid {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        
+        .blog-card {
+            padding: 1.5rem;
+        }
+    }
+    </style>
+</body>
+</html>
