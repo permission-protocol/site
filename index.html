@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Permission Protocol — Signer of Record for Autonomous Systems</title>
-  <meta name="description" content="No AI action without an explicit signer. Permission Protocol is the Signer of Record for autonomous systems — cryptographically signed receipts, not internal logs.">
+  <title>Permission Protocol — The Primitive Gate for Autonomous Systems</title>
+  <meta name="description" content="The gate is always closed. Permission Protocol is the primitive gate for autonomous systems — deny by default, permit by proof.">
   
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://permissionprotocol.com/">
-  <meta property="og:title" content="Permission Protocol — Signer of Record for Autonomous Systems">
-  <meta property="og:description" content="Fail-closed enforcement for AI deployments. Cryptographically signed receipts, not internal logs. No AI action without an explicit signer.">
+  <meta property="og:title" content="Permission Protocol — The Primitive Gate for Autonomous Systems">
+  <meta property="og:description" content="The gate is always closed. Deny by default, permit by proof. The primitive gate for autonomous systems.">
   <meta property="og:image" content="https://permissionprotocol.com/assets/og-image.png">
   
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Permission Protocol — Signer of Record for Autonomous Systems">
+  <meta name="twitter:title" content="Permission Protocol — The Primitive Gate for Autonomous Systems">
   <meta name="twitter:description" content="Fail-closed enforcement for AI deployments. Cryptographically signed receipts, not internal logs.">
   <meta name="twitter:image" content="https://permissionprotocol.com/assets/og-image.png">
   
@@ -31,7 +31,9 @@
   <!-- Navigation -->
   <nav>
     <div class="container">
-      <a href="/" class="logo">Permission Protocol</a>
+      <a href="/" class="logo">
+        <img src="/assets/brand/logo-horizontal.svg" alt="Permission Protocol" height="32">
+      </a>
       <ul class="nav-links" id="nav-links">
         <li><a href="/deploy-gate">Deploy Gate</a></li>
         <li><a href="/install">Install</a></li>
@@ -51,12 +53,12 @@
   <!-- Hero -->
   <section class="hero">
     <div class="container">
-      <h1>No AI action without an explicit signer.</h1>
-      <p class="subheadline">Permission Protocol is the Signer of Record for autonomous systems. It enforces irreversible actions with cryptographically signed receipts — not internal logs.</p>
+      <h1>The gate is always closed.</h1>
+      <p class="subheadline">Permission Protocol is the primitive gate for autonomous systems. No action without explicit authorization — deny by default, permit by proof.</p>
       <div class="hero-trust-bullets">
-        <span class="trust-bullet">Fail-closed enforcement (no receipt, no action)</span>
-        <span class="trust-bullet">Tamper-evident receipts (evidence, not logs)</span>
-        <span class="trust-bullet">Works with CI/CD + gateways (edge enforcement)</span>
+        <span class="trust-bullet">The primitive gate (deny by default)</span>
+        <span class="trust-bullet">Cryptographic proofs (permit by proof)</span>
+        <span class="trust-bullet">Edge enforcement (gate at the barrier)</span>
       </div>
       <div class="btn-group">
         <a href="/request-access" class="btn btn-primary" data-track="pp_home_cta_click">Request Access</a>
@@ -126,8 +128,36 @@
   <section id="enforcement-demo">
     <div class="container">
       <div class="content">
-        <h2>The Gate</h2>
-        <p class="demo-intro">Deploy blocked without a signed receipt. Watch the flow.</p>
+        <h2>The Primitive Gate</h2>
+        <p class="demo-intro">No action without explicit authorization. The channel is severed at the barrier until signed.</p>
+        
+        <!-- Gate Semantics Visualization -->
+        <div class="gate-semantics">
+          <div class="gate-state">
+            <h3>Unsigned (Blocked)</h3>
+            <div class="terminal-output">
+              <pre><code>┌─────┬─────┐
+│ AI  │     │ Action
+│ Agent     │ Blocked
+└─────┘     └─────────
+</code></pre>
+            </div>
+            <p>Channel severed at barrier</p>
+          </div>
+          <div class="gate-arrow">→</div>
+          <div class="gate-state">
+            <h3>Signed (Permitted)</h3>
+            <div class="terminal-output">
+              <pre><code>┌─────┼─────┐
+│ AI  │  ✓  │ Action
+│ Agent  │  │ Flows
+└─────┘     └─────────
+</code></pre>
+            </div>
+            <p>Channel crosses barrier</p>
+          </div>
+        </div>
+        
         <div class="demo-container">
           <div class="demo-status-panel">
             <div class="status-row">
