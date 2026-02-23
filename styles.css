@@ -115,6 +115,28 @@ nav .container {
   letter-spacing: -0.01em;
 }
 
+/* Brand Lockup Typography */
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+.brand-lockup .permission {
+  color: var(--black);
+  font-weight: 600;
+}
+
+.brand-lockup .protocol-light {
+  color: var(--gray-600);
+  font-weight: 400;
+  margin-left: 0.25em;
+}
+
 .nav-links {
   display: flex;
   gap: 2.5rem;
