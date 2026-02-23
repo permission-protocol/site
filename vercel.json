@@ -1,13 +1,45 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
-  "redirects": [
+  "headers": [
     {
-      "source": "/signin",
-      "destination": "https://company-os-web.onrender.com/",
-      "permanent": false
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/deploy-gate",
+      "destination": "/deploy-gate.html"
+    },
+    {
+      "source": "/architecture",
+      "destination": "/architecture.html"
+    },
+    {
+      "source": "/receipt-model",
+      "destination": "/receipt-model.html"
+    },
+    {
+      "source": "/install",
+      "destination": "/install.html"
+    },
+    {
+      "source": "/request-access",
+      "destination": "/request-access.html"
     }
   ]
 }
-
-

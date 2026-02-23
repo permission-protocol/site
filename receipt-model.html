@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Receipt Model — Permission Protocol</title>
+  <meta name="description" content="Deep technical specification of authorization receipts: payload structure, signature scheme, replay protection, and verification.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://permissionprotocol.com/receipt-model">
+  <meta property="og:title" content="Receipt Model — Permission Protocol">
+  <meta property="og:description" content="Deep technical specification of authorization receipts: payload structure, signature scheme, replay protection, and verification.">
+  <meta property="og:image" content="https://permissionprotocol.com/assets/og-image.png">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Receipt Model — Permission Protocol">
+  <meta name="twitter:description" content="Deep technical specification of authorization receipts: payload structure, signature scheme, replay protection, and verification.">
+  <meta name="twitter:image" content="https://permissionprotocol.com/assets/og-image.png">
+  <link rel="icon" href="/assets/favicon.ico">
+  <link rel="stylesheet" href="/styles.css?v=4">
+  <script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys onSessionId".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+    posthog.init("phc_p8CF1B4nuU6nDEYHj4GfOZrOejgkN8BX75kzPZrE6bc", { api_host: "https://us.i.posthog.com", person_profiles: "identified_only" });
+  </script>
+</head>
+<body>
+  <nav>
+    <div class="container">
+      <a href="/" class="logo">Permission Protocol</a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/deploy-gate">Deploy Gate</a></li>
+        <li><a href="/architecture">Architecture</a></li>
+        <li><a href="/receipt-model" class="primary">Receipt Model</a></li>
+        <li class="mobile-hide"><a href="/request-access" class="primary">Request Access</a></li>
+      </ul>
+      <a href="/request-access" class="nav-cta-btn" data-track="pp_nav_cta_click">Request Access</a>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+  <div class="nav-overlay" id="nav-overlay"></div>
+
+  <header class="page-header">
+    <div class="container">
+      <h1>Receipt Model</h1>
+      <p class="lead">Cryptographic authorization artifacts bound to specific actions.</p>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <div class="container">
+      <div class="content">
+        
+        <h2>Receipt Payload Structure</h2>
+        
+        <p>A receipt is a signed JSON document containing the authorization decision and the scope it covers. The payload includes all fields necessary to verify the authorization at execution time.</p>
+
+<pre><code>{
+  "id": "rcpt_7f3d8a2e...",
+  "companyId": "comp_abc123",
+  "version": "1.0",
+  "status": "APPROVED",
+  
+  "scope": {
+    "scopeType": "GIT_REF_COMMIT",
+    "repo": "org/service",
+    "ref": "refs/heads/main",
+    "commitSha": "a81f2c3e9b4d...",
+    "env": "production",
+    "capability": "deploy:production"
+  },
+  
+  "agentId": "agent_deploy_bot",
+  "requestId": "req_5c2a...",
+  "policyVersion": "v2024.1",
+  "riskTier": "TIER_1",
+  
+  "createdAt": "2025-02-19T10:30:00Z",
+  "expiresAt": "2025-02-19T12:30:00Z",
+  
+  "signature": {
+    "algorithm": "Ed25519",
+    "keyId": "key_prod_001",
+    "value": "base64_encoded_signature..."
+  }
+}</code></pre>
+
+        <h2>Scope Binding</h2>
+        
+        <p>The scope defines exactly what action this receipt authorizes. Scope binding ensures a receipt cannot be reused for a different action.</p>
+
+        <h3>GIT_REF_COMMIT Scope</h3>
+        <p>For production deploys tied to a specific commit:</p>
+        
+<pre><code>{
+  "scopeType": "GIT_REF_COMMIT",
+  "repo": "org/service",
+  "ref": "refs/heads/main",
+  "commitSha": "a81f2c3e9b4d5f6a7b8c9d0e1f2a3b4c5d6e7f8a",
+  "env": "production",
+  "capability": "deploy:production"
+}</code></pre>
+
+        <h3>PR_HEAD Scope</h3>
+        <p>For PR-level checks before merge:</p>
+
+<pre><code>{
+  "scopeType": "PR_HEAD",
+  "repo": "org/service",
+  "prNumber": 142,
+  "headSha": "b92c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c",
+  "env": "production",
+  "capability": "deploy:production"
+}</code></pre>
+
+        <p>A receipt for <code>commitSha: a81f2c3</code> cannot authorize a deploy of <code>commitSha: b92c4d5</code>. Scope mismatch results in verification failure.</p>
+
+        <h2>Signature Scheme</h2>
+        
+        <p>Receipts are signed using Ed25519. The signature covers a canonicalized representation of the receipt payload, ensuring any modification invalidates the signature.</p>
+
+        <h3>Canonicalization</h3>
+        <p>Before signing, the payload is canonicalized:</p>
+        <ul class="requirements">
+          <li>Fields sorted alphabetically</li>
+          <li>No whitespace in JSON encoding</li>
+          <li>Consistent date format (ISO 8601)</li>
+          <li>Null values excluded</li>
+        </ul>
+
+        <h3>Signed Fields</h3>
+        <p>The signature covers these fields:</p>
+
+<pre><code>id, companyId, idemKey, agentId, runId, requestJson,
+inputHash, status, riskTier, policyVersion, reasonCodes,
+summary, receiptVersion, canonicalization, signatureAlg,
+signatureKeyId, expiresAt, createdAt</code></pre>
+
+        <p>Modifying any signed field — including <code>expiresAt</code> — invalidates the signature.</p>
+
+        <h3>Key Identification</h3>
+        <p>Each signature includes a <code>keyId</code> identifying which signing key was used. Verifiers resolve the key from Permission Protocol's key registry. Keys are rotated periodically; old keys remain valid for verification of existing receipts.</p>
+
+        <h2>Replay Protection</h2>
+        
+        <p>Receipts include multiple replay protection mechanisms:</p>
+
+        <h3>Expiration</h3>
+        <p>Every receipt has an <code>expiresAt</code> timestamp. After expiration, the receipt cannot authorize any action, even if the signature remains valid.</p>
+
+        <h3>Single-Use Redemption</h3>
+        <p>When a receipt is used to authorize an action, it is marked as redeemed in the ledger. A redeemed receipt cannot be used again.</p>
+
+        <h3>Scope Uniqueness</h3>
+        <p>The scope hash ensures only one valid receipt exists for a given scope at any time. Creating a new receipt for the same scope invalidates the previous receipt.</p>
+
+        <h2>Verification Flow</h2>
+
+        <p>Verification is a single API call that returns a boolean decision:</p>
+
+<pre><code>POST /v1/receipts/verify
+Authorization: Bearer pp_live_xxx
+
+{
+  "scope": {
+    "scopeType": "GIT_REF_COMMIT",
+    "repo": "org/service",
+    "ref": "refs/heads/main",
+    "commitSha": "a81f2c3e...",
+    "env": "production",
+    "capability": "deploy:production"
+  }
+}</code></pre>
+
+        <p>Response on success:</p>
+
+<pre><code>{
+  "verified": true,
+  "receiptId": "rcpt_7f3d8a2e...",
+  "expiresAt": "2025-02-19T12:30:00Z"
+}</code></pre>
+
+        <p>Response on failure:</p>
+
+<pre><code>{
+  "verified": false,
+  "errorCode": "RECEIPT_NOT_FOUND"
+}</code></pre>
+
+        <h3>Error Codes</h3>
+        <ul class="requirements">
+          <li><code>RECEIPT_NOT_FOUND</code> — no receipt exists for this scope</li>
+          <li><code>RECEIPT_EXPIRED</code> — receipt exists but has expired</li>
+          <li><code>RECEIPT_REVOKED</code> — receipt was explicitly revoked</li>
+          <li><code>SIGNATURE_INVALID</code> — receipt signature verification failed</li>
+          <li><code>SCOPE_MISMATCH</code> — receipt scope does not match request</li>
+        </ul>
+
+        <h2>Idempotency</h2>
+        
+        <p>Authorization requests include an idempotency key (<code>idemKey</code>). Submitting the same request twice returns the existing receipt rather than creating a duplicate. This allows safe retry of failed requests without risk of duplicate authorizations.</p>
+
+<pre><code>{
+  "idemKey": "deploy-org/service-a81f2c3e-production",
+  "scope": { ... }
+}</code></pre>
+
+        <h2>Audit Trail</h2>
+        
+        <p>Every receipt creation, verification attempt, and redemption is logged in the receipt ledger. The audit trail includes:</p>
+
+        <ul class="requirements">
+          <li>Request metadata (agent, timestamp, source IP)</li>
+          <li>Policy evaluation results</li>
+          <li>Approval chain (who approved, when)</li>
+          <li>Verification attempts (success/failure)</li>
+          <li>Redemption event</li>
+        </ul>
+
+        <p>The ledger is append-only. Records cannot be modified or deleted.</p>
+
+        <div style="margin-top: 3rem;">
+          <a href="/request-access" class="btn btn-primary" data-track="receipt-model-cta">Request Access</a>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span class="footer-text">Permission Protocol</span>
+      <span class="footer-text">© 2025</span>
+    </div>
+  </footer>
+
+  <script src="/main.js"></script>
+</body>
+</html>

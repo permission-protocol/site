@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Request Access — Permission Protocol</title>
+  <meta name="description" content="Request access to Permission Protocol. Onboarding teams running AI-driven deploys.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://permissionprotocol.com/request-access">
+  <meta property="og:title" content="Request Access — Permission Protocol">
+  <meta property="og:description" content="Request access to Permission Protocol. Onboarding teams running AI-driven deploys.">
+  <meta property="og:image" content="https://permissionprotocol.com/assets/og-image.png">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Request Access — Permission Protocol">
+  <meta name="twitter:description" content="Request access to Permission Protocol. Onboarding teams running AI-driven deploys.">
+  <meta name="twitter:image" content="https://permissionprotocol.com/assets/og-image.png">
+  <link rel="icon" href="/assets/favicon.ico">
+  <link rel="stylesheet" href="/styles.css?v=4">
+  <script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys onSessionId".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+    posthog.init("phc_p8CF1B4nuU6nDEYHj4GfOZrOejgkN8BX75kzPZrE6bc", { api_host: "https://us.i.posthog.com", person_profiles: "identified_only" });
+  </script>
+  <style>
+    .form-step { display: none; }
+    .form-step.active { display: block; }
+    .form-success, .form-redirect { display: none; text-align: center; padding: 3rem 0; }
+    .form-success h2, .form-redirect h2 { margin-bottom: 1rem; }
+    .form-redirect p { color: var(--gray-600); }
+    .form-error { color: #dc2626; font-size: 0.875rem; margin-top: 0.5rem; display: none; }
+    .form-error.show { display: block; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .step-indicator { font-size: 0.875rem; color: var(--gray-500); margin-bottom: 1.5rem; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="container">
+      <a href="/" class="logo">Permission Protocol</a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/deploy-gate">Deploy Gate</a></li>
+        <li><a href="/architecture">Architecture</a></li>
+        <li><a href="/receipt-model">Receipt Model</a></li>
+        <li class="mobile-hide"><a href="/request-access" class="primary">Request Access</a></li>
+      </ul>
+      <a href="/request-access" class="nav-cta-btn" data-track="pp_nav_cta_click">Request Access</a>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+  <div class="nav-overlay" id="nav-overlay"></div>
+
+  <header class="page-header">
+    <div class="container">
+      <h1>Request Access</h1>
+      <p class="lead">Onboarding a limited number of teams running AI-driven deploys.</p>
+    </div>
+  </header>
+
+  <main class="page-content">
+    <div class="container">
+      <div class="form-container" id="form-container">
+        
+        <form id="access-form" autocomplete="on">
+          <!-- Step 1: Company + GitHub -->
+          <div class="form-step active" id="step-1">
+            <div class="step-indicator">Step 1 of 2</div>
+            
+            <div class="form-group">
+              <label class="form-label" for="company">Company Name</label>
+              <input type="text" id="company" name="company" class="form-input" required autocomplete="organization">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="github_org">GitHub Organization</label>
+              <input type="text" id="github_org" name="github_org" class="form-input" placeholder="e.g., acme-corp" autocomplete="off">
+            </div>
+
+            <div class="form-group" style="margin-top: 2rem;">
+              <button type="button" class="btn btn-primary" style="width: 100%;" id="next-btn">Continue</button>
+            </div>
+          </div>
+
+          <!-- Step 2: AI Deploy + Action + Email -->
+          <div class="form-step" id="step-2">
+            <div class="step-indicator">Step 2 of 2</div>
+            
+            <div class="form-group">
+              <label class="form-label">Does AI influence your deploy process?</label>
+              <div class="form-radio-group">
+                <label class="form-radio">
+                  <input type="radio" name="ai_deploy" value="yes" required>
+                  <span>Yes</span>
+                </label>
+                <label class="form-radio">
+                  <input type="radio" name="ai_deploy" value="no">
+                  <span>No</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group" id="action-group">
+              <label class="form-label" for="action">What irreversible action are you protecting?</label>
+              <textarea id="action" name="action" class="form-textarea" placeholder="e.g., Production deploys, infrastructure changes..." required></textarea>
+            </div>
+
+            <div class="form-group" id="email-group">
+              <label class="form-label" for="email">Email</label>
+              <input type="email" id="email" name="email" class="form-input" required autocomplete="email">
+            </div>
+
+            <div class="form-error" id="form-error"></div>
+
+            <div class="form-group" style="margin-top: 2rem;">
+              <button type="submit" class="btn btn-primary" style="width: 100%;" id="submit-btn">Request Access</button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Success State -->
+        <div class="form-success" id="form-success">
+          <h2>Request received.</h2>
+          <p>We'll review your request and respond within 24 hours.</p>
+          <p style="margin-top: 2rem;"><a href="/" class="btn btn-secondary">Back to Home</a></p>
+        </div>
+
+        <!-- Redirect State (No AI) -->
+        <div class="form-redirect" id="form-redirect">
+          <h2>This system is designed for AI systems affecting production.</h2>
+          <p>Permission Protocol enforces authorization for autonomous AI actions. If AI does not influence your deploy process, this level of enforcement may not be necessary for your stack.</p>
+          <p style="margin-top: 2rem;"><a href="/" class="btn btn-secondary">Learn More</a></p>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <span class="footer-text">Permission Protocol</span>
+      <span class="footer-text">© 2025</span>
+    </div>
+  </footer>
+
+  <script src="/main.js"></script>
+  <script>
+    (function() {
+      const form = document.getElementById('access-form');
+      const step1 = document.getElementById('step-1');
+      const step2 = document.getElementById('step-2');
+      const nextBtn = document.getElementById('next-btn');
+      const submitBtn = document.getElementById('submit-btn');
+      const errorEl = document.getElementById('form-error');
+      const successEl = document.getElementById('form-success');
+      const redirectEl = document.getElementById('form-redirect');
+      const aiRadios = document.querySelectorAll('input[name="ai_deploy"]');
+      
+      const pageLoadTime = Date.now();
+      let formStartTime = null;
+
+      // Track form start on first interaction
+      form.addEventListener('focusin', function() {
+        if (!formStartTime) {
+          formStartTime = Date.now();
+          if (window.posthog) {
+            posthog.capture('form_start', { form: 'request_access' });
+          }
+        }
+      }, { once: true });
+
+      // Step 1 -> Step 2
+      nextBtn.addEventListener('click', function() {
+        const company = document.getElementById('company');
+        if (!company.value.trim()) {
+          company.focus();
+          return;
+        }
+        step1.classList.remove('active');
+        step2.classList.add('active');
+      });
+
+      // Handle AI deploy = No
+      aiRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+          if (this.value === 'no') {
+            // Show polite redirect
+            form.style.display = 'none';
+            redirectEl.style.display = 'block';
+            if (window.posthog) {
+              posthog.capture('form_redirect', { reason: 'no_ai_deploy' });
+            }
+          }
+        });
+      });
+
+      // Form submission
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+        errorEl.classList.remove('show');
+
+        const formData = new FormData(form);
+        const data = {
+          company: formData.get('company'),
+          github_org: formData.get('github_org'),
+          ai_deploy: formData.get('ai_deploy'),
+          action: formData.get('action'),
+          email: formData.get('email'),
+          source: new URLSearchParams(window.location.search).get('utm_source') || 'direct',
+          submitted_at: new Date().toISOString()
+        };
+
+        // Calculate time to submit
+        const timeToSubmit = formStartTime ? Math.round((Date.now() - formStartTime) / 1000) : null;
+
+        try {
+          const response = await fetch('/api/request-access', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+
+          if (!response.ok) throw new Error('Submission failed');
+
+          // Track success with time_to_submit
+          if (window.posthog) {
+            posthog.capture('form_submit', { 
+              form: 'request_access',
+              company: data.company,
+              ai_deploy: data.ai_deploy,
+              time_to_submit: timeToSubmit,
+              traffic_source_tag: data.source
+            });
+          }
+
+          // Show success
+          form.style.display = 'none';
+          successEl.style.display = 'block';
+
+        } catch (err) {
+          errorEl.textContent = 'Something went wrong. Please try again.';
+          errorEl.classList.add('show');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Request Access';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
