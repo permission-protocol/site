@@ -222,20 +222,17 @@
         const timeToSubmit = formStartTime ? Math.round((Date.now() - formStartTime) / 1000) : null;
 
         try {
-          // TODO: Replace with proper backend endpoint
-          // For now, log submission and show success (form validation works)
-          console.log('Permission Protocol Access Request:', data);
-          
-          // Store locally as backup (temporary solution)
-          const submissions = JSON.parse(localStorage.getItem('pp_submissions') || '[]');
-          submissions.push({...data, id: Date.now()});
-          localStorage.setItem('pp_submissions', JSON.stringify(submissions));
-          
-          // Also make submissions accessible via console
-          window.getPPSubmissions = () => JSON.parse(localStorage.getItem('pp_submissions') || '[]');
-          
-          // Simulate successful submission for UX
-          const response = { ok: true };
+          // Submit to Formspree - REPLACE 'FORMSPREE_ENDPOINT_HERE' with your actual endpoint ID
+          const response = await fetch('https://formspree.io/f/FORMSPREE_ENDPOINT_HERE', {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify(data)
+          });
+
+          if (!response.ok) throw new Error('Submission failed');
 
           // Track success with time_to_submit
           if (window.posthog) {
