@@ -222,8 +222,8 @@
         const timeToSubmit = formStartTime ? Math.round((Date.now() - formStartTime) / 1000) : null;
 
         try {
-          // Submit to Formspree - REPLACE 'FORMSPREE_ENDPOINT_HERE' with your actual endpoint ID
-          const response = await fetch('https://formspree.io/f/FORMSPREE_ENDPOINT_HERE', {
+          // Submit to Formspree
+          const response = await fetch('https://formspree.io/f/mzdakkab', {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
