@@ -1,0 +1,14 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Permission Protocol Gate Symbol -->
+  <rect width="32" height="32" fill="#0a0a0a"/>
+  
+  <!-- Gate frame -->
+  <rect x="6" y="10" width="20" height="12" stroke="#c8c8c8" stroke-width="1.5" fill="none"/>
+  
+  <!-- Horizontal bar (gate) -->
+  <line x1="6" y1="16" x2="26" y2="16" stroke="#c8c8c8" stroke-width="1.5"/>
+  
+  <!-- Vertical bars (authority) -->
+  <line x1="16" y1="10" x2="16" y2="14" stroke="#c8c8c8" stroke-width="1.5"/>
+  <line x1="16" y1="18" x2="16" y2="22" stroke="#c8c8c8" stroke-width="1.5"/>
+</svg>
