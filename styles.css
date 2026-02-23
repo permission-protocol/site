@@ -1532,3 +1532,34 @@ footer .container {
   margin-bottom: 0;
   color: #ffffff !important;
 }
+
+/* Blog CTA boxes */
+.blog-post .cta {
+  margin-top: 3rem;
+  padding: 2rem;
+  background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
+  border-radius: 8px;
+  text-align: center;
+  color: #ffffff !important;
+}
+
+.blog-post .cta p {
+  color: #ffffff !important;
+  margin-bottom: 1.5rem;
+  font-size: 1.125rem;
+}
+
+.blog-post .cta a {
+  display: inline-block;
+  padding: 1rem 2rem;
+  background: #fff;
+  color: #0a0a0a;
+  text-decoration: none;
+  font-weight: 600;
+  border-radius: 4px;
+  margin: 0.5rem;
+}
+
+.blog-post .cta a:hover {
+  background: #f0f0f0;
+}
