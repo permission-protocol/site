@@ -1519,9 +1519,9 @@ footer .container {
   align-items: center;
   margin: 3rem 0;
   padding: 2rem;
-  background: #0a0a0a;
+  background: var(--void);
   border-radius: 8px;
-  border: 1px solid #333;
+  border: 1px solid var(--ash);
 }
 
 .gate-state {
@@ -1538,30 +1538,51 @@ footer .container {
 }
 
 .gate-state .terminal-output {
-  background: #111;
+  background: var(--ash);
   padding: 1rem;
   border-radius: 4px;
   margin-bottom: 0.5rem;
+  border: 1px solid var(--signal);
+  opacity: 0.1;
 }
 
 .gate-state .terminal-output pre {
   margin: 0;
-  color: #00ff41;
-  font-family: 'Courier New', monospace;
+  color: var(--permit);
+  font-family: 'Space Mono', monospace;
   font-size: 0.9rem;
   line-height: 1.2;
 }
 
 .gate-state p {
-  color: #888;
+  color: var(--signal);
+  opacity: 0.8;
   font-size: 0.85rem;
   margin: 0;
 }
 
 .gate-arrow {
-  color: #666;
+  color: var(--signal);
+  opacity: 0.6;
   font-size: 2rem;
   margin: 0 2rem;
+}
+
+/* Brand Color States */
+.deny-state {
+  color: var(--deny) !important;
+}
+
+.permit-state {
+  color: var(--permit) !important;
+}
+
+.gate-state.blocked .terminal-output {
+  border-color: var(--deny);
+}
+
+.gate-state.permitted .terminal-output {
+  border-color: var(--permit);
 }
 
 @media (max-width: 768px) {
@@ -1578,23 +1599,23 @@ footer .container {
 
 /* Blog post styles */
 .blog-post .highlight {
-  background: #0a0a0a !important;
-  border-left: 3px solid #ff4444;
+  background: var(--void) !important;
+  border-left: 3px solid var(--deny);
   padding: 1.5rem;
   margin: 2rem 0;
   font-size: 1.25rem;
-  color: #ffffff !important;
+  color: var(--signal) !important;
 }
 
 .blog-post .highlight p {
   margin: 0;
   margin-bottom: 0.5rem;
-  color: #ffffff !important;
+  color: var(--signal) !important;
 }
 
 .blog-post .highlight p:last-child {
   margin-bottom: 0;
-  color: #ffffff !important;
+  color: var(--signal) !important;
 }
 
 /* Blog CTA boxes */

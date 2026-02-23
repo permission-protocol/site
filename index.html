@@ -32,7 +32,10 @@
   <nav>
     <div class="container">
       <a href="/" class="logo">
-        <img src="/assets/brand/logo-horizontal.svg" alt="Permission Protocol" height="32">
+        <span class="brand-lockup">
+          <span class="permission">PERMISSION</span>
+          <span class="protocol-light">PROTOCOL</span>
+        </span>
       </a>
       <ul class="nav-links" id="nav-links">
         <li><a href="/deploy-gate">Deploy Gate</a></li>
@@ -133,26 +136,24 @@
         
         <!-- Gate Semantics Visualization -->
         <div class="gate-semantics">
-          <div class="gate-state">
-            <h3>Unsigned (Blocked)</h3>
+          <div class="gate-state blocked">
+            <h3>Unsigned</h3>
             <div class="terminal-output">
-              <pre><code>┌─────┬─────┐
-│ AI  │     │ Action
-│ Agent     │ Blocked
-└─────┘     └─────────
-</code></pre>
+              <pre><code><span class="deny-state">┌─────┬─────┐
+│ AI  │  ✗  │ Action
+│ Agent │  │ Blocked
+└─────┘     └─────────</span></code></pre>
             </div>
             <p>Channel severed at barrier</p>
           </div>
           <div class="gate-arrow">→</div>
-          <div class="gate-state">
-            <h3>Signed (Permitted)</h3>
+          <div class="gate-state permitted">
+            <h3>Signed</h3>
             <div class="terminal-output">
-              <pre><code>┌─────┼─────┐
+              <pre><code><span class="permit-state">┌─────┼─────┐
 │ AI  │  ✓  │ Action
-│ Agent  │  │ Flows
-└─────┘     └─────────
-</code></pre>
+│ Agent │  │ Flows
+└─────┘     └─────────</span></code></pre>
             </div>
             <p>Channel crosses barrier</p>
           </div>
