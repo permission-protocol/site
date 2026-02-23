@@ -232,7 +232,15 @@
             body: JSON.stringify(data)
           });
 
-          if (!response.ok) throw new Error('Submission failed');
+          let responseData;
+          try { responseData = await response.json(); } catch(e) { responseData = {}; }
+
+          if (!response.ok) {
+            const msg = responseData.errors
+              ? responseData.errors.map(e => e.message || e.code).join(', ')
+              : responseData.error || ('Server returned ' + response.status);
+            throw new Error(msg);
+          }
 
           // Track success with time_to_submit
           if (window.posthog) {
@@ -250,7 +258,14 @@
           successEl.style.display = 'block';
 
         } catch (err) {
-          errorEl.textContent = 'Something went wrong. Please try again.';
+          console.error('Form submission error:', err);
+
+          // If fetch itself failed (network/CORS/blocked), try mailto fallback
+          if (err.name === 'TypeError' || err.message.includes('Failed to fetch')) {
+            errorEl.innerHTML = 'Network error — your browser may be blocking the request. <br><a href="mailto:rod@permissionprotocol.com?subject=Access%20Request%3A%20' + encodeURIComponent(data.company) + '&body=' + encodeURIComponent('Company: ' + data.company + '\nGitHub Org: ' + (data.github_org || 'N/A') + '\nAI Deploy: ' + data.ai_deploy + '\nAction: ' + data.action + '\nEmail: ' + data.email) + '" style="color:#3b82f6;text-decoration:underline;">Click here to send via email instead</a>';
+          } else {
+            errorEl.innerHTML = 'Something went wrong (' + err.message + '). <br><a href="mailto:rod@permissionprotocol.com?subject=Access%20Request%3A%20' + encodeURIComponent(data.company) + '&body=' + encodeURIComponent('Company: ' + data.company + '\nGitHub Org: ' + (data.github_org || 'N/A') + '\nAI Deploy: ' + data.ai_deploy + '\nAction: ' + data.action + '\nEmail: ' + data.email) + '" style="color:#3b82f6;text-decoration:underline;">Send via email instead</a>';
+          }
           errorEl.classList.add('show');
           submitBtn.disabled = false;
           submitBtn.textContent = 'Request Access';
