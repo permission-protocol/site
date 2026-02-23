@@ -23,11 +23,46 @@
     </nav>
 
     <main class="main">
-        <section class="hero-section" style="background: var(--gray-50); border-bottom: 1px solid var(--gray-200);">
+        <section class="blog-hero">
             <div class="container">
-                <div class="hero-content" style="text-align: center; max-width: 600px; margin: 0 auto;">
-                    <h1 style="font-weight: 600; font-size: 3rem; margin-bottom: 1.5rem; color: var(--black);">Blog</h1>
-                    <p class="hero-subtitle" style="font-size: 1.125rem; color: var(--gray-600); line-height: 1.7;">Insights on AI agent governance, deployment security, and the cryptographic authorization layer for autonomous systems.</p>
+                <div class="blog-hero-content">
+                    <div class="blog-hero-badge">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M8 0L10.57 5.43L16 8L10.57 10.57L8 16L5.43 10.57L0 8L5.43 5.43L8 0Z" fill="currentColor"/>
+                        </svg>
+                        Latest Insights
+                    </div>
+                    <h1 class="blog-hero-title">Infrastructure Intelligence</h1>
+                    <p class="blog-hero-subtitle">Deep analysis on AI agent governance, cryptographic authorization, and the security patterns that scale with autonomous systems.</p>
+                    <div class="blog-hero-stats">
+                        <div class="stat-item">
+                            <span class="stat-number">3</span>
+                            <span class="stat-label">Analysis</span>
+                        </div>
+                        <div class="stat-separator">•</div>
+                        <div class="stat-item">
+                            <span class="stat-number">42K+</span>
+                            <span class="stat-label">Instances Studied</span>
+                        </div>
+                        <div class="stat-separator">•</div>
+                        <div class="stat-item">
+                            <span class="stat-number">13hr</span>
+                            <span class="stat-label">Max Outage Prevented</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="blog-hero-decoration">
+                    <div class="decoration-grid">
+                        <div class="grid-dot"></div>
+                        <div class="grid-dot"></div>
+                        <div class="grid-dot"></div>
+                        <div class="grid-dot active"></div>
+                        <div class="grid-dot"></div>
+                        <div class="grid-dot active"></div>
+                        <div class="grid-dot"></div>
+                        <div class="grid-dot"></div>
+                        <div class="grid-dot active"></div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -261,6 +296,177 @@
         
         .hero-section .hero-subtitle {
             font-size: 1rem !important;
+        }
+    }
+
+    /* Blog Hero Styles */
+    .blog-hero {
+        position: relative;
+        background: linear-gradient(135deg, 
+            var(--black) 0%, 
+            #1a1a1a 50%, 
+            var(--black) 100%);
+        color: var(--white);
+        padding: 6rem 0 4rem 0;
+        overflow: hidden;
+    }
+    
+    .blog-hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(ellipse at center top, 
+            rgba(255, 255, 255, 0.05) 0%, 
+            transparent 50%);
+        pointer-events: none;
+    }
+    
+    .blog-hero-content {
+        position: relative;
+        text-align: center;
+        max-width: 700px;
+        margin: 0 auto;
+        z-index: 2;
+    }
+    
+    .blog-hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 100px;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 2rem;
+        backdrop-filter: blur(10px);
+    }
+    
+    .blog-hero-badge svg {
+        width: 14px;
+        height: 14px;
+        opacity: 0.8;
+    }
+    
+    .blog-hero-title {
+        font-size: 3.5rem;
+        font-weight: 700;
+        line-height: 1.1;
+        margin-bottom: 1.5rem;
+        letter-spacing: -0.05em;
+        background: linear-gradient(135deg, 
+            var(--white) 0%, 
+            rgba(255, 255, 255, 0.8) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .blog-hero-subtitle {
+        font-size: 1.25rem;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 3rem;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .blog-hero-stats {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 2rem;
+        font-size: 0.875rem;
+        color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .stat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    
+    .stat-number {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--white);
+    }
+    
+    .stat-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        opacity: 0.8;
+    }
+    
+    .stat-separator {
+        color: rgba(255, 255, 255, 0.3);
+        font-weight: 300;
+    }
+    
+    .blog-hero-decoration {
+        position: absolute;
+        top: 2rem;
+        right: 2rem;
+        opacity: 0.1;
+        z-index: 1;
+    }
+    
+    .decoration-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        width: 120px;
+        height: 120px;
+    }
+    
+    .grid-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+    }
+    
+    .grid-dot.active {
+        background: var(--white);
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.7; transform: scale(1.1); }
+    }
+    
+    @media (max-width: 768px) {
+        .blog-hero {
+            padding: 4rem 0 3rem 0;
+        }
+        
+        .blog-hero-title {
+            font-size: 2.5rem;
+        }
+        
+        .blog-hero-subtitle {
+            font-size: 1.125rem;
+            margin-bottom: 2rem;
+        }
+        
+        .blog-hero-stats {
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .blog-hero-decoration {
+            display: none;
         }
     }
     </style>
