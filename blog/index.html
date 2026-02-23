@@ -8,19 +8,24 @@
     <link rel="stylesheet" href="../styles.css">
 </head>
 <body>
-    <nav class="nav">
-        <div class="nav-container">
-            <div class="nav-brand">
-                <a href="/" class="brand-link">Permission Protocol</a>
-            </div>
-            <ul class="nav-links">
+    <nav>
+        <div class="container">
+            <a href="/" class="logo">Permission Protocol</a>
+            <ul class="nav-links" id="nav-links">
                 <li><a href="/deploy-gate">Deploy Gate</a></li>
                 <li><a href="/install">Install</a></li>
-                <li><a href="/blog" class="active">Blog</a></li>
-                <li><a href="/request-access" class="cta-button">Request Access</a></li>
+                <li><a href="/blog" class="primary">Blog</a></li>
+                <li class="mobile-hide"><a href="/request-access" class="primary">Request Access</a></li>
             </ul>
+            <a href="/request-access" class="nav-cta-btn" data-track="pp_nav_cta_click">Request Access</a>
+            <button class="mobile-menu-btn" id="mobile-menu-btn">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
         </div>
     </nav>
+    <div class="nav-overlay" id="nav-overlay"></div>
 
     <main class="main">
         <section class="blog-hero">
