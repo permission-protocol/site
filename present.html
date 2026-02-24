@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Presentation Mode — Permission Protocol</title>
+  <meta name="description" content="Interactive presentation mode for Permission Protocol. Navigate slides to demo Deploy Gate and receipt-based authorization.">
+
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://permissionprotocol.com/present">
+  <meta property="og:title" content="Presentation Mode — Permission Protocol">
+  <meta property="og:description" content="The authorization layer for autonomous systems.">
+  <meta property="og:image" content="https://permissionprotocol.com/assets/og-image.png">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Presentation Mode — Permission Protocol">
+  <meta name="twitter:description" content="The authorization layer for autonomous systems.">
+  <meta name="twitter:image" content="https://permissionprotocol.com/assets/og-image.png">
+
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="alternate icon" href="/assets/favicon.ico">
+  <link rel="stylesheet" href="/styles.css?v=6">
+  <script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys onSessionId".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+    posthog.init("phc_p8CF1B4nuU6nDEYHj4GfOZrOejgkN8BX75kzPZrE6bc", { api_host: "https://us.i.posthog.com", person_profiles: "identified_only" });
+  </script>
+</head>
+<body class="present-mode">
+  <nav>
+    <div class="container">
+      <a href="/" class="logo">
+        <span class="brand-lockup">
+          <span class="permission">PERMISSION</span>
+          <span class="protocol-light">PROTOCOL</span>
+        </span>
+      </a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/deploy-gate">Deploy Gate</a></li>
+        <li><a href="/install">Install</a></li>
+        <li><a href="/blog">Blog</a></li>
+        <li><a href="/present" class="primary">Present</a></li>
+        <li class="mobile-hide"><a href="/request-access" class="primary">Request Access</a></li>
+      </ul>
+      <a href="/request-access" class="nav-cta-btn" data-track="pp_nav_cta_click">Request Access</a>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+  <div class="nav-overlay" id="nav-overlay"></div>
+
+  <div class="present-dots" aria-label="Slide navigation">
+    <button class="present-dot is-active" data-slide="0" aria-label="Slide 1"></button>
+    <button class="present-dot" data-slide="1" aria-label="Slide 2"></button>
+    <button class="present-dot" data-slide="2" aria-label="Slide 3"></button>
+    <button class="present-dot" data-slide="3" aria-label="Slide 4"></button>
+    <button class="present-dot" data-slide="4" aria-label="Slide 5"></button>
+    <button class="present-dot" data-slide="5" aria-label="Slide 6"></button>
+  </div>
+
+  <main class="present-deck" id="present-deck">
+    <section class="present-slide present-title" data-slide-index="0">
+      <div class="present-inner">
+        <div class="present-kicker">Presentation Mode</div>
+        <h1 class="present-wordmark">Permission Protocol</h1>
+        <div class="present-gate present-gate--signed" aria-hidden="true">
+          <svg viewBox="0 0 220 140" class="present-gate-svg">
+            <rect x="24" y="24" width="172" height="92" rx="8" class="present-gate-frame"/>
+            <rect x="74" y="36" width="72" height="68" rx="6" class="present-gate-door"/>
+            <line x1="110" y1="36" x2="110" y2="104" class="present-gate-seam"/>
+            <circle cx="94" cy="70" r="4" class="present-gate-knob"/>
+            <circle cx="126" cy="70" r="4" class="present-gate-knob"/>
+          </svg>
+        </div>
+        <p class="present-subtitle">The authorization layer for autonomous systems</p>
+      </div>
+    </section>
+
+    <section class="present-slide present-problem" data-slide-index="1">
+      <div class="present-inner">
+        <h2>Your AI agent just pushed to main.</h2>
+        <div class="present-gate present-gate--blocked present-gate--xl" aria-hidden="true">
+          <svg viewBox="0 0 220 140" class="present-gate-svg">
+            <rect x="24" y="24" width="172" height="92" rx="8" class="present-gate-frame"/>
+            <rect x="74" y="36" width="72" height="68" rx="6" class="present-gate-door"/>
+            <line x1="110" y1="36" x2="110" y2="104" class="present-gate-seam"/>
+            <path d="M72 70H148" class="present-gate-lock"/>
+            <path d="M98 57l24 26M122 57L98 83" class="present-gate-cross"/>
+          </svg>
+        </div>
+        <p class="present-problem-line">It deployed to production.</p>
+        <p class="present-problem-line">Not a human. Not a policy. Nothing.</p>
+        <p class="present-highlight">Deploy Gate closes that gap.</p>
+      </div>
+    </section>
+
+    <section class="present-slide present-how" data-slide-index="2">
+      <div class="present-inner">
+        <h2>How It Works</h2>
+        <div class="present-flow" role="img" aria-label="PR created, gate checks, no receipt blocked, valid receipt approved">
+          <div class="present-flow-node">PR Created</div>
+          <div class="present-flow-arrow">→</div>
+          <div class="present-flow-node">Deploy Gate checks</div>
+          <div class="present-flow-arrow">→</div>
+          <div class="present-flow-results">
+            <div class="present-flow-result deny">
+              <div class="present-gate present-gate--blocked" aria-hidden="true">
+                <svg viewBox="0 0 220 140" class="present-gate-svg">
+                  <rect x="24" y="24" width="172" height="92" rx="8" class="present-gate-frame"/>
+                  <rect x="74" y="36" width="72" height="68" rx="6" class="present-gate-door"/>
+                  <path d="M72 70H148" class="present-gate-lock"/>
+                </svg>
+              </div>
+              <span>No Receipt = <strong>❌ Blocked</strong></span>
+            </div>
+            <div class="present-flow-result permit">
+              <div class="present-gate present-gate--signed" aria-hidden="true">
+                <svg viewBox="0 0 220 140" class="present-gate-svg">
+                  <rect x="24" y="24" width="172" height="92" rx="8" class="present-gate-frame"/>
+                  <rect x="74" y="36" width="72" height="68" rx="6" class="present-gate-door"/>
+                  <path d="M88 70l16 16 28-30" class="present-gate-check"/>
+                </svg>
+              </div>
+              <span>Valid Receipt = <strong>✅ Approved</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="present-slide present-live" data-slide-index="3">
+      <div class="present-inner">
+        <h2>Live Demo</h2>
+        <p class="present-live-copy">Click the gate to approve the deployment.</p>
+        <div class="present-live-controls">
+          <button class="present-live-btn is-active" data-state="blocked" type="button">Blocked</button>
+          <button class="present-live-btn" data-state="signed" type="button">Signed</button>
+        </div>
+        <button class="present-live-gate present-gate present-gate--blocked" id="live-gate" type="button" aria-label="Toggle gate state">
+          <svg viewBox="0 0 220 140" class="present-gate-svg">
+            <rect x="24" y="24" width="172" height="92" rx="8" class="present-gate-frame"/>
+            <rect x="74" y="36" width="72" height="68" rx="6" class="present-gate-door"/>
+            <line x1="110" y1="36" x2="110" y2="104" class="present-gate-seam"/>
+            <path d="M72 70H148" class="present-gate-lock"/>
+            <path d="M88 70l16 16 28-30" class="present-gate-check"/>
+          </svg>
+        </button>
+        <div class="present-live-state" id="live-state">Current state: <strong>Blocked</strong> (deploy denied)</div>
+      </div>
+    </section>
+
+    <section class="present-slide present-compare" data-slide-index="4">
+      <div class="present-inner present-split">
+        <h2>Before / After</h2>
+        <div class="present-compare-grid">
+          <div class="present-pane present-pane--without">
+            <h3>Without PP</h3>
+            <p>Agent deploys directly.</p>
+            <p>No gate checks.</p>
+            <p>No signer of record.</p>
+            <p>Chaos in incident review.</p>
+          </div>
+          <div class="present-pane present-pane--with">
+            <h3>With PP</h3>
+            <p>Deploy Gate enforced in CI.</p>
+            <p>Receipts required by default.</p>
+            <p>Signer of record is explicit.</p>
+            <p>Orderly, auditable releases.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="present-slide present-cta" data-slide-index="5">
+      <div class="present-inner">
+        <h2>Start in 3 minutes</h2>
+        <div class="present-cta-actions">
+          <a href="/install" class="btn btn-primary">Open Install Guide</a>
+          <a href="https://github.com/permission-protocol/deploy-gate" target="_blank" rel="noopener" class="btn btn-ghost">View GitHub</a>
+        </div>
+        <a class="present-stars" href="https://github.com/permission-protocol/deploy-gate" target="_blank" rel="noopener" aria-label="GitHub stars">
+          <img src="https://img.shields.io/github/stars/permission-protocol/deploy-gate?style=for-the-badge&label=GitHub%20Stars&color=44aa99&labelColor=1a1a1a" alt="GitHub stars badge">
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function() {
+      const slides = Array.from(document.querySelectorAll('.present-slide'));
+      const dots = Array.from(document.querySelectorAll('.present-dot'));
+      const deck = document.getElementById('present-deck');
+      let current = 0;
+      let touchStartX = 0;
+      let touchStartY = 0;
+
+      function clampIndex(index) {
+        return Math.max(0, Math.min(slides.length - 1, index));
+      }
+
+      function updateDots(index) {
+        dots.forEach((dot, i) => {
+          dot.classList.toggle('is-active', i === index);
+          dot.setAttribute('aria-current', i === index ? 'true' : 'false');
+        });
+      }
+
+      function goTo(index) {
+        const next = clampIndex(index);
+        current = next;
+        slides[next].scrollIntoView({ behavior: 'smooth', block: 'start' });
+        updateDots(next);
+      }
+
+      document.addEventListener('keydown', (event) => {
+        const key = event.key;
+        if (key === 'ArrowRight' || key === 'PageDown' || key === ' ') {
+          event.preventDefault();
+          goTo(current + 1);
+        }
+        if (key === 'ArrowLeft' || key === 'PageUp') {
+          event.preventDefault();
+          goTo(current - 1);
+        }
+      });
+
+      dots.forEach((dot) => {
+        dot.addEventListener('click', () => {
+          goTo(Number(dot.dataset.slide));
+        });
+      });
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            current = Number(entry.target.dataset.slideIndex);
+            updateDots(current);
+          }
+        });
+      }, { threshold: 0.6, root: deck });
+
+      slides.forEach((slide) => observer.observe(slide));
+
+      deck.addEventListener('touchstart', (event) => {
+        const touch = event.changedTouches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+      }, { passive: true });
+
+      deck.addEventListener('touchend', (event) => {
+        const touch = event.changedTouches[0];
+        const deltaX = touch.clientX - touchStartX;
+        const deltaY = touch.clientY - touchStartY;
+        if (Math.abs(deltaX) > 48 && Math.abs(deltaX) > Math.abs(deltaY)) {
+          if (deltaX < 0) goTo(current + 1);
+          if (deltaX > 0) goTo(current - 1);
+        }
+      }, { passive: true });
+
+      const liveGate = document.getElementById('live-gate');
+      const liveState = document.getElementById('live-state');
+      const liveButtons = Array.from(document.querySelectorAll('.present-live-btn'));
+
+      function setLiveState(state) {
+        const isSigned = state === 'signed';
+        liveGate.classList.toggle('present-gate--signed', isSigned);
+        liveGate.classList.toggle('present-gate--blocked', !isSigned);
+        liveState.innerHTML = isSigned
+          ? 'Current state: <strong>Signed</strong> (deploy approved)'
+          : 'Current state: <strong>Blocked</strong> (deploy denied)';
+        liveButtons.forEach((button) => {
+          button.classList.toggle('is-active', button.dataset.state === state);
+        });
+      }
+
+      liveGate.addEventListener('click', () => {
+        const signed = liveGate.classList.contains('present-gate--signed');
+        setLiveState(signed ? 'blocked' : 'signed');
+      });
+
+      liveButtons.forEach((button) => {
+        button.addEventListener('click', () => setLiveState(button.dataset.state));
+      });
+
+      updateDots(0);
+      setLiveState('blocked');
+    })();
+  </script>
+  <script src="/main.js"></script>
+</body>
+</html>
