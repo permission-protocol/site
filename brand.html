@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brand Showcase — Permission Protocol</title>
+  <meta name="description" content="Permission Protocol brand showcase: gate symbol, lockups, colors, typography, and usage guidelines.">
+
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://permissionprotocol.com/brand">
+  <meta property="og:title" content="Brand Showcase — Permission Protocol">
+  <meta property="og:description" content="Deny by default. Permit by proof. Official Permission Protocol brand showcase and usage guidelines.">
+  <meta property="og:image" content="https://permissionprotocol.com/assets/og-image.png">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Brand Showcase — Permission Protocol">
+  <meta name="twitter:description" content="Official brand marks, lockups, palette, typography, and usage guidance.">
+  <meta name="twitter:image" content="https://permissionprotocol.com/assets/og-image.png">
+
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="alternate icon" href="/assets/favicon.ico">
+  <link rel="stylesheet" href="/styles.css?v=5">
+  <script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys onSessionId".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+    posthog.init("phc_p8CF1B4nuU6nDEYHj4GfOZrOejgkN8BX75kzPZrE6bc", { api_host: "https://us.i.posthog.com", person_profiles: "identified_only" });
+  </script>
+</head>
+<body>
+  <nav>
+    <div class="container">
+      <a href="/" class="logo">
+        <span class="brand-lockup">
+          <span class="permission">PERMISSION</span>
+          <span class="protocol-light">PROTOCOL</span>
+        </span>
+      </a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/deploy-gate">Deploy Gate</a></li>
+        <li><a href="/install">Install</a></li>
+        <li><a href="/brand" class="primary">Brand</a></li>
+        <li><a href="/blog">Blog</a></li>
+        <li class="mobile-hide"><a href="/request-access" class="primary">Request Access</a></li>
+      </ul>
+      <a href="/request-access" class="nav-cta-btn" data-track="pp_nav_cta_click">Request Access</a>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+  <div class="nav-overlay" id="nav-overlay"></div>
+
+  <main class="brand-page" id="brand-page">
+    <section class="brand-hero">
+      <div class="container">
+        <p class="brand-kicker">Brand Identity System</p>
+        <div class="brand-hero-mark" aria-hidden="true">
+          <svg class="brand-gate brand-gate-hero" width="96" height="96" viewBox="0 0 32 32" fill="none">
+            <line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" />
+            <line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" />
+            <line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" />
+            <line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" />
+            <line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" />
+            <line class="gate-signed" x1="9" y1="4" x2="9" y2="28" />
+            <line class="gate-signed" x1="23" y1="4" x2="23" y2="28" />
+          </svg>
+        </div>
+        <h1 class="brand-wordmark-xl" aria-label="Permission Protocol">
+          <span class="brand-wordmark-permission">PERMISSION</span>
+          <span class="brand-wordmark-protocol">PROTOCOL</span>
+        </h1>
+        <p class="brand-tagline">Deny by default. Permit by proof.</p>
+      </div>
+    </section>
+
+    <section class="brand-section">
+      <div class="container">
+        <h2 class="brand-section-label">01 - Interactive State Toggle</h2>
+        <div class="brand-toggle-wrap">
+          <button class="brand-toggle-btn" id="brand-toggle" type="button" aria-pressed="false">
+            <span class="brand-toggle-dot" aria-hidden="true"></span>
+            <span id="brand-toggle-text">blocked</span>
+          </button>
+          <p class="brand-note">The gate defaults to blocked and only opens when signed proof is present.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="brand-section">
+      <div class="container">
+        <h2 class="brand-section-label">02 - Primary Mark</h2>
+        <div class="brand-grid-2">
+          <div class="brand-card brand-card-dark">
+            <div class="brand-size-ladder">
+              <div class="brand-size-item">
+                <svg class="brand-gate" width="16" height="16" viewBox="0 0 32 32" fill="none">
+                  <line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" />
+                  <line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" /><line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" />
+                  <line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" /><line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" />
+                  <line class="gate-signed" x1="9" y1="4" x2="9" y2="28" /><line class="gate-signed" x1="23" y1="4" x2="23" y2="28" />
+                </svg>
+                <span>16</span>
+              </div>
+              <div class="brand-size-item">
+                <svg class="brand-gate" width="24" height="24" viewBox="0 0 32 32" fill="none">
+                  <line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" />
+                  <line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" /><line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" />
+                  <line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" /><line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" />
+                  <line class="gate-signed" x1="9" y1="4" x2="9" y2="28" /><line class="gate-signed" x1="23" y1="4" x2="23" y2="28" />
+                </svg>
+                <span>24</span>
+              </div>
+              <div class="brand-size-item">
+                <svg class="brand-gate" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" />
+                  <line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" /><line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" />
+                  <line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" /><line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" />
+                  <line class="gate-signed" x1="9" y1="4" x2="9" y2="28" /><line class="gate-signed" x1="23" y1="4" x2="23" y2="28" />
+                </svg>
+                <span>32</span>
+              </div>
+              <div class="brand-size-item">
+                <svg class="brand-gate" width="48" height="48" viewBox="0 0 32 32" fill="none">
+                  <line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" />
+                  <line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" /><line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" />
+                  <line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" /><line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" />
+                  <line class="gate-signed" x1="9" y1="4" x2="9" y2="28" /><line class="gate-signed" x1="23" y1="4" x2="23" y2="28" />
+                </svg>
+                <span>48</span>
+              </div>
+              <div class="brand-size-item">
+                <svg class="brand-gate" width="64" height="64" viewBox="0 0 32 32" fill="none">
+                  <line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" />
+                  <line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" /><line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" />
+                  <line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" /><line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" />
+                  <line class="gate-signed" x1="9" y1="4" x2="9" y2="28" /><line class="gate-signed" x1="23" y1="4" x2="23" y2="28" />
+                </svg>
+                <span>64</span>
+              </div>
+            </div>
+          </div>
+          <div class="brand-card brand-card-light">
+            <div class="brand-size-ladder">
+              <div class="brand-size-item">
+                <svg class="brand-gate" width="16" height="16" viewBox="0 0 32 32" fill="none">
+                  <line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" />
+                  <line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" /><line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" />
+                  <line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" /><line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" />
+                  <line class="gate-signed" x1="9" y1="4" x2="9" y2="28" /><line class="gate-signed" x1="23" y1="4" x2="23" y2="28" />
+                </svg>
+                <span>16</span>
+              </div>
+              <div class="brand-size-item">
+                <svg class="brand-gate" width="24" height="24" viewBox="0 0 32 32" fill="none">
+                  <line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" />
+                  <line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" /><line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" />
+                  <line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" /><line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" />
+                  <line class="gate-signed" x1="9" y1="4" x2="9" y2="28" /><line class="gate-signed" x1="23" y1="4" x2="23" y2="28" />
+                </svg>
+                <span>24</span>
+              </div>
+              <div class="brand-size-item">
+                <svg class="brand-gate" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" />
+                  <line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" /><line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" />
+                  <line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" /><line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" />
+                  <line class="gate-signed" x1="9" y1="4" x2="9" y2="28" /><line class="gate-signed" x1="23" y1="4" x2="23" y2="28" />
+                </svg>
+                <span>32</span>
+              </div>
+              <div class="brand-size-item">
+                <svg class="brand-gate" width="48" height="48" viewBox="0 0 32 32" fill="none">
+                  <line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" />
+                  <line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" /><line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" />
+                  <line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" /><line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" />
+                  <line class="gate-signed" x1="9" y1="4" x2="9" y2="28" /><line class="gate-signed" x1="23" y1="4" x2="23" y2="28" />
+                </svg>
+                <span>48</span>
+              </div>
+              <div class="brand-size-item">
+                <svg class="brand-gate" width="64" height="64" viewBox="0 0 32 32" fill="none">
+                  <line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" />
+                  <line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" /><line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" />
+                  <line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" /><line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" />
+                  <line class="gate-signed" x1="9" y1="4" x2="9" y2="28" /><line class="gate-signed" x1="23" y1="4" x2="23" y2="28" />
+                </svg>
+                <span>64</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="brand-section">
+      <div class="container">
+        <h2 class="brand-section-label">03 - Wordmark</h2>
+        <div class="brand-grid-2">
+          <div class="brand-card brand-card-dark"><div class="brand-wordmark-lg"><span class="brand-wordmark-permission">PERMISSION</span><span class="brand-wordmark-protocol">PROTOCOL</span></div></div>
+          <div class="brand-card brand-card-light"><div class="brand-wordmark-lg"><span class="brand-wordmark-permission">PERMISSION</span><span class="brand-wordmark-protocol">PROTOCOL</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="brand-section">
+      <div class="container">
+        <h2 class="brand-section-label">04 - Lockup Variations</h2>
+        <div class="brand-grid-2">
+          <div class="brand-card brand-card-dark">
+            <div class="brand-lockup-horizontal">
+              <svg class="brand-gate" width="40" height="40" viewBox="0 0 32 32" fill="none">
+                <line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" /><line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" /><line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" /><line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" /><line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" /><line class="gate-signed" x1="9" y1="4" x2="9" y2="28" /><line class="gate-signed" x1="23" y1="4" x2="23" y2="28" />
+              </svg>
+              <div class="brand-wordmark-inline"><span class="brand-wordmark-permission">PERMISSION</span><span class="brand-wordmark-protocol">PROTOCOL</span></div>
+            </div>
+            <div class="brand-lockup-compact">PP / GATE</div>
+            <div class="brand-lockup-vertical">
+              <svg class="brand-gate" width="44" height="44" viewBox="0 0 32 32" fill="none">
+                <line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" /><line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" /><line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" /><line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" /><line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" /><line class="gate-signed" x1="9" y1="4" x2="9" y2="28" /><line class="gate-signed" x1="23" y1="4" x2="23" y2="28" />
+              </svg>
+              <div class="brand-wordmark-lg"><span class="brand-wordmark-permission">PERMISSION</span><span class="brand-wordmark-protocol">PROTOCOL</span></div>
+            </div>
+          </div>
+          <div class="brand-card brand-card-light">
+            <div class="brand-lockup-horizontal">
+              <svg class="brand-gate" width="40" height="40" viewBox="0 0 32 32" fill="none">
+                <line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" /><line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" /><line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" /><line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" /><line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" /><line class="gate-signed" x1="9" y1="4" x2="9" y2="28" /><line class="gate-signed" x1="23" y1="4" x2="23" y2="28" />
+              </svg>
+              <div class="brand-wordmark-inline"><span class="brand-wordmark-permission">PERMISSION</span><span class="brand-wordmark-protocol">PROTOCOL</span></div>
+            </div>
+            <div class="brand-lockup-compact">PP / GATE</div>
+            <div class="brand-lockup-vertical">
+              <svg class="brand-gate" width="44" height="44" viewBox="0 0 32 32" fill="none">
+                <line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" /><line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" /><line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" /><line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" /><line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" /><line class="gate-signed" x1="9" y1="4" x2="9" y2="28" /><line class="gate-signed" x1="23" y1="4" x2="23" y2="28" />
+              </svg>
+              <div class="brand-wordmark-lg"><span class="brand-wordmark-permission">PERMISSION</span><span class="brand-wordmark-protocol">PROTOCOL</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="brand-section">
+      <div class="container">
+        <h2 class="brand-section-label">05 - Color Palette</h2>
+        <div class="brand-palette">
+          <div class="brand-swatch"><div class="brand-chip" style="background:#0a0a0a"></div><p>Void</p><span>#0a0a0a</span></div>
+          <div class="brand-swatch"><div class="brand-chip" style="background:#1a1a1a"></div><p>Ash</p><span>#1a1a1a</span></div>
+          <div class="brand-swatch"><div class="brand-chip" style="background:#c8c8c8"></div><p>Signal</p><span>#c8c8c8</span></div>
+          <div class="brand-swatch"><div class="brand-chip" style="background:#44aa99"></div><p>Permit</p><span>#44aa99</span></div>
+          <div class="brand-swatch"><div class="brand-chip" style="background:#aa4455"></div><p>Deny</p><span>#aa4455</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="brand-section">
+      <div class="container">
+        <h2 class="brand-section-label">06 - Typography</h2>
+        <div class="brand-grid-2">
+          <div class="brand-type brand-card brand-card-dark">
+            <p class="brand-type-label">Space Grotesk</p>
+            <p class="brand-type-grotesk">Deny by default.<br><span>Permit by proof.</span></p>
+          </div>
+          <div class="brand-type brand-card brand-card-dark">
+            <p class="brand-type-label">Space Mono</p>
+            <pre class="brand-type-mono">gate --state=blocked
+channel: severed
+crossing: denied</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="brand-section">
+      <div class="container">
+        <h2 class="brand-section-label">07 - Clear Space + Minimum Size</h2>
+        <div class="brand-guidelines">
+          <div class="brand-guide-card">
+            <p class="brand-guide-title">Clear Space</p>
+            <div class="brand-clearspace-box">
+              <svg class="brand-gate" width="48" height="48" viewBox="0 0 32 32" fill="none">
+                <line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" /><line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" /><line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" /><line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" /><line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" /><line class="gate-signed" x1="9" y1="4" x2="9" y2="28" /><line class="gate-signed" x1="23" y1="4" x2="23" y2="28" />
+              </svg>
+              <span class="brand-clearspace-x brand-clearspace-top">1x</span>
+              <span class="brand-clearspace-x brand-clearspace-left">1x</span>
+            </div>
+            <p class="brand-note">Minimum clear space is one mark width on every side.</p>
+          </div>
+          <div class="brand-guide-card">
+            <p class="brand-guide-title">Minimum Size</p>
+            <div class="brand-minsize-wrap">
+              <div>
+                <svg class="brand-gate" width="16" height="16" viewBox="0 0 32 32" fill="none">
+                  <line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" /><line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" /><line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" /><line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" /><line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" /><line class="gate-signed" x1="9" y1="4" x2="9" y2="28" /><line class="gate-signed" x1="23" y1="4" x2="23" y2="28" />
+                </svg>
+                <span class="brand-ok">16px min</span>
+              </div>
+              <div class="brand-too-small">
+                <svg class="brand-gate" width="12" height="12" viewBox="0 0 32 32" fill="none">
+                  <line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" /><line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" /><line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" /><line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" /><line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" /><line class="gate-signed" x1="9" y1="4" x2="9" y2="28" /><line class="gate-signed" x1="23" y1="4" x2="23" y2="28" />
+                </svg>
+                <span class="brand-no">12px no</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="brand-section">
+      <div class="container">
+        <h2 class="brand-section-label">08 - Misuse Examples</h2>
+        <div class="brand-misuse-grid">
+          <div class="brand-misuse-item"><div class="brand-misuse-box"><svg class="brand-gate brand-bad-rotate" width="40" height="40" viewBox="0 0 32 32" fill="none"><line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" /><line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" /><line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" /><line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" /><line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" /></svg></div><p>Do not rotate</p></div>
+          <div class="brand-misuse-item"><div class="brand-misuse-box"><svg class="brand-gate brand-bad-stretch" width="40" height="40" viewBox="0 0 32 32" fill="none"><line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" /><line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" /><line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" /><line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" /><line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" /></svg></div><p>Do not stretch</p></div>
+          <div class="brand-misuse-item"><div class="brand-misuse-box"><svg class="brand-gate brand-bad-outline" width="40" height="40" viewBox="0 0 32 32" fill="none"><line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" /><line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" /><line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" /><line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" /><line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" /></svg></div><p>Do not outline</p></div>
+          <div class="brand-misuse-item"><div class="brand-misuse-box"><svg class="brand-gate brand-bad-effect" width="40" height="40" viewBox="0 0 32 32" fill="none"><line class="gate-barrier" x1="4" y1="16" x2="28" y2="16" /><line class="gate-blocked" x1="9" y1="4" x2="9" y2="14" /><line class="gate-blocked" x1="9" y1="18" x2="9" y2="28" /><line class="gate-blocked" x1="23" y1="4" x2="23" y2="14" /><line class="gate-blocked" x1="23" y1="18" x2="23" y2="28" /></svg></div><p>Do not add effects</p></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="footer-main">
+        <span class="footer-text">Permission Protocol</span>
+        <span class="footer-text">© 2026</span>
+      </div>
+      <div class="footer-trust">
+        <span>Built for teams running GitHub Actions, ArgoCD, Terraform</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/main.js?v=5"></script>
+  <script>
+    (function() {
+      var root = document.getElementById('brand-page');
+      var toggle = document.getElementById('brand-toggle');
+      var toggleText = document.getElementById('brand-toggle-text');
+
+      if (!root || !toggle || !toggleText) return;
+
+      function applyState() {
+        var signed = root.classList.contains('is-signed');
+        toggle.setAttribute('aria-pressed', signed ? 'true' : 'false');
+        toggleText.textContent = signed ? 'signed' : 'blocked';
+      }
+
+      toggle.addEventListener('click', function() {
+        root.classList.toggle('is-signed');
+        applyState();
+      });
+
+      applyState();
+    })();
+  </script>
+</body>
+</html>
