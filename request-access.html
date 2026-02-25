@@ -26,24 +26,202 @@
     posthog.init("phc_p8CF1B4nuU6nDEYHj4GfOZrOejgkN8BX75kzPZrE6bc", { api_host: "https://us.i.posthog.com", person_profiles: "identified_only" });
   </script>
   <style>
+    .dark-brand-page {
+      background: var(--void);
+      color: var(--signal);
+    }
+    .dark-brand-page p,
+    .dark-brand-page li,
+    .dark-brand-page .lead {
+      color: #a8a8a8;
+    }
+    .dark-brand-page a {
+      color: var(--permit);
+    }
+    .dark-brand-page nav {
+      background: rgba(10, 10, 10, 0.92);
+      border-bottom: 1px solid #1a1a1a;
+      backdrop-filter: blur(8px);
+    }
+    .dark-brand-page .nav-links a {
+      color: #888;
+    }
+    .dark-brand-page .nav-links a:hover {
+      color: var(--signal);
+    }
+    .dark-brand-page .nav-links a.primary {
+      color: var(--permit);
+    }
+    .dark-brand-page .nav-cta-btn {
+      border: 1px solid var(--permit);
+      background: transparent;
+      color: var(--permit) !important;
+      border-radius: 0;
+    }
+    .dark-brand-page .nav-cta-btn:hover {
+      background: rgba(68, 170, 153, 0.1);
+    }
+    .dark-brand-page .nav-toggle span {
+      background: var(--signal);
+    }
+    .dark-brand-page .nav-overlay {
+      background: rgba(0, 0, 0, 0.72);
+    }
+    .lockup-hc {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .wordmark-inline {
+      font-family: var(--font-sans);
+      line-height: 1;
+      letter-spacing: 0.1em;
+      font-size: 12px;
+      color: #999;
+    }
+    .wordmark-inline .perm {
+      font-weight: 500;
+    }
+    .wordmark-inline .slash {
+      font-weight: 300;
+      opacity: 0.5;
+      margin: 0 0.4em;
+    }
+    .wordmark-inline .proto {
+      font-weight: 300;
+      opacity: 0.6;
+    }
+    .dark-brand-page h1,
+    .dark-brand-page h2,
+    .dark-brand-page h3 {
+      font-family: var(--font-sans);
+      color: var(--signal);
+    }
+    .dark-brand-page h1 {
+      font-weight: 600;
+    }
+    .dark-brand-page h2 {
+      font-weight: 600;
+    }
+    .dark-brand-page h3 {
+      font-weight: 500;
+    }
+    .dark-brand-page .page-header {
+      border-bottom: 1px solid #1a1a1a;
+    }
+    .dark-brand-page .btn {
+      border-radius: 0;
+      border: 1px solid #2a2a2a;
+      background: transparent;
+      color: var(--signal);
+    }
+    .dark-brand-page .btn-primary {
+      border-color: var(--permit);
+      color: var(--permit);
+      background: transparent;
+    }
+    .dark-brand-page .btn-primary:hover {
+      background: rgba(68, 170, 153, 0.1);
+    }
+    .dark-brand-page .btn-secondary {
+      border-color: #333;
+      color: #9d9d9d;
+    }
+    .dark-brand-page .btn-secondary:hover {
+      border-color: var(--signal);
+      color: var(--signal);
+      background: #111;
+    }
+    .dark-brand-page .form-container {
+      background: var(--ash);
+      border: 1px solid #222;
+      padding: 2rem;
+    }
+    .dark-brand-page .form-label,
+    .dark-brand-page .step-indicator {
+      font-family: var(--font-mono);
+      color: #8e8e8e;
+    }
+    .dark-brand-page .form-input,
+    .dark-brand-page .form-textarea {
+      background: #111;
+      border: 1px solid #222;
+      color: var(--signal);
+      border-radius: 0;
+      font-family: var(--font-sans);
+    }
+    .dark-brand-page .form-input:focus,
+    .dark-brand-page .form-textarea:focus {
+      border-color: var(--permit);
+    }
+    .dark-brand-page .form-radio span {
+      color: var(--signal);
+    }
+    .dark-brand-page .form-radio input {
+      accent-color: var(--permit);
+    }
+    .dark-brand-page .form-error {
+      color: var(--deny);
+    }
+    .dark-brand-page footer {
+      background: var(--void);
+      border-top: 1px solid #141414;
+      padding-top: 2rem;
+      padding-bottom: 2rem;
+    }
+    .dark-brand-page footer .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .brand-footer-version {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: #2a2a2a;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
     .form-step { display: none; }
     .form-step.active { display: block; }
     .form-success, .form-redirect { display: none; text-align: center; padding: 3rem 0; }
     .form-success h2, .form-redirect h2 { margin-bottom: 1rem; }
-    .form-redirect p { color: var(--gray-700); }
-    .form-error { color: #dc2626; font-size: 0.875rem; margin-top: 0.5rem; display: none; }
+    .form-redirect p { color: #a8a8a8; }
+    .form-error { font-size: 0.875rem; margin-top: 0.5rem; display: none; }
     .form-error.show { display: block; }
     .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-    .step-indicator { font-size: 0.875rem; color: var(--gray-700); margin-bottom: 1.5rem; font-weight: 500; }
+    .step-indicator { font-size: 0.875rem; margin-bottom: 1.5rem; font-weight: 500; }
+    @media (max-width: 640px) {
+      .dark-brand-page .nav-links {
+        background: var(--void);
+      }
+      .dark-brand-page .nav-links li {
+        border-bottom-color: #1a1a1a;
+      }
+      .dark-brand-page .form-container {
+        padding: 1.5rem;
+      }
+      .dark-brand-page footer .container {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
   </style>
 </head>
-<body>
+<body class="dark-brand-page">
   <nav>
     <div class="container">
       <a href="/" class="logo">
-        <span class="brand-lockup">
-          <span class="permission">PERMISSION</span>
-          <span class="protocol-light">PROTOCOL</span>
+        <span class="lockup-hc">
+          <svg class="gate-svg" width="20" height="20" viewBox="0 0 16 16" fill="none" style="shape-rendering: crispEdges;">
+            <rect x="1.5" y="1.5" width="13" height="13" stroke="#999" stroke-width="1.5" fill="none"/>
+            <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="#999" stroke-width="1.5"/>
+            <line x1="8" y1="1.5" x2="8" stroke="#999" stroke-width="1.5"/>
+            <line x1="8" y1="8" x2="8" y2="14.5" stroke="#999" stroke-width="1.5"/>
+          </svg>
+          <span class="wordmark-inline">
+            <span class="perm">PERMISSION</span><span class="slash">/</span><span class="proto">PROTOCOL</span>
+          </span>
         </span>
       </a>
       <ul class="nav-links" id="nav-links">
@@ -151,8 +329,18 @@
 
   <footer>
     <div class="container">
-      <span class="footer-text">Permission Protocol</span>
-      <span class="footer-text">© 2025</span>
+      <div class="lockup-hc">
+        <svg class="gate-svg" width="20" height="20" viewBox="0 0 16 16" fill="none" style="shape-rendering: crispEdges;">
+          <rect x="1.5" y="1.5" width="13" height="13" stroke="#333" stroke-width="1.5" fill="none"/>
+          <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="#333" stroke-width="1.5"/>
+          <line x1="8" y1="1.5" x2="8" stroke="#333" stroke-width="1.5"/>
+          <line x1="8" y1="8" x2="8" y2="14.5" stroke="#333" stroke-width="1.5"/>
+        </svg>
+        <span class="wordmark-inline" style="color: #333;">
+          <span class="perm">PERMISSION</span><span class="slash">/</span><span class="proto">PROTOCOL</span>
+        </span>
+      </div>
+      <div class="brand-footer-version">Brand Identity Guidelines v1.0</div>
     </div>
   </footer>
 
@@ -270,9 +458,9 @@
 
           // If fetch itself failed (network/CORS/blocked), try mailto fallback
           if (err.name === 'TypeError' || err.message.includes('Failed to fetch')) {
-            errorEl.innerHTML = 'Network error — your browser may be blocking the request. <br><a href="mailto:rod@permissionprotocol.com?subject=Access%20Request%3A%20' + encodeURIComponent(data.company) + '&body=' + encodeURIComponent('Company: ' + data.company + '\nGitHub Org: ' + (data.github_org || 'N/A') + '\nAI Deploy: ' + data.ai_deploy + '\nAction: ' + data.action + '\nEmail: ' + data.email) + '" style="color:#3b82f6;text-decoration:underline;">Click here to send via email instead</a>';
+            errorEl.innerHTML = 'Network error — your browser may be blocking the request. <br><a href="mailto:rod@permissionprotocol.com?subject=Access%20Request%3A%20' + encodeURIComponent(data.company) + '&body=' + encodeURIComponent('Company: ' + data.company + '\nGitHub Org: ' + (data.github_org || 'N/A') + '\nAI Deploy: ' + data.ai_deploy + '\nAction: ' + data.action + '\nEmail: ' + data.email) + '" style="color:#44aa99;text-decoration:underline;">Click here to send via email instead</a>';
           } else {
-            errorEl.innerHTML = 'Something went wrong (' + err.message + '). <br><a href="mailto:rod@permissionprotocol.com?subject=Access%20Request%3A%20' + encodeURIComponent(data.company) + '&body=' + encodeURIComponent('Company: ' + data.company + '\nGitHub Org: ' + (data.github_org || 'N/A') + '\nAI Deploy: ' + data.ai_deploy + '\nAction: ' + data.action + '\nEmail: ' + data.email) + '" style="color:#3b82f6;text-decoration:underline;">Send via email instead</a>';
+            errorEl.innerHTML = 'Something went wrong (' + err.message + '). <br><a href="mailto:rod@permissionprotocol.com?subject=Access%20Request%3A%20' + encodeURIComponent(data.company) + '&body=' + encodeURIComponent('Company: ' + data.company + '\nGitHub Org: ' + (data.github_org || 'N/A') + '\nAI Deploy: ' + data.ai_deploy + '\nAction: ' + data.action + '\nEmail: ' + data.email) + '" style="color:#44aa99;text-decoration:underline;">Send via email instead</a>';
           }
           errorEl.classList.add('show');
           submitBtn.disabled = false;
