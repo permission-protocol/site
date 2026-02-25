@@ -3224,3 +3224,54 @@ body.dark-brand-page {
   border-color: #d5d5d1 !important;
   color: var(--ash) !important;
 }
+
+/* Gate Visual Card — SVG diagram replacing ASCII art */
+.gate-visual-card {
+  background: var(--ash);
+  border: 1px solid #222;
+  border-radius: 6px;
+  padding: 2rem 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.gate-flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.gate-flow-label {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.gate-flow-arrow {
+  font-size: 1.2rem;
+  color: #444;
+}
+
+.gate-flow-blocked {
+  color: var(--deny) !important;
+  font-weight: 700;
+  font-size: 1.4rem;
+}
+
+.gate-svg-large {
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .gate-flow {
+    gap: 0.5rem;
+  }
+  .gate-svg-large {
+    width: 56px;
+    height: 56px;
+  }
+  .gate-flow-label {
+    font-size: 0.75rem;
+  }
+}
