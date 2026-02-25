@@ -3419,6 +3419,13 @@ body.dark-brand-page {
 }
 
 .home-redesign .label {
+  font-size: 12px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: #6f6f6f;
+  margin-bottom: 16px;
+}
+
 /* Blog Article */
 .blog-post {
   max-width: 720px;
@@ -3797,7 +3804,6 @@ body.dark-brand-page {
   .home-redesign .split {
     grid-template-columns: 1fr;
   }
-  margin-bottom: 16px;
 }
 
 .blog-hero h1 {
