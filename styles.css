@@ -3002,3 +3002,181 @@ footer .container {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* === Dark Theme Global Override ===
+   Forces dark brand on pages with class="dark-brand-page"
+   Overrides all legacy white/light backgrounds and colors */
+
+body.dark-brand-page {
+  background: var(--void) !important;
+  color: var(--signal) !important;
+}
+
+.dark-brand-page nav,
+.dark-brand-page header,
+.dark-brand-page section,
+.dark-brand-page footer,
+.dark-brand-page .hero,
+.dark-brand-page .content-section,
+.dark-brand-page .mobile-sticky-cta,
+.dark-brand-page .diagram-node,
+.dark-brand-page .comparison-column,
+.dark-brand-page .execution-plane,
+.dark-brand-page .diagnostic-trigger,
+.dark-brand-page .invariant-card,
+.dark-brand-page .demo-tab,
+.dark-brand-page .contrast-column,
+.dark-brand-page .nav-links {
+  background: var(--void) !important;
+  color: var(--signal);
+}
+
+/* Cards and panels get ash background */
+.dark-brand-page .card,
+.dark-brand-page .feature-card,
+.dark-brand-page .comparison-table,
+.dark-brand-page .step-card,
+.dark-brand-page .checklist-item,
+.dark-brand-page .config-table,
+.dark-brand-page .form-textarea,
+.dark-brand-page pre,
+.dark-brand-page code {
+  background: var(--ash) !important;
+  color: var(--signal);
+}
+
+/* Borders */
+.dark-brand-page .card,
+.dark-brand-page .feature-card,
+.dark-brand-page .comparison-table,
+.dark-brand-page .step-card,
+.dark-brand-page pre,
+.dark-brand-page .checklist-item,
+.dark-brand-page .diagram-node,
+.dark-brand-page .comparison-column,
+.dark-brand-page .invariant-card,
+.dark-brand-page .config-table,
+.dark-brand-page table,
+.dark-brand-page th,
+.dark-brand-page td {
+  border-color: #222 !important;
+}
+
+/* Headings */
+.dark-brand-page h1,
+.dark-brand-page h2,
+.dark-brand-page h3,
+.dark-brand-page h4,
+.dark-brand-page h5 {
+  color: #e0e0e0 !important;
+}
+
+/* Body text */
+.dark-brand-page p,
+.dark-brand-page li,
+.dark-brand-page td,
+.dark-brand-page label,
+.dark-brand-page .subtitle,
+.dark-brand-page .description {
+  color: #9a9a9a !important;
+}
+
+/* Links */
+.dark-brand-page a:not(.btn):not(.cta-primary):not(.cta-secondary):not(.nav-links a) {
+  color: var(--permit);
+}
+
+/* Buttons — primary */
+.dark-brand-page .cta-primary,
+.dark-brand-page .btn-primary,
+.dark-brand-page .btn {
+  background: var(--permit) !important;
+  color: var(--void) !important;
+  border-color: var(--permit) !important;
+}
+
+/* Buttons — secondary */
+.dark-brand-page .cta-secondary,
+.dark-brand-page .btn-secondary {
+  background: transparent !important;
+  color: var(--signal) !important;
+  border-color: #333 !important;
+}
+
+/* Nav links */
+.dark-brand-page nav a,
+.dark-brand-page .nav-links a {
+  color: var(--signal) !important;
+}
+.dark-brand-page nav a:hover,
+.dark-brand-page .nav-links a:hover {
+  color: var(--permit) !important;
+}
+.dark-brand-page nav a.active {
+  color: var(--permit) !important;
+}
+
+/* Tables */
+.dark-brand-page table {
+  background: var(--ash) !important;
+}
+.dark-brand-page th {
+  background: #111 !important;
+  color: var(--signal) !important;
+}
+.dark-brand-page td {
+  background: var(--ash) !important;
+}
+
+/* Code */
+.dark-brand-page code {
+  background: var(--ash) !important;
+  color: #e0e0e0 !important;
+}
+.dark-brand-page pre {
+  background: var(--ash) !important;
+  border: 1px solid #222 !important;
+}
+
+/* Terminal/demo sections */
+.dark-brand-page .terminal,
+.dark-brand-page .terminal-header,
+.dark-brand-page .terminal-body {
+  background: #111 !important;
+  border-color: #222 !important;
+}
+
+/* Checklist */
+.dark-brand-page .checklist-item {
+  background: var(--ash) !important;
+  border: 1px solid #222 !important;
+}
+
+/* Footer */
+.dark-brand-page footer {
+  border-top: 1px solid var(--ash) !important;
+}
+
+/* Form elements */
+.dark-brand-page input,
+.dark-brand-page textarea,
+.dark-brand-page select {
+  background: var(--ash) !important;
+  color: var(--signal) !important;
+  border-color: #333 !important;
+}
+
+/* Diagrams */
+.dark-brand-page .diagram-arrow,
+.dark-brand-page .separator {
+  color: #444 !important;
+}
+
+/* Highlight box */
+.dark-brand-page .highlight-box,
+.dark-brand-page .callout,
+.dark-brand-page .note {
+  background: rgba(68, 170, 153, 0.08) !important;
+  border-color: var(--permit) !important;
+  color: var(--signal) !important;
+}
