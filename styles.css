@@ -1656,8 +1656,7 @@ footer .container {
   padding: 1rem;
   border-radius: 4px;
   margin-bottom: 0.5rem;
-  border: 1px solid var(--signal);
-  opacity: 0.1;
+  border: 1px solid #333;
 }
 
 .gate-state .terminal-output pre {
