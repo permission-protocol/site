@@ -906,8 +906,8 @@ ul.requirements li::before {
 }
 
 .authority-plane {
-  background: var(--gray-900);
-  color: var(--white);
+  background: #111;
+  color: #c8c8c8;
 }
 
 .boundary-line {
@@ -1957,6 +1957,15 @@ footer .container {
 .dark-brand-page .authority-plane {
   background: #101010;
   border: 1px solid #222;
+  color: #c8c8c8;
+}
+
+.dark-brand-page .authority-plane .plane-items span {
+  color: #c8c8c8;
+}
+
+.dark-brand-page .execution-plane .plane-items span {
+  color: #c8c8c8;
 }
 
 .dark-brand-page .boundary-label::before,
