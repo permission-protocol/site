@@ -3293,3 +3293,79 @@ body.dark-brand-page {
     font-size: 0.75rem;
   }
 }
+
+/* Gate Compact — side-by-side on all screens */
+.gate-compact {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  max-width: 600px;
+  margin: 2rem auto;
+}
+
+.gate-compact-card {
+  background: var(--ash);
+  border: 1px solid #222;
+  border-radius: 8px;
+  padding: 1.25rem 1rem;
+  text-align: center;
+}
+
+.gate-compact-header {
+  margin-bottom: 1rem;
+}
+
+.gate-compact-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.gate-compact-flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.gate-compact-actor,
+.gate-compact-result {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--signal);
+}
+
+.gate-compact-arrow {
+  font-size: 1rem;
+  color: #444;
+}
+
+.gate-compact-desc {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: #666;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 400px) {
+  .gate-compact {
+    gap: 0.5rem;
+  }
+  .gate-compact-card {
+    padding: 1rem 0.5rem;
+  }
+  .gate-compact-flow {
+    gap: 0.25rem;
+  }
+  .gate-compact-actor,
+  .gate-compact-result {
+    font-size: 0.7rem;
+  }
+  svg[width="40"] {
+    width: 32px;
+    height: 32px;
+  }
+}
