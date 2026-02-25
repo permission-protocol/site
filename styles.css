@@ -3296,16 +3296,16 @@ body.dark-brand-page {
 
 /* Gate Compact — side-by-side on all screens */
 .gate-compact {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
   gap: 1rem;
   max-width: 600px;
   margin: 2rem auto;
 }
 
 .gate-compact-card {
-  background: var(--ash);
-  border: 1px solid #222;
+  background: #1a1a1a !important;
+  border: 1px solid #222 !important;
   border-radius: 8px;
   padding: 1.25rem 1rem;
   text-align: center;
