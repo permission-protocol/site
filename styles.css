@@ -50,8 +50,8 @@ body {
   font-family: var(--font-sans);
   font-size: 1rem;
   line-height: 1.6;
-  color: var(--gray-900);
-  background: var(--white);
+  color: var(--signal);
+  background: var(--void);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -79,7 +79,7 @@ h3 {
 
 p {
   margin-bottom: 1rem;
-  color: var(--gray-700);
+  color: #999;
 }
 
 a {
@@ -111,8 +111,8 @@ nav {
   left: 0;
   right: 0;
   z-index: 100;
-  background: var(--white);
-  border-bottom: 1px solid var(--gray-200);
+  background: var(--void);
+  border: 1px solid #222;
 }
 
 nav .container {
@@ -225,7 +225,7 @@ nav .container {
 
 .nav-links a {
   font-size: 0.875rem;
-  color: var(--gray-600);
+  color: #888;
   transition: color 0.15s;
 }
 
@@ -263,7 +263,7 @@ nav .container {
   bottom: 0;
   left: 0;
   right: 0;
-  background: var(--white);
+  background: var(--void);
   padding: 0.75rem 1rem;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
   z-index: 99;
@@ -279,7 +279,7 @@ nav .container {
 
 .sticky-cta-subtext {
   font-size: 0.75rem;
-  color: var(--gray-500);
+  color: #777;
 }
 
 /* Hero */
@@ -299,7 +299,7 @@ nav .container {
 
 .hero .subheadline {
   font-size: 1.25rem;
-  color: var(--gray-600);
+  color: #888;
   max-width: 600px;
   margin-bottom: 1.5rem;
 }
@@ -314,7 +314,7 @@ nav .container {
 .trust-bullet {
   font-family: var(--font-mono);
   font-size: 0.8125rem;
-  color: var(--gray-600);
+  color: #888;
 }
 
 .trust-bullet::before {
@@ -324,7 +324,7 @@ nav .container {
 
 .hero-scarcity {
   font-size: 0.875rem;
-  color: var(--gray-500);
+  color: #777;
   margin-top: 1rem;
 }
 
@@ -358,7 +358,7 @@ nav .container {
 
 .btn-secondary {
   background: transparent;
-  color: var(--gray-700);
+  color: #999;
   border: 1px solid var(--gray-300);
 }
 
@@ -369,7 +369,7 @@ nav .container {
 
 .btn-ghost {
   background: transparent;
-  color: var(--gray-600);
+  color: #888;
   border: none;
   padding: 0.75rem 0;
 }
@@ -425,7 +425,7 @@ nav .container {
 }
 
 .terminal-line.dimmed {
-  color: var(--gray-500);
+  color: #777;
 }
 
 .terminal-line .label {
@@ -451,7 +451,7 @@ nav .container {
 code {
   font-family: var(--font-mono);
   font-size: 0.875em;
-  background: var(--gray-100);
+  background: var(--ash);
   padding: 0.125rem 0.375rem;
   border-radius: 4px;
 }
@@ -487,7 +487,7 @@ ul.requirements li {
   position: relative;
   padding-left: 1.5rem;
   margin-bottom: 0.75rem;
-  color: var(--gray-700);
+  color: #999;
 }
 
 ul.requirements li::before {
@@ -511,7 +511,7 @@ ul.requirements li::before {
   gap: 2rem;
   margin-bottom: 1rem;
   padding: 1rem 1.5rem;
-  background: var(--gray-100);
+  background: var(--ash);
   border-radius: 6px;
   font-family: var(--font-mono);
   font-size: 0.8125rem;
@@ -523,7 +523,7 @@ ul.requirements li::before {
 }
 
 .status-label {
-  color: var(--gray-500);
+  color: #777;
 }
 
 .status-value {
@@ -611,7 +611,7 @@ ul.requirements li::before {
   font-family: var(--font-mono);
   font-size: 0.8125rem;
   padding: 0.625rem 1rem;
-  background: var(--gray-100);
+  background: var(--ash);
   border: 1px solid var(--gray-300);
   border-radius: 4px;
   cursor: pointer;
@@ -632,8 +632,8 @@ ul.requirements li::before {
 .diagram {
   margin: 2rem 0;
   padding: 2rem;
-  background: var(--gray-50);
-  border: 1px solid var(--gray-200);
+  background: var(--ash);
+  border: 1px solid #222;
   border-radius: 8px;
 }
 
@@ -648,7 +648,7 @@ ul.requirements li::before {
 
 .diagram-node {
   padding: 0.75rem 1.5rem;
-  background: var(--white);
+  background: var(--void);
   border: 1px solid var(--gray-300);
   border-radius: 4px;
   text-align: center;
@@ -666,7 +666,7 @@ ul.requirements li::before {
 
 .diagram-note {
   font-size: 0.75rem;
-  color: var(--gray-500);
+  color: #777;
   margin-left: 0.5rem;
 }
 
@@ -677,7 +677,7 @@ ul.requirements li::before {
 
 .section-header p {
   font-size: 1.125rem;
-  color: var(--gray-600);
+  color: #888;
 }
 
 /* Structural Claim */
@@ -697,7 +697,7 @@ ul.requirements li::before {
 /* Why Now Section */
 .why-now-section {
   padding: 4rem 0;
-  background: var(--gray-100);
+  background: var(--ash);
 }
 
 .why-now-list {
@@ -708,7 +708,7 @@ ul.requirements li::before {
 .why-now-list li {
   position: relative;
   padding: 0.75rem 0 0.75rem 1.5rem;
-  color: var(--gray-700);
+  color: #999;
   font-size: 1rem;
 }
 
@@ -732,7 +732,7 @@ ul.requirements li::before {
   display: flex;
   align-items: center;
   padding: 0.75rem 0;
-  border-bottom: 1px solid var(--gray-200);
+  border: 1px solid #222;
   font-size: 1rem;
 }
 
@@ -742,7 +742,7 @@ ul.requirements li::before {
 
 .contrast-left {
   flex: 1;
-  color: var(--gray-500);
+  color: #777;
 }
 
 .contrast-arrow {
@@ -753,7 +753,7 @@ ul.requirements li::before {
 .contrast-right {
   flex: 1;
   font-weight: 500;
-  color: var(--gray-900);
+  color: var(--signal);
 }
 
 /* Section Backgrounds - Brand Colors */
@@ -762,7 +762,7 @@ ul.requirements li::before {
 #receipt-example,
 #diagnostic,
 #designed-for {
-  background: var(--gray-50);
+  background: var(--ash);
   border-top: 1px solid var(--gray-100);
   border-bottom: 1px solid var(--gray-100);
 }
@@ -776,7 +776,7 @@ ul.requirements li::before {
 .inevitability-statement {
   font-size: 1.125rem;
   font-weight: 500;
-  color: var(--gray-600);
+  color: #888;
   font-style: italic;
   margin: 0;
 }
@@ -790,7 +790,7 @@ ul.requirements li::before {
 .failure-list li {
   position: relative;
   padding: 0.75rem 0 0.75rem 1.5rem;
-  color: var(--gray-700);
+  color: #999;
 }
 
 .failure-list li::before {
@@ -803,7 +803,7 @@ ul.requirements li::before {
 
 .failure-conclusion {
   margin-top: 1.5rem;
-  color: var(--gray-900);
+  color: var(--signal);
 }
 
 /* Before/After Comparison */
@@ -819,7 +819,7 @@ ul.requirements li::before {
 
 .comparison-column {
   padding: 1.5rem;
-  background: var(--white);
+  background: var(--void);
   border: 1px solid var(--gray-300);
 }
 
@@ -841,7 +841,7 @@ ul.requirements li::before {
   gap: 0.5rem;
   font-family: var(--font-mono);
   font-size: 0.8125rem;
-  color: var(--gray-700);
+  color: #999;
 }
 
 .flow-arrow {
@@ -851,7 +851,7 @@ ul.requirements li::before {
 .comparison-note {
   margin-top: 1rem;
   font-size: 0.875rem;
-  color: var(--gray-500);
+  color: #777;
 }
 
 /* Receipt Payload */
@@ -891,7 +891,7 @@ ul.requirements li::before {
 }
 
 .execution-plane {
-  background: var(--white);
+  background: var(--void);
   border: 1px solid var(--gray-300);
 }
 
@@ -910,7 +910,7 @@ ul.requirements li::before {
 .boundary-label {
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  color: var(--gray-500);
+  color: #777;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   padding: 0 1rem;
@@ -939,7 +939,7 @@ ul.requirements li::before {
 .diagnostic-trigger {
   margin: 1.5rem 0;
   padding: 1rem;
-  background: var(--white);
+  background: var(--void);
   border-left: 3px solid var(--black);
   font-size: 1rem;
 }
@@ -947,7 +947,7 @@ ul.requirements li::before {
 /* CTA Microcopy */
 .cta-microcopy {
   font-size: 0.8125rem;
-  color: var(--gray-500);
+  color: #777;
   margin-top: 0.75rem;
 }
 
@@ -961,7 +961,7 @@ ul.requirements li::before {
 
 .invariant-card {
   padding: 1.5rem;
-  background: var(--white);
+  background: var(--void);
   border: 1px solid var(--gray-300);
 }
 
@@ -973,14 +973,14 @@ ul.requirements li::before {
 
 .invariant-card p {
   font-size: 0.9375rem;
-  color: var(--gray-600);
+  color: #888;
   margin: 0;
 }
 
 /* Demo Toggle */
 .demo-intro {
   font-size: 1rem;
-  color: var(--gray-700);
+  color: #999;
   margin-bottom: 1.5rem;
 }
 
@@ -998,7 +998,7 @@ ul.requirements li::before {
   font-family: var(--font-mono);
   font-size: 0.8125rem;
   padding: 0.625rem 1.25rem;
-  background: var(--white);
+  background: var(--void);
   border: none;
   cursor: pointer;
   transition: all 0.15s;
@@ -1010,7 +1010,7 @@ ul.requirements li::before {
 }
 
 .demo-tab:hover {
-  background: var(--gray-50);
+  background: var(--ash);
 }
 
 .demo-tab.active {
@@ -1027,7 +1027,7 @@ ul.requirements li::before {
 .diagnostic-checklist li {
   position: relative;
   padding: 0.75rem 0 0.75rem 2rem;
-  color: var(--gray-700);
+  color: #999;
   border-bottom: 1px solid var(--gray-100);
 }
 
@@ -1059,7 +1059,7 @@ ul.requirements li::before {
 }
 
 .contrast-column {
-  background: var(--white);
+  background: var(--void);
   padding: 1.5rem;
   border: 1px solid var(--gray-300);
 }
@@ -1069,7 +1069,7 @@ ul.requirements li::before {
   font-weight: 600;
   margin-bottom: 1rem;
   padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--gray-200);
+  border: 1px solid #222;
 }
 
 .contrast-column ul {
@@ -1079,7 +1079,7 @@ ul.requirements li::before {
 
 .contrast-column li {
   padding: 0.5rem 0;
-  color: var(--gray-700);
+  color: #999;
   font-size: 0.9375rem;
 }
 
@@ -1087,7 +1087,7 @@ ul.requirements li::before {
 .technical-note {
   font-family: var(--font-mono);
   font-size: 0.875rem;
-  color: var(--gray-700);
+  color: #999;
   margin: 1.5rem 0;
 }
 
@@ -1095,14 +1095,14 @@ ul.requirements li::before {
 .example {
   margin-top: 2rem;
   padding: 1.5rem;
-  background: var(--gray-50);
+  background: var(--ash);
   border-left: 2px solid var(--gray-300);
 }
 
 .example-title {
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  color: var(--gray-500);
+  color: #777;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.75rem;
@@ -1110,7 +1110,7 @@ ul.requirements li::before {
 
 /* Designed For Section */
 #designed-for {
-  background: var(--gray-100);
+  background: var(--ash);
 }
 
 /* Disqualification section */
@@ -1123,7 +1123,7 @@ ul.requirements li::before {
   padding: 0.5rem 0;
   padding-left: 1.5rem;
   position: relative;
-  color: var(--gray-700);
+  color: #999;
 }
 
 .disqualify-list li::before {
@@ -1147,7 +1147,7 @@ ul.requirements li::before {
 .cta-subtext {
   margin-top: 1.5rem;
   font-size: 0.875rem;
-  color: var(--gray-500);
+  color: #777;
 }
 
 /* Form */
@@ -1165,7 +1165,7 @@ ul.requirements li::before {
   font-size: 0.875rem;
   font-weight: 500;
   margin-bottom: 0.5rem;
-  color: var(--gray-700);
+  color: #999;
 }
 
 .form-input,
@@ -1177,7 +1177,7 @@ ul.requirements li::before {
   font-family: var(--font-sans);
   border: 1px solid var(--gray-300);
   border-radius: 6px;
-  background: var(--white);
+  background: var(--void);
   transition: border-color 0.15s;
 }
 
@@ -1214,8 +1214,8 @@ ul.requirements li::before {
 /* Footer */
 footer {
   padding: 3rem 0;
-  border-top: 1px solid var(--gray-200);
-  background: var(--white);
+  border: 1px solid #222;
+  background: var(--void);
 }
 
 footer .container {
@@ -1233,7 +1233,7 @@ footer .container {
 
 .footer-text {
   font-size: 0.875rem;
-  color: var(--gray-500);
+  color: #777;
 }
 
 .footer-trust {
@@ -1373,7 +1373,7 @@ footer .container {
     left: 0;
     right: 0;
     bottom: 0;
-    background: var(--white);
+    background: var(--void);
     flex-direction: column;
     padding: 1.5rem 2rem;
     gap: 0;
@@ -1423,7 +1423,7 @@ footer .container {
   .demo-caption {
     display: block;
     font-size: 0.75rem;
-    color: var(--gray-500);
+    color: #777;
     margin-top: 0.75rem;
     text-align: center;
   }
@@ -1455,7 +1455,7 @@ footer .container {
     gap: 0.5rem;
     margin-top: 2rem;
     padding-top: 1.5rem;
-    border-top: 1px solid var(--gray-200);
+    border: 1px solid #222;
   }
   
   /* Invariant section - card spacing */
@@ -1466,7 +1466,7 @@ footer .container {
   ul.requirements li {
     padding: 1rem 0 1rem 1.5rem;
     margin-bottom: 0;
-    border-bottom: 1px solid var(--gray-200);
+    border: 1px solid #222;
   }
   
   ul.requirements li:last-child {
@@ -1588,7 +1588,7 @@ footer .container {
 /* Page-specific: Deploy Gate, Architecture, Receipt Model */
 .page-header {
   padding: 8rem 0 4rem;
-  border-bottom: 1px solid var(--gray-200);
+  border: 1px solid #222;
 }
 
 .page-header h1 {
@@ -1598,7 +1598,7 @@ footer .container {
 
 .page-header .lead {
   font-size: 1.25rem;
-  color: var(--gray-600);
+  color: #888;
   max-width: 600px;
 }
 
