@@ -103,8 +103,13 @@
     .lockup-hc { display: flex; align-items: center; gap: 10px; }
     .lockup-v { display: flex; flex-direction: column; align-items: center; gap: 20px; }
 
-    /* Gate SVG animation */
-    .gate-top, .gate-bottom { transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1); }
+    /* Gate SVG animation — smooth attribute transitions */
+    .gate-top, .gate-bottom { transition: y 0.45s cubic-bezier(0.4, 0, 0.2, 1); }
+    /* Color transitions on all SVG strokes */
+    .gate-svg rect, .gate-svg line { transition: stroke 0.5s ease; }
+    /* Text/element color transitions */
+    .wordmark, .wordmark-inline, .lockup-h, .lockup-hc, .lockup-v,
+    .lockup-divider, .hero-wordmark { transition: color 0.5s ease, opacity 0.5s ease; }
 
     /* Size ladder */
     .size-ladder { display: flex; align-items: flex-end; gap: 32px; }
@@ -687,36 +692,187 @@
       }
     }
 
-    function toggleState() {
-      signed = !signed;
-      render();
+    function updateColors() {
+      // Update all color-responsive elements without rebuilding DOM
+      // Ladder dark: signed=#c8c8c8, unsigned=#888
+      document.querySelectorAll('[data-color-signed]').forEach(el => {
+        const color = signed ? el.dataset.colorSigned : el.dataset.colorUnsigned;
+        if (el.tagName === 'rect' || el.tagName === 'line') {
+          el.setAttribute('stroke', color);
+        } else {
+          el.style.color = color;
+        }
+      });
+      // Update lockup dividers
+      document.querySelectorAll('.lockup-divider[data-color-signed]').forEach(el => {
+        el.style.backgroundColor = signed ? el.dataset.colorSigned : el.dataset.colorUnsigned;
+      });
     }
 
-    function render() {
-      buildSizeLadder(document.getElementById('ladder-dark'), [16,24,32,48,64], signed ? '#c8c8c8' : '#888');
-      buildSizeLadder(document.getElementById('ladder-light'), [16,24,32,48,64], signed ? '#1a1a1a' : '#555');
-      buildSizeLadder(document.getElementById('ladder-anim'), [16,24,32,48,64,128], signed ? '#c8c8c8' : '#888');
-
-      buildHorizontalLockup(document.getElementById('lockup-h-dark'), signed ? '#c8c8c8' : '#888');
-      buildHorizontalLockup(document.getElementById('lockup-h-light'), signed ? '#1a1a1a' : '#555');
-      buildCompactLockup(document.getElementById('lockup-hc-dark'), signed ? '#c8c8c8' : '#888');
-      buildCompactLockup(document.getElementById('lockup-hc-light'), signed ? '#1a1a1a' : '#555');
-      buildVerticalLockup(document.getElementById('lockup-v-dark'), signed ? '#c8c8c8' : '#888');
-      buildVerticalLockup(document.getElementById('lockup-v-light'), signed ? '#1a1a1a' : '#555');
-
-      buildContextual();
-      buildAppIcons();
-      buildMisuse();
-
+    function toggleState() {
+      signed = !signed;
       updateGateStates();
+      updateColors();
       updateReadout();
       updateToggles();
       updateHero();
     }
 
-    // Init
-    buildColorSwatches();
-    render();
+    function createGateSVGWithData(size, signedColor, unsignedColor) {
+      const sw = size <= 20 ? 1.5 : size <= 40 ? 1.4 : 1.2;
+      const rendering = size <= 20 ? 'crispEdges' : 'geometricPrecision';
+      const color = signed ? signedColor : unsignedColor;
+      const topY2 = signed ? 8 : 5.5;
+      const bottomY1 = signed ? 8 : 10.5;
+
+      return `<svg class="gate-svg" width="${size}" height="${size}" viewBox="0 0 16 16" fill="none" style="shape-rendering: ${rendering};">
+        <rect x="1.5" y="1.5" width="13" height="13" stroke="${color}" stroke-width="${sw}" fill="none" data-color-signed="${signedColor}" data-color-unsigned="${unsignedColor}"/>
+        <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="${color}" stroke-width="${sw}" data-color-signed="${signedColor}" data-color-unsigned="${unsignedColor}"/>
+        <line x1="8" y1="1.5" x2="8" y2="${topY2}" class="gate-top" stroke="${color}" stroke-width="${sw}" data-color-signed="${signedColor}" data-color-unsigned="${unsignedColor}"/>
+        <line x1="8" y1="${bottomY1}" x2="8" y2="14.5" class="gate-bottom" stroke="${color}" stroke-width="${sw}" data-color-signed="${signedColor}" data-color-unsigned="${unsignedColor}"/>
+      </svg>`;
+    }
+
+    function buildAll() {
+      // Build size ladders
+      const ladderDark = document.getElementById('ladder-dark');
+      ladderDark.innerHTML = [16,24,32,48,64].map(s => `
+        <div class="size-ladder-item">
+          ${createGateSVGWithData(s, '#c8c8c8', '#888')}
+          <span class="size-ladder-label">${s}</span>
+        </div>`).join('');
+
+      const ladderLight = document.getElementById('ladder-light');
+      ladderLight.innerHTML = [16,24,32,48,64].map(s => `
+        <div class="size-ladder-item">
+          ${createGateSVGWithData(s, '#1a1a1a', '#555')}
+          <span class="size-ladder-label">${s}</span>
+        </div>`).join('');
+
+      const ladderAnim = document.getElementById('ladder-anim');
+      ladderAnim.innerHTML = [16,24,32,48,64,128].map(s => `
+        <div class="size-ladder-item">
+          ${createGateSVGWithData(s, '#c8c8c8', '#888')}
+          <span class="size-ladder-label">${s}px</span>
+        </div>`).join('');
+
+      // Lockups
+      function hLockup(container, sc, uc) {
+        container.innerHTML = `
+          <div class="lockup-h">
+            ${createGateSVGWithData(40, sc, uc)}
+            <div class="lockup-divider" style="background-color: ${signed ? sc : uc};" data-color-signed="${sc}" data-color-unsigned="${uc}"></div>
+            <div class="wordmark md" style="color: ${signed ? sc : uc};" data-color-signed="${sc}" data-color-unsigned="${uc}">
+              <span class="wordmark-permission">PERMISSION</span>
+              <span class="wordmark-protocol">PROTOCOL</span>
+            </div>
+          </div>`;
+      }
+      function hcLockup(container, sc, uc) {
+        container.innerHTML = `
+          <div class="lockup-hc">
+            ${createGateSVGWithData(20, sc, uc)}
+            <span class="wordmark-inline sm" style="color: ${signed ? sc : uc};" data-color-signed="${sc}" data-color-unsigned="${uc}">
+              <span class="perm">PERMISSION</span><span class="slash">/</span><span class="proto">PROTOCOL</span>
+            </span>
+          </div>`;
+      }
+      function vLockup(container, sc, uc) {
+        container.innerHTML = `
+          <div class="lockup-v">
+            ${createGateSVGWithData(56, sc, uc)}
+            <div class="wordmark md" style="color: ${signed ? sc : uc};" data-color-signed="${sc}" data-color-unsigned="${uc}">
+              <span class="wordmark-permission">PERMISSION</span>
+              <span class="wordmark-protocol">PROTOCOL</span>
+            </div>
+          </div>`;
+      }
+
+      hLockup(document.getElementById('lockup-h-dark'), '#c8c8c8', '#888');
+      hLockup(document.getElementById('lockup-h-light'), '#1a1a1a', '#555');
+      hcLockup(document.getElementById('lockup-hc-dark'), '#c8c8c8', '#888');
+      hcLockup(document.getElementById('lockup-hc-light'), '#1a1a1a', '#555');
+      vLockup(document.getElementById('lockup-v-dark'), '#c8c8c8', '#888');
+      vLockup(document.getElementById('lockup-v-light'), '#1a1a1a', '#555');
+
+      // Contextual
+      const ctxTop = document.getElementById('ctx-lockups-top');
+      ctxTop.innerHTML = [
+        { bg: '#0a0a0a', sc: '#c8c8c8', uc: '#888', border: '1px solid #1a1a1a' },
+        { bg: '#ffffff', sc: '#0a0a0a', uc: '#555', border: 'none' },
+        { bg: '#44aa99', sc: '#0a0a0a', uc: '#0a0a0a', border: 'none' },
+      ].map(c => `
+        <div class="brand-card tall" style="background: ${c.bg}; ${c.border !== 'none' ? 'border: ' + c.border : ''}">
+          <div class="lockup-v">
+            ${createGateSVGWithData(56, c.sc, c.uc)}
+            <div class="wordmark md" style="color: ${signed ? c.sc : c.uc};" data-color-signed="${c.sc}" data-color-unsigned="${c.uc}">
+              <span class="wordmark-permission">PERMISSION</span>
+              <span class="wordmark-protocol">PROTOCOL</span>
+            </div>
+          </div>
+        </div>`).join('');
+
+      const ctxBottom = document.getElementById('ctx-lockups-bottom');
+      ctxBottom.innerHTML = [
+        { bg: '#111', color: '#44aa99', label: 'Terminal / CLI' },
+        { bg: '#1a1a2e', color: '#c8c8c8', label: 'Product UI' },
+        { bg: '#f5f5f0', color: '#1a1a1a', label: 'Documentation' },
+      ].map(c => `
+        <div>
+          <div class="brand-card short" style="background: ${c.bg};">
+            <div class="lockup-hc">
+              ${createGateSVGWithData(20, c.color, c.color)}
+              <span class="wordmark-inline sm" style="color: ${c.color};">
+                <span class="perm">PERMISSION</span><span class="slash">/</span><span class="proto">PROTOCOL</span>
+              </span>
+            </div>
+          </div>
+          <div class="brand-ctx-label">${c.label}</div>
+        </div>`).join('');
+
+      // App icons
+      document.getElementById('app-icons').innerHTML = [
+        { size: 128, radius: 28, padding: 28 },
+        { size: 64, radius: 14, padding: 14 },
+        { size: 32, radius: 7, padding: 6 },
+        { size: 16, radius: 3, padding: 2 },
+      ].map(i => `
+        <div class="size-ladder-item">
+          <div class="brand-icon-container" style="width: ${i.size}px; height: ${i.size}px; border-radius: ${i.radius}px; padding: ${i.padding}px;">
+            ${createGateSVGWithData(i.size - i.padding * 2, '#c8c8c8', '#888')}
+          </div>
+          <span class="size-ladder-label">${i.size}</span>
+        </div>`).join('');
+
+      // Misuse (static — no color change)
+      document.getElementById('misuse-grid').innerHTML = [
+        { label: 'Do not rotate', transform: 'rotate(45deg)' },
+        { label: 'Do not stretch', transform: 'scaleX(1.5)' },
+        { label: 'Do not outline only partially', style: 'opacity: 0.3' },
+        { label: 'Do not add effects', style: 'filter: blur(1px) drop-shadow(0 0 8px #44aa99)' },
+      ].map(m => `
+        <div class="brand-misuse-card">
+          <div class="brand-misuse-box">
+            <div style="${m.transform ? 'transform: ' + m.transform + ';' : ''}${m.style || ''}">
+              ${createGateSVG(40, '#555', false)}
+            </div>
+          </div>
+          <div class="brand-misuse-label">
+            <span class="brand-misuse-x">✗</span>
+            <span class="brand-misuse-text">${m.label}</span>
+          </div>
+        </div>`).join('');
+
+      // Color swatches (static)
+      buildColorSwatches();
+    }
+
+    // Init: build DOM once, then only update attributes on toggle
+    buildAll();
+    updateGateStates();
+    updateReadout();
+    updateToggles();
+    updateHero();
   </script>
 </body>
 </html>
