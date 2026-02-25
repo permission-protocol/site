@@ -1701,6 +1701,337 @@ footer .container {
   }
 }
 
+/* Dark Brand Theme (index, deploy-gate, install) */
+.pp-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+}
+
+.pp-gate-svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+.pp-wordmark-inline {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  line-height: 1;
+}
+
+.pp-wordmark-inline .perm { font-weight: 500; }
+.pp-wordmark-inline .slash { font-weight: 300; opacity: 0.5; margin: 0 0.4em; }
+.pp-wordmark-inline .proto { font-weight: 300; opacity: 0.6; }
+
+.dark-brand-page {
+  background: var(--void);
+  color: var(--signal);
+}
+
+.dark-brand-page h1,
+.dark-brand-page h2,
+.dark-brand-page h3,
+.dark-brand-page h4 {
+  color: var(--signal);
+  font-family: var(--font-sans);
+  font-weight: 600;
+}
+
+.dark-brand-page p,
+.dark-brand-page li {
+  color: #9a9a9a;
+}
+
+.dark-brand-page a {
+  color: var(--permit);
+}
+
+.dark-brand-page nav {
+  background: rgba(10, 10, 10, 0.92);
+  border-bottom: 1px solid var(--ash);
+  backdrop-filter: blur(10px);
+}
+
+.dark-brand-page .logo {
+  color: var(--signal);
+}
+
+.dark-brand-page .nav-links a {
+  color: #9a9a9a;
+}
+
+.dark-brand-page .nav-links a:hover {
+  color: var(--signal);
+}
+
+.dark-brand-page .nav-links a.primary {
+  color: var(--permit);
+}
+
+.dark-brand-page .nav-cta-btn {
+  background: transparent;
+  border: 1px solid #2b7568;
+  color: var(--permit) !important;
+}
+
+.dark-brand-page .nav-cta-btn:hover {
+  background: rgba(68, 170, 153, 0.08);
+}
+
+.dark-brand-page .nav-toggle span {
+  background: var(--signal);
+}
+
+.dark-brand-page .nav-overlay {
+  background: rgba(0, 0, 0, 0.68);
+}
+
+.dark-brand-page section {
+  border-top: 1px solid var(--ash);
+}
+
+.dark-brand-page section:first-of-type {
+  border-top: 0;
+}
+
+.dark-brand-page .page-header,
+.dark-brand-page .install-hero {
+  border-bottom: 1px solid var(--ash);
+  background: var(--void);
+}
+
+.dark-brand-page .why-now-section,
+.dark-brand-page .contrast-section,
+.dark-brand-page #authorization-requirements,
+.dark-brand-page #failure-mode,
+.dark-brand-page #receipt-example,
+.dark-brand-page #diagnostic,
+.dark-brand-page #designed-for,
+.dark-brand-page .cta-section {
+  background: var(--void);
+  border-color: var(--ash);
+}
+
+.dark-brand-page .contrast-row,
+.dark-brand-page .diagnostic-checklist li,
+.dark-brand-page .hero-trust-bullets-mobile {
+  border-color: var(--ash);
+}
+
+.dark-brand-page .contrast-left,
+.dark-brand-page .contrast-arrow,
+.dark-brand-page .trust-bullet::before,
+.dark-brand-page .technical-note,
+.dark-brand-page .cta-subtext,
+.dark-brand-page .cta-microcopy,
+.dark-brand-page .status-label,
+.dark-brand-page .diagram-arrow,
+.dark-brand-page .diagram-note,
+.dark-brand-page .example-title,
+.dark-brand-page .time-badge {
+  color: #666;
+}
+
+.dark-brand-page .contrast-right,
+.dark-brand-page .status-value {
+  color: var(--signal);
+}
+
+.dark-brand-page .btn {
+  border-radius: 0;
+  border: 1px solid #2c2c2c;
+}
+
+.dark-brand-page .btn-primary {
+  background: var(--permit);
+  border-color: var(--permit);
+  color: var(--void);
+}
+
+.dark-brand-page .btn-primary:hover {
+  background: #5bb8a9;
+  border-color: #5bb8a9;
+}
+
+.dark-brand-page .btn-secondary,
+.dark-brand-page .btn-ghost {
+  background: transparent;
+  border: 1px solid #2c2c2c;
+  color: var(--signal);
+}
+
+.dark-brand-page .btn-secondary:hover,
+.dark-brand-page .btn-ghost:hover {
+  color: var(--permit);
+  border-color: var(--permit);
+}
+
+.dark-brand-page .btn-deny,
+.dark-brand-page .btn-danger {
+  background: var(--deny);
+  border-color: var(--deny);
+  color: var(--signal);
+}
+
+.dark-brand-page code,
+.dark-brand-page pre,
+.dark-brand-page .terminal,
+.dark-brand-page .receipt-payload,
+.dark-brand-page .code-block {
+  background: var(--ash);
+  color: var(--signal);
+  border: 1px solid #222;
+  font-family: var(--font-mono);
+}
+
+.dark-brand-page code {
+  background: #111;
+}
+
+.dark-brand-page pre code,
+.dark-brand-page .code-block code {
+  border: 0;
+}
+
+.dark-brand-page .terminal-header {
+  background: #111;
+  border-bottom: 1px solid #222;
+}
+
+.dark-brand-page .terminal-line.dimmed {
+  color: #8b8b8b;
+}
+
+.dark-brand-page .terminal-line .label {
+  color: #777;
+}
+
+.dark-brand-page .terminal-line .value {
+  color: var(--signal);
+}
+
+.dark-brand-page .terminal-line .status-approved {
+  color: var(--permit);
+}
+
+.dark-brand-page .terminal-line .status-rejected {
+  color: var(--deny);
+}
+
+.dark-brand-page .diagram,
+.dark-brand-page .example,
+.dark-brand-page .help-box,
+.dark-brand-page .demo-status-panel,
+.dark-brand-page .diagnostic-trigger,
+.dark-brand-page .comparison-column,
+.dark-brand-page .contrast-column,
+.dark-brand-page .invariant-card,
+.dark-brand-page .diagram-node,
+.dark-brand-page .plane.execution-plane,
+.dark-brand-page .gate-state .terminal-output {
+  background: var(--ash);
+  border-color: #222;
+  color: var(--signal);
+}
+
+.dark-brand-page .authority-plane {
+  background: #101010;
+  border: 1px solid #222;
+}
+
+.dark-brand-page .boundary-label::before,
+.dark-brand-page .boundary-label::after {
+  background: #2a2a2a;
+}
+
+.dark-brand-page .boundary-label {
+  color: #666;
+}
+
+.dark-brand-page .install-step {
+  border-left: 1px solid #2a2a2a;
+}
+
+.dark-brand-page .install-step::before {
+  background: var(--permit);
+  color: var(--void);
+}
+
+.dark-brand-page .prereq-list li::before {
+  color: var(--permit);
+}
+
+.dark-brand-page .time-badge {
+  background: #101010;
+  border: 1px solid #222;
+  font-family: var(--font-mono);
+}
+
+.dark-brand-page .yaml-comment { color: #667085; }
+.dark-brand-page .yaml-key { color: #93c5fd; }
+.dark-brand-page .yaml-string { color: #86efac; }
+.dark-brand-page .yaml-var { color: #fbbf24; }
+
+.dark-brand-page .code-block .copy-btn {
+  background: #111;
+  color: #a6a6a6;
+  border: 1px solid #2a2a2a;
+}
+
+.dark-brand-page .code-block .copy-btn:hover {
+  color: var(--permit);
+  border-color: var(--permit);
+}
+
+.dark-brand-page .mobile-sticky-cta {
+  background: rgba(10, 10, 10, 0.95);
+  border-top: 1px solid var(--ash);
+  box-shadow: none;
+}
+
+.dark-brand-page footer {
+  background: var(--void);
+  border-top: 1px solid var(--ash);
+}
+
+.dark-brand-page footer .pp-lockup,
+.dark-brand-page .footer-text,
+.dark-brand-page .footer-trust {
+  color: #666;
+}
+
+.dark-brand-page .footer-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.dark-brand-page .page-content h2 {
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--ash);
+}
+
+.dark-brand-page .page-content h2:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+@media (max-width: 640px) {
+  .dark-brand-page .nav-links {
+    background: var(--void);
+  }
+
+  .dark-brand-page .nav-links li {
+    border-bottom: 1px solid var(--ash);
+  }
+
+  .dark-brand-page .nav-links a {
+    color: var(--signal);
+  }
+}
+
 /* Blog post styles */
 .blog-post .highlight {
   background: var(--void) !important;
