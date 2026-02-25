@@ -147,22 +147,38 @@
         <div class="gate-semantics">
           <div class="gate-state blocked">
             <h3>Unsigned</h3>
-            <div class="terminal-output">
-              <pre><code><span class="deny-state">┌─────┬─────┐
-│ AI  │  ✗  │ Action
-│ Agent │  │ Blocked
-└─────┘     └─────────</span></code></pre>
+            <div class="gate-visual-card">
+              <div class="gate-flow">
+                <div class="gate-flow-label" style="color: var(--signal);">AI Agent</div>
+                <div class="gate-flow-arrow">→</div>
+                <svg class="gate-svg-large" width="80" height="80" viewBox="0 0 16 16" fill="none" style="shape-rendering: geometricPrecision;">
+                  <rect x="1.5" y="1.5" width="13" height="13" stroke="var(--deny)" stroke-width="1.2" fill="none"/>
+                  <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="var(--deny)" stroke-width="1.2"/>
+                  <line x1="8" y1="1.5" x2="8" y2="5.5" stroke="var(--deny)" stroke-width="1.2"/>
+                  <line x1="8" y1="10.5" x2="8" y2="14.5" stroke="var(--deny)" stroke-width="1.2"/>
+                </svg>
+                <div class="gate-flow-arrow gate-flow-blocked">✗</div>
+                <div class="gate-flow-label" style="color: #666;">Action</div>
+              </div>
             </div>
             <p>Channel severed at barrier</p>
           </div>
           <div class="gate-arrow">→</div>
           <div class="gate-state permitted">
             <h3>Signed</h3>
-            <div class="terminal-output">
-              <pre><code><span class="permit-state">┌─────┼─────┐
-│ AI  │  ✓  │ Action
-│ Agent │  │ Flows
-└─────┘     └─────────</span></code></pre>
+            <div class="gate-visual-card">
+              <div class="gate-flow">
+                <div class="gate-flow-label" style="color: var(--signal);">AI Agent</div>
+                <div class="gate-flow-arrow" style="color: var(--permit);">→</div>
+                <svg class="gate-svg-large" width="80" height="80" viewBox="0 0 16 16" fill="none" style="shape-rendering: geometricPrecision;">
+                  <rect x="1.5" y="1.5" width="13" height="13" stroke="var(--permit)" stroke-width="1.2" fill="none"/>
+                  <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="var(--permit)" stroke-width="1.2"/>
+                  <line x1="8" y1="1.5" x2="8" y2="8" stroke="var(--permit)" stroke-width="1.2"/>
+                  <line x1="8" y1="8" x2="8" y2="14.5" stroke="var(--permit)" stroke-width="1.2"/>
+                </svg>
+                <div class="gate-flow-arrow" style="color: var(--permit);">→</div>
+                <div class="gate-flow-label" style="color: var(--permit);">Action</div>
+              </div>
             </div>
             <p>Channel crosses barrier</p>
           </div>
