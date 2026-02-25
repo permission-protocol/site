@@ -3378,6 +3378,10 @@ body.dark-brand-page {
   padding: 5rem 0;
 }
 
+.home-redesign .home-section:first-child {
+  padding-top: 7rem;
+}
+
 .home-redesign h1,
 .home-redesign h2,
 .home-redesign h3 {
