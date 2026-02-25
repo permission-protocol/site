@@ -2524,6 +2524,9 @@ footer .container {
 
   .present-live-controls {
     margin-bottom: 0.7rem;
+  }
+}
+
 /* Brand Showcase Page */
 .brand-page {
   background: var(--void);
