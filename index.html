@@ -195,6 +195,28 @@
   "signer": "production-authority",
   "signature": "ed25519:x7Kj9..."
 }</code></pre>
+        <p class="technical-note"><strong>Fail closed. Evidence, not logs.</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ICP Diagnostic -->
+  <section id="diagnostic">
+    <div class="container">
+      <div class="content">
+        <h2>Does This Apply to Your Stack?</h2>
+        <p class="diagnostic-subtitle">Check every statement that describes your system.</p>
+        <ul class="diagnostic-checklist" id="diagnostic-checklist" role="list">
+          <li class="checklist-item" role="checkbox" aria-checked="false" tabindex="0" data-track="pp_diagnostic_check">AI systems generate or modify production-bound code</li>
+          <li class="checklist-item" role="checkbox" aria-checked="false" tabindex="0" data-track="pp_diagnostic_check">Deploy is automated through CI/CD</li>
+          <li class="checklist-item" role="checkbox" aria-checked="false" tabindex="0" data-track="pp_diagnostic_check">Agents or bots hold execution privileges</li>
+          <li class="checklist-item" role="checkbox" aria-checked="false" tabindex="0" data-track="pp_diagnostic_check">Production changes are irreversible</li>
+        </ul>
+        <p class="diagnostic-trigger"><strong>Can your AI cause production changes without redeeming a signed receipt from an external authority domain?</strong></p>
+        <p class="diagnostic-conclusion" id="diagnostic-conclusion">If yes, authorization must be external.</p>
+        <div style="margin-top: 2rem;" id="diagnostic-cta">
+          <a href="/request-access" class="btn btn-primary" id="diagnostic-cta-btn" data-track="pp_diagnostic_cta_click">Request Access</a>
+          <p class="cta-microcopy" id="diagnostic-cta-copy">For teams whose AI systems can affect production.</p>
         </div>
       </div>
     </section>
@@ -314,24 +336,64 @@
   <script>
     (function() {
       var checklist = document.getElementById('diagnostic-checklist');
-      var ctaReveal = document.getElementById('diagnostic-cta-reveal');
-      if (!checklist || !ctaReveal) return;
+      var cta = document.getElementById('diagnostic-cta');
+      var conclusion = document.getElementById('diagnostic-conclusion');
+      var ctaCopy = document.getElementById('diagnostic-cta-copy');
+      if (!checklist) return;
 
-      var THRESHOLD = 2;
+      // Add counter badge
+      var counter = document.createElement('p');
+      counter.className = 'check-counter';
+      counter.id = 'check-counter';
+      checklist.parentNode.insertBefore(counter, checklist.nextSibling);
 
       function updateState() {
-        var checked = checklist.querySelectorAll('.diagnostic-cb:checked').length;
-        if (checked >= THRESHOLD) {
-          ctaReveal.classList.add('is-visible');
+        var items = checklist.querySelectorAll('.checklist-item');
+        var checked = checklist.querySelectorAll('.checklist-item.checked').length;
+        var total = items.length;
+
+        // Update counter
+        if (checked === 0) {
+          counter.textContent = '';
+          counter.className = 'check-counter';
+        } else if (checked === 1) {
+          counter.textContent = '1 of 4 applies to your stack.';
+          counter.className = 'check-counter';
+        } else if (checked < total) {
+          counter.textContent = checked + ' of 4 apply to your stack — authorization is not optional.';
+          counter.className = 'check-counter hot';
         } else {
-          ctaReveal.classList.remove('is-visible');
+          counter.textContent = 'All 4 apply. Your AI agents have unchecked deploy authority.';
+          counter.className = 'check-counter hot';
+        }
+
+        // CTA urgency upgrade at 2+ checks
+        if (checked >= 2) {
+          cta.classList.add('urgent');
+          conclusion.classList.add('urgent');
+          if (ctaCopy) ctaCopy.textContent = 'Your stack needs a deploy gate. Set one up in 5 minutes.';
+        } else {
+          cta.classList.remove('urgent');
+          conclusion.classList.remove('urgent');
+          if (ctaCopy) ctaCopy.textContent = 'For teams whose AI systems can affect production.';
         }
       }
 
-      checklist.addEventListener('change', function(e) {
-        if (e.target && e.target.classList.contains('diagnostic-cb')) {
-          updateState();
-        }
+      function toggleItem(li) {
+        li.classList.toggle('checked');
+        var isChecked = li.classList.contains('checked');
+        li.setAttribute('aria-checked', isChecked ? 'true' : 'false');
+        updateState();
+      }
+
+      checklist.querySelectorAll('.checklist-item').forEach(function(li) {
+        li.addEventListener('click', function() { toggleItem(li); });
+        li.addEventListener('keydown', function(e) {
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            toggleItem(li);
+          }
+        });
       });
     })();
   </script>
