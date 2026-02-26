@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Permission Protocol Social Cards</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --void: #0a0a0a;
+      --ash: #1a1a1a;
+      --signal: #c8c8c8;
+      --permit: #44aa99;
+      --deny: #aa4455;
+      --state: var(--deny);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 32px;
+      min-height: 100vh;
+      background: radial-gradient(circle at 12% 8%, #171717 0%, #0d0d0d 45%, #090909 100%);
+      color: var(--signal);
+      font-family: "Space Grotesk", sans-serif;
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      margin-bottom: 28px;
+      background: rgba(10, 10, 10, 0.92);
+      border: 1px solid #1f1f1f;
+      backdrop-filter: blur(12px);
+    }
+
+    .toolbar-title {
+      font-family: "Space Mono", monospace;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #888;
+    }
+
+    .toggle {
+      border: 1px solid #2f2f2f;
+      background: transparent;
+      color: var(--signal);
+      font-family: "Space Mono", monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      cursor: pointer;
+    }
+
+    .gallery {
+      display: grid;
+      gap: 36px;
+    }
+
+    .frame {
+      display: grid;
+      gap: 10px;
+    }
+
+    .label {
+      font-family: "Space Mono", monospace;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #7a7a7a;
+    }
+
+    .card {
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      background: var(--void);
+      border: 1px solid #1d1d1d;
+      color: var(--signal);
+      transition: border-color 0.25s ease;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at 85% 12%, rgba(200, 200, 200, 0.08) 0%, rgba(200, 200, 200, 0) 40%);
+      opacity: 0.4;
+    }
+
+    .card::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(200, 200, 200, 0.15) 50%, transparent 100%);
+      opacity: 0.25;
+    }
+
+    .card.blocked {
+      --state: var(--deny);
+    }
+
+    .card.signed {
+      --state: var(--permit);
+    }
+
+    .state-chip {
+      position: absolute;
+      right: 22px;
+      top: 20px;
+      border: 1px solid var(--state);
+      color: var(--state);
+      font-family: "Space Mono", monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 6px 10px;
+      z-index: 2;
+      background: rgba(10, 10, 10, 0.8);
+    }
+
+    .wordmark {
+      display: flex;
+      flex-direction: column;
+      line-height: 1;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--signal);
+      gap: 12px;
+    }
+
+    .permission {
+      font-weight: 500;
+    }
+
+    .protocol {
+      font-weight: 300;
+      opacity: 0.62;
+    }
+
+    .tagline {
+      margin-top: 20px;
+      font-family: "Space Mono", monospace;
+      font-size: 24px;
+      line-height: 1.4;
+      color: var(--signal);
+      opacity: 0.88;
+      letter-spacing: 0.01em;
+    }
+
+    .gate {
+      color: var(--state);
+      flex: 0 0 auto;
+    }
+
+    .gate svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+      shape-rendering: geometricPrecision;
+    }
+
+    .card.blocked .chan-full {
+      display: none;
+    }
+
+    .card.signed .chan-top,
+    .card.signed .chan-bottom {
+      display: none;
+    }
+
+    .hero {
+      width: 1280px;
+      height: 640px;
+      align-items: center;
+      gap: 70px;
+      padding: 88px;
+    }
+
+    .hero .gate {
+      width: 120px;
+      height: 120px;
+    }
+
+    .hero .permission,
+    .hero .protocol {
+      font-size: 78px;
+    }
+
+    .hero .tagline {
+      font-size: 28px;
+    }
+
+    .social {
+      width: 1200px;
+      height: 628px;
+      align-items: center;
+      gap: 58px;
+      padding: 80px;
+    }
+
+    .social .gate {
+      width: 120px;
+      height: 120px;
+    }
+
+    .social .permission,
+    .social .protocol {
+      font-size: 70px;
+    }
+
+    .social .tagline {
+      font-size: 26px;
+    }
+
+    .square {
+      width: 1080px;
+      height: 1080px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 110px;
+      gap: 48px;
+    }
+
+    .square .gate {
+      width: 310px;
+      height: 310px;
+    }
+
+    .square .permission,
+    .square .protocol {
+      font-size: 118px;
+    }
+
+    .square .tagline {
+      font-size: 34px;
+      margin-top: 26px;
+    }
+
+    .story {
+      width: 1080px;
+      height: 1920px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 140px 110px;
+      gap: 72px;
+    }
+
+    .story .gate {
+      width: 340px;
+      height: 340px;
+    }
+
+    .story .permission,
+    .story .protocol {
+      font-size: 132px;
+    }
+
+    .story .tagline {
+      font-size: 44px;
+      line-height: 1.35;
+      margin-top: 32px;
+    }
+
+    @media (max-width: 1380px) {
+      body {
+        padding: 20px;
+      }
+
+      .card {
+        transform-origin: top left;
+        transform: scale(0.55);
+      }
+
+      .frame {
+        margin-bottom: -420px;
+      }
+
+      .frame.story-frame {
+        margin-bottom: -840px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <div class="toolbar-title">Permission Protocol Social Card System</div>
+    <button class="toggle" id="stateToggle" type="button">State: Blocked</button>
+  </div>
+
+  <main class="gallery" id="gallery">
+    <section class="frame">
+      <div class="label">GitHub README Hero - 1280x640</div>
+      <div class="card hero blocked">
+        <div class="state-chip">Blocked</div>
+        <div class="gate" aria-hidden="true">
+          <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1.5" y="1.5" width="13" height="13" stroke="currentColor" stroke-width="1.2" fill="none"/>
+            <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="currentColor" stroke-width="1.2"/>
+            <line class="chan-top" x1="8" y1="1.5" x2="8" y2="5.5" stroke="currentColor" stroke-width="1.2"/>
+            <line class="chan-bottom" x1="8" y1="10.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.2"/>
+            <line class="chan-full" x1="8" y1="1.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.2"/>
+          </svg>
+        </div>
+        <div>
+          <div class="wordmark">
+            <span class="permission">PERMISSION</span>
+            <span class="protocol">PROTOCOL</span>
+          </div>
+          <div class="tagline">Deny by default. Permit by proof.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="frame">
+      <div class="label">Twitter / LinkedIn - 1200x628</div>
+      <div class="card social blocked">
+        <div class="state-chip">Blocked</div>
+        <div class="gate" aria-hidden="true">
+          <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1.5" y="1.5" width="13" height="13" stroke="currentColor" stroke-width="1.2" fill="none"/>
+            <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="currentColor" stroke-width="1.2"/>
+            <line class="chan-top" x1="8" y1="1.5" x2="8" y2="5.5" stroke="currentColor" stroke-width="1.2"/>
+            <line class="chan-bottom" x1="8" y1="10.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.2"/>
+            <line class="chan-full" x1="8" y1="1.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.2"/>
+          </svg>
+        </div>
+        <div>
+          <div class="wordmark">
+            <span class="permission">PERMISSION</span>
+            <span class="protocol">PROTOCOL</span>
+          </div>
+          <div class="tagline">Deny by default. Permit by proof.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="frame">
+      <div class="label">Square - 1080x1080</div>
+      <div class="card square blocked">
+        <div class="state-chip">Blocked</div>
+        <div class="gate" aria-hidden="true">
+          <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1.5" y="1.5" width="13" height="13" stroke="currentColor" stroke-width="1.2" fill="none"/>
+            <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="currentColor" stroke-width="1.2"/>
+            <line class="chan-top" x1="8" y1="1.5" x2="8" y2="5.5" stroke="currentColor" stroke-width="1.2"/>
+            <line class="chan-bottom" x1="8" y1="10.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.2"/>
+            <line class="chan-full" x1="8" y1="1.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.2"/>
+          </svg>
+        </div>
+        <div>
+          <div class="wordmark">
+            <span class="permission">PERMISSION</span>
+            <span class="protocol">PROTOCOL</span>
+          </div>
+          <div class="tagline">Deny by default. Permit by proof.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="frame story-frame">
+      <div class="label">Story - 1080x1920</div>
+      <div class="card story blocked">
+        <div class="state-chip">Blocked</div>
+        <div class="gate" aria-hidden="true">
+          <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1.5" y="1.5" width="13" height="13" stroke="currentColor" stroke-width="1.2" fill="none"/>
+            <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="currentColor" stroke-width="1.2"/>
+            <line class="chan-top" x1="8" y1="1.5" x2="8" y2="5.5" stroke="currentColor" stroke-width="1.2"/>
+            <line class="chan-bottom" x1="8" y1="10.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.2"/>
+            <line class="chan-full" x1="8" y1="1.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.2"/>
+          </svg>
+        </div>
+        <div>
+          <div class="wordmark">
+            <span class="permission">PERMISSION</span>
+            <span class="protocol">PROTOCOL</span>
+          </div>
+          <div class="tagline">Deny by default. Permit by proof.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      var cards = Array.prototype.slice.call(document.querySelectorAll('.card'));
+      var toggle = document.getElementById('stateToggle');
+      var signed = false;
+
+      function setState(nextSigned) {
+        signed = nextSigned;
+        cards.forEach(function (card) {
+          var chip = card.querySelector('.state-chip');
+          card.classList.toggle('signed', signed);
+          card.classList.toggle('blocked', !signed);
+          chip.textContent = signed ? 'Signed' : 'Blocked';
+        });
+
+        toggle.textContent = signed ? 'State: Signed' : 'State: Blocked';
+      }
+
+      toggle.addEventListener('click', function () {
+        setState(!signed);
+      });
+
+      setState(false);
+    })();
+  </script>
+</body>
+</html>
