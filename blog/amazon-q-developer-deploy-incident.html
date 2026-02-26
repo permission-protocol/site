@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>[AI Deploy Incident] Amazon Q Developer's "Small but Foreseeable" Production Incident | Permission Protocol</title>
+  <meta name="description" content="Amazon Q Developer caused a production incident that the Financial Times called 'small but entirely foreseeable.' It was foreseeable because the root cause is structural: AI agents with production access and no deploy gate.">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="Amazon Q Developer's 'Small but Foreseeable' Production Incident">
+  <meta property="og:description" content="Amazon Q Developer caused a production incident that the FT called 'small but entirely foreseeable.' The root cause: no authorization receipt required before acting on production.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://permissionprotocol.com/blog/amazon-q-developer-deploy-incident">
+  <meta property="og:image" content="https://permissionprotocol.com/assets/og-image.png">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Amazon Q Developer's 'Small but Foreseeable' Production Incident">
+  <meta name="twitter:description" content="'Small but entirely foreseeable.' The FT's words about Amazon Q Developer's production incident. Here's the deploy gate that would have prevented it.">
+  
+  <link rel="stylesheet" href="../styles.css?v=14">
+</head>
+<body class="dark-brand-page">
+  <nav>
+    <div class="container">
+      <a href="/" class="logo">
+        <span class="pp-lockup">
+          <svg class="pp-gate-svg" width="20" height="20" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="shape-rendering: crispEdges;">
+            <rect x="1.5" y="1.5" width="13" height="13" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="1.5" x2="8" y2="5.5" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="10.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <span class="pp-wordmark-inline">
+            <span class="perm">PERMISSION</span><span class="slash">/</span><span class="proto">PROTOCOL</span>
+          </span>
+        </span>
+      </a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/deploy-gate">Deploy Gate</a></li>
+        <li><a href="/install">Install</a></li>
+        <li><a href="/brand">Brand</a></li>
+        <li><a href="/blog">Blog</a></li>
+        <li><a href="/present">Present</a></li>
+        <li class="mobile-hide"><a href="/request-access" class="primary">Request Access</a></li>
+      </ul>
+      <a href="/request-access" class="nav-cta-btn" data-track="pp_nav_cta_click">Request Access</a>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+  <div class="nav-overlay" id="nav-overlay"></div>
+
+  <main>
+    <article class="blog-post">
+      <a href="/blog" class="blog-back-link">← Back to Blog</a>
+
+      <div class="blog-post-meta-top">
+        <span class="blog-card-tag">Incident Analysis</span>
+      </div>
+      
+      <h1>Amazon Q Developer's "Small but Foreseeable" Production Incident</h1>
+      <p class="blog-date">February 2026</p>
+
+      <p>The Financial Times didn't bury the lede. When reporting on Amazon Q Developer's production incident, a senior AWS employee described it as <em>"small but entirely foreseeable."</em></p>
+
+      <p>Foreseeable. Not bad luck. Not a freak edge case. <em>Foreseeable.</em></p>
+
+      <p>That one word is the whole story. Amazon built an AI coding agent, gave it access to production, and an engineer already knew this outcome was coming. It came anyway — because the structural safeguard that would have stopped it wasn't in place.</p>
+
+      <h2>What Happened</h2>
+
+      <p>Amazon Q Developer is AWS's AI coding agent. It writes code, runs tests, and — critically — can interact with production infrastructure. In the period reported by the Financial Times, Q Developer caused a production incident.</p>
+
+      <p>The details are spare. AWS hasn't published a postmortem. But the framing tells us everything we need to know: the incident was attributed to the AI tool, a human characterized it as foreseeable, and Amazon's mitigation was described as "safeguards" — the same vague word used after the Kiro outage.</p>
+
+      <div class="highlight">
+        <p><strong>"Small but entirely foreseeable."</strong></p>
+        <p>This was the <em>second</em> production incident linked to an AI tool at AWS in recent months. The first — caused by Kiro — lasted 13 hours and took down an AWS service in mainland China. Amazon's official position: <em>"It's a coincidence that AI tools were involved."</em></p>
+      </div>
+
+      <p>Two incidents. Two AI tools. One company. Not a coincidence — a pattern.</p>
+
+      <h2>The Root Cause</h2>
+
+      <p>AI coding agents like Amazon Q Developer are designed to be productive. They write code fast, run tests automatically, and can ship changes faster than any human team. That's the product. That's what customers are paying for.</p>
+
+      <p>The problem isn't the speed. The problem is what's missing at the boundary between "the agent decided to do something" and "that thing happened in production."</p>
+
+      <p>There's no receipt.</p>
+
+      <p>When a human engineer deploys to production, there's a chain of authorization: a PR review, a merge approval, a deploy trigger. Each step involves a human making an explicit decision. That chain is auditable. It can be halted at any point.</p>
+
+      <p>When an AI agent deploys to production, what's the equivalent? In most setups: nothing. The agent has the same access as the service account it runs under. If that account can touch production, the agent can touch production. No authorization step. No signed receipt. No gate.</p>
+
+      <div class="highlight">
+        <p><strong>The agent had permissions. It did not need authorization. That's the gap.</strong></p>
+        <p>Permissions answer: <em>what is this identity allowed to do?</em></p>
+        <p>Authorization answers: <em>is this specific action, right now, approved?</em></p>
+      </div>
+
+      <h2>What a Deploy Gate Would Have Done</h2>
+
+      <p>A deploy gate intercepts at the right moment: after the agent proposes a change, before it lands in production. The gate has one requirement: a signed authorization receipt scoped to this exact change.</p>
+
+      <p>No receipt? The deploy stops. Not a warning. A hard block.</p>
+
+      <div class="timeline">
+        <div class="timeline-item">
+          <p><strong>Q Developer proposes:</strong> Modify production configuration / run deployment / push infrastructure change.</p>
+        </div>
+        <div class="timeline-item">
+          <p><strong>Deploy gate fires:</strong> ❌ No authorization receipt. Deploy blocked.</p>
+        </div>
+        <div class="timeline-item">
+          <p><strong>Human reviews:</strong> "This change modifies production. Do I approve it?" — reads the diff, signs the receipt.</p>
+        </div>
+        <div class="timeline-item">
+          <p><strong>Gate verifies receipt:</strong> Signature valid, scope matches, not expired. ✅ Deploy proceeds.</p>
+        </div>
+        <div class="timeline-item">
+          <p><strong>Result:</strong> Q Developer's action is on the record. The human who approved it is on the record. The incident never happens.</p>
+        </div>
+      </div>
+
+      <p>The agent's judgment doesn't matter. The agent's confidence doesn't matter. The receipt is either there or it isn't. Binary. Auditable. Enforceable.</p>
+
+      <h2>The Receipt</h2>
+
+      <p>An authorization receipt isn't a ticket or a Slack approval. It's a cryptographically signed JSON document that binds a specific human identity to a specific action at a specific time. It can't be forged. It can't be reused. It expires.</p>
+
+      <pre><code>{
+  "receipt_id": "rcpt_q_dev_20260225_001",
+  "issued_at": "2026-02-25T14:23:11Z",
+  "expires_at": "2026-02-25T14:53:11Z",
+  "signer": {
+    "identity": "eng-lead@example.com",
+    "key_id": "pp_key_7f3a9c"
+  },
+  "action": {
+    "type": "production_deploy",
+    "service": "amazon-q-developer-target",
+    "change_hash": "sha256:a4f8e2...",
+    "environment": "production",
+    "region": "us-east-1"
+  },
+  "authorization": {
+    "scope": "single_deploy",
+    "reviewed_diff": true,
+    "approval_note": "Reviewed. Config change only — no infra modifications."
+  },
+  "signature": "eyJhbGciOiJFUzI1NiJ9..."
+}</code></pre>
+
+      <p>This receipt lives in the deploy record. Years from now, an auditor can answer: who authorized this? What did they see? When did they approve it? The answer is in the receipt, not in someone's memory or a Slack thread that scrolled off the screen.</p>
+
+      <p>The deploy gate checks this receipt before every production action. No receipt — no deploy. Tampered receipt — no deploy. Expired receipt — no deploy.</p>
+
+      <h2>"Small but Foreseeable" Is the Most Honest Postmortem in Tech</h2>
+
+      <p>Most incident postmortems are exercises in euphemism. This incident was "a rare edge case." That outage was "an unexpected interaction between systems." The AI tool's role was "a contributing factor."</p>
+
+      <p>Someone at AWS said it plainly: <em>foreseeable.</em> That's a senior engineer saying, out loud, that they knew this class of incident was coming. They shipped the product anyway. The incident happened anyway.</p>
+
+      <p>It's not a criticism — it's a pattern. AI coding agents are new enough that the governance infrastructure hasn't kept pace with the capability. Every team shipping AI agents to production right now is in this gap.</p>
+
+      <p>The question is whether you close the gap before the incident or after.</p>
+
+      <div class="blog-cta">
+        <p>Require authorization receipts before any production action. Two minutes to install.</p>
+        <a class="cta-link" href="/install">Install Deploy Gate →</a>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="footer-main">
+        <span class="pp-lockup">
+          <svg class="pp-gate-svg" width="20" height="20" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="shape-rendering: crispEdges;">
+            <rect x="1.5" y="1.5" width="13" height="13" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="1.5" x2="8" y2="5.5" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="10.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <span class="pp-wordmark-inline">
+            <span class="perm">PERMISSION</span><span class="slash">/</span><span class="proto">PROTOCOL</span>
+          </span>
+        </span>
+        <span class="footer-text">© 2026</span>
+      </div>
+      <div class="footer-trust">
+        <span>Built for teams running GitHub Actions, ArgoCD, Terraform</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/main.js?v=5"></script>
+</body>
+</html>
