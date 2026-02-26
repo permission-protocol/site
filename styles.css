@@ -1129,6 +1129,120 @@ ul.requirements li::before {
   font-size: 1rem;
 }
 
+/* Interactive Diagnostic Checklist */
+.diagnostic-checklist--interactive {
+  gap: 0;
+}
+
+.diagnostic-checklist--interactive li {
+  padding: 0;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.diagnostic-checklist--interactive li:last-child {
+  border-bottom: none;
+}
+
+.diagnostic-checklist--interactive li::before {
+  display: none; /* replaced by custom checkbox icon */
+}
+
+.diagnostic-item {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 0;
+  cursor: pointer;
+  user-select: none;
+  width: 100%;
+  transition: background 0.15s ease;
+  border-radius: 4px;
+}
+
+.diagnostic-item:hover .diagnostic-check-icon {
+  border-color: #ff4444;
+}
+
+.diagnostic-cb {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.diagnostic-check-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--gray-400, #888);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  position: relative;
+}
+
+.diagnostic-cb:checked + .diagnostic-check-icon {
+  background: #ff4444;
+  border-color: #ff4444;
+}
+
+.diagnostic-cb:checked + .diagnostic-check-icon::after {
+  content: '';
+  display: block;
+  width: 5px;
+  height: 9px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.diagnostic-cb:checked ~ .diagnostic-label {
+  color: var(--gray-900, #e0e0e0);
+}
+
+.diagnostic-label {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--gray-700);
+  transition: color 0.15s ease;
+}
+
+/* CTA reveal (hidden by default, shown after 2+ checks) */
+.diagnostic-cta-reveal {
+  display: none;
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: linear-gradient(135deg, #1a0a0a 0%, #0f0000 100%);
+  border-left: 3px solid #ff4444;
+  border-radius: 4px;
+  animation: slideIn 0.3s ease;
+}
+
+.diagnostic-cta-reveal.is-visible {
+  display: block;
+}
+
+.diagnostic-cta-text {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #f0f0f0;
+  margin: 0 0 0.75rem 0;
+}
+
+.diagnostic-cta-btn {
+  display: inline-block;
+  margin-top: 0;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* Approval Not Authority Section - keep white for contrast table visibility */
 
 /* Contrast Table */

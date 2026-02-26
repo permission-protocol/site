@@ -225,14 +225,42 @@
       <div class="container">
         <div class="stack">
           <h2>Does This Apply to Your Stack?</h2>
-          <ul class="diagnostic-checklist">
-            <li>AI systems generate or modify production-bound code</li>
-            <li>Deploy is automated through CI/CD</li>
-            <li>Agents or bots hold execution privileges</li>
-            <li>Production changes are irreversible</li>
+          <ul class="diagnostic-checklist diagnostic-checklist--interactive" id="diagnostic-checklist" role="group" aria-label="Stack diagnostic checklist">
+            <li>
+              <label class="diagnostic-item">
+                <input type="checkbox" class="diagnostic-cb" data-index="0">
+                <span class="diagnostic-check-icon" aria-hidden="true"></span>
+                <span class="diagnostic-label">AI systems generate or modify production-bound code</span>
+              </label>
+            </li>
+            <li>
+              <label class="diagnostic-item">
+                <input type="checkbox" class="diagnostic-cb" data-index="1">
+                <span class="diagnostic-check-icon" aria-hidden="true"></span>
+                <span class="diagnostic-label">Deploy is automated through CI/CD</span>
+              </label>
+            </li>
+            <li>
+              <label class="diagnostic-item">
+                <input type="checkbox" class="diagnostic-cb" data-index="2">
+                <span class="diagnostic-check-icon" aria-hidden="true"></span>
+                <span class="diagnostic-label">Agents or bots hold execution privileges</span>
+              </label>
+            </li>
+            <li>
+              <label class="diagnostic-item">
+                <input type="checkbox" class="diagnostic-cb" data-index="3">
+                <span class="diagnostic-check-icon" aria-hidden="true"></span>
+                <span class="diagnostic-label">Production changes are irreversible</span>
+              </label>
+            </li>
           </ul>
           <p class="diagnostic-trigger"><strong>Can your AI cause production changes without redeeming a signed receipt from an external authority domain?</strong></p>
-          <p class="diagnostic-conclusion">If yes, authorization must be external.</p>
+          <p class="diagnostic-conclusion" id="diagnostic-conclusion">If yes, authorization must be external.</p>
+          <div class="diagnostic-cta-reveal" id="diagnostic-cta-reveal" aria-live="polite">
+            <p class="diagnostic-cta-text">You need a deploy gate.</p>
+            <a href="/install" class="cta-link diagnostic-cta-btn" data-track="pp_diagnostic_cta_click">Install Deploy Gate →</a>
+          </div>
         </div>
       </div>
     </section>
