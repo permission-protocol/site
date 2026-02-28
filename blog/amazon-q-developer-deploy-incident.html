@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>[AI Deploy Incident] Amazon Q Developer Small but Foreseeable Production Incident | Permission Protocol</title>
+  <meta name="description" content="Amazon Q Developer triggered a small but foreseeable production incident. Root cause: an AI deploy path without a signed authorization receipt.">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="[AI Deploy Incident] Amazon Q Developer Small but Foreseeable Production Incident">
+  <meta property="og:description" content="Weekly AI Deploy Incident Thread: what happened, root cause, what a deploy gate blocks, and the authorization receipt teams need.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://permissionprotocol.com/blog/amazon-q-developer-deploy-incident">
+  <meta property="og:image" content="https://permissionprotocol.com/assets/og-image.png">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="[AI Deploy Incident] Amazon Q Developer Small but Foreseeable Production Incident">
+  <meta name="twitter:description" content="Root cause: deploy without a signed authorization receipt. A deploy gate would have blocked it before production.">
+  <meta name="twitter:image" content="https://permissionprotocol.com/assets/og-image.png">
+
+  <link rel="canonical" href="https://permissionprotocol.com/blog/amazon-q-developer-deploy-incident">
+  <link rel="stylesheet" href="../styles.css?v=14">
+</head>
+<body class="dark-brand-page">
+  <nav>
+    <div class="container">
+      <a href="/" class="logo">
+        <span class="pp-lockup">
+          <svg class="pp-gate-svg" width="20" height="20" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="shape-rendering: crispEdges;">
+            <rect x="1.5" y="1.5" width="13" height="13" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="1.5" x2="8" y2="5.5" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="10.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <span class="pp-wordmark-inline">
+            <span class="perm">PERMISSION</span><span class="slash">/</span><span class="proto">PROTOCOL</span>
+          </span>
+        </span>
+      </a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/deploy-gate">Deploy Gate</a></li>
+        <li><a href="/install">Install</a></li>
+        <li><a href="/brand">Brand</a></li>
+        <li><a href="/blog">Blog</a></li>
+        <li><a href="/present">Present</a></li>
+        <li class="mobile-hide"><a href="/request-access" class="primary">Request Access</a></li>
+      </ul>
+      <a href="/request-access" class="nav-cta-btn" data-track="pp_nav_cta_click">Request Access</a>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+  <div class="nav-overlay" id="nav-overlay"></div>
+
+  <main>
+    <article class="blog-post">
+      <a href="/blog" class="blog-back-link">← Back to Blog</a>
+
+      <h1>[AI Deploy Incident] Amazon Q Developer Small but Foreseeable Production Incident</h1>
+      <p class="blog-date">February 2026</p>
+
+      <p><strong>Permission Protocol blog post — weekly AI Deploy Incident Thread template.</strong></p>
+
+      <h2>1. What happened</h2>
+      <p>The Financial Times reported a production incident linked to Amazon Q Developer and described it as <em>"small but foreseeable."</em> This was not framed as a model-quality failure. It was an execution-path failure: an AI-assisted deploy path reached production when it should have hit an explicit approval checkpoint first.</p>
+
+      <h2>2. Root cause</h2>
+      <p>The critical control was missing: the AI agent deploy path proceeded without a signed authorization receipt. In other words, permissions existed, but there was no cryptographic proof that this specific production action was approved by an accountable signer of record.</p>
+
+      <div class="highlight">
+        <p><strong>No signed receipt means no verifiable authorization chain.</strong></p>
+      </div>
+
+      <h2>3. What a deploy gate would have done</h2>
+      <ol>
+        <li><strong>Intercept deploy attempt:</strong> Pipeline checks for a valid receipt before production steps run.</li>
+        <li><strong>Fail closed:</strong> No receipt found, deploy blocked immediately.</li>
+        <li><strong>Request explicit approval:</strong> Human reviewer signs a scoped authorization for this commit and environment.</li>
+        <li><strong>Continue only if valid:</strong> Pipeline verifies signature, scope, and expiry, then proceeds.</li>
+      </ol>
+
+      <p>Outcome: the incident never reaches production without an accountable, auditable approval event.</p>
+
+      <h2>4. The receipt</h2>
+      <p>Example authorization receipt JSON:</p>
+
+      <pre><code>{
+  "version": "1.0",
+  "status": "APPROVED",
+  "requestId": "req_01JV7Q4M4T7Z9X4P9G8N2D6R1A",
+  "issuedAt": "2026-02-28T16:00:00Z",
+  "expiresAt": "2026-02-28T18:00:00Z",
+  "scope": {
+    "repo": "amazon/service-repo",
+    "sha": "4f8a2cd91ef7a2c7f3a5f0aa12d93b33f2d40e17",
+    "environment": "production",
+    "workflow": "deploy.yml"
+  },
+  "approver": {
+    "id": "user_7f2b1d",
+    "email": "oncall@example.com"
+  },
+  "signature": {
+    "alg": "Ed25519",
+    "keyId": "ppk_prod_2026_02",
+    "value": "MEYCIQDF9u5S1KQ4JYq3vF7eL0w0yqg2I8h8xQ8sJm5vKf0kFwIhAO4S0W3nX8kVQmN0x2z7x8YqJ6w1s8YzQ2mP5e4t9Y7P"
+  }
+}</code></pre>
+
+      <h2>5. CTA</h2>
+      <div class="blog-cta">
+        <p>Install a fail-closed deploy gate with signed authorization receipts.</p>
+        <a class="cta-link" href="https://permissionprotocol.com/install">permissionprotocol.com/install →</a>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="footer-main">
+        <span class="pp-lockup">
+          <svg class="pp-gate-svg" width="20" height="20" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="shape-rendering: crispEdges;">
+            <rect x="1.5" y="1.5" width="13" height="13" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="1.5" x2="8" y2="5.5" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="10.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <span class="pp-wordmark-inline">
+            <span class="perm">PERMISSION</span><span class="slash">/</span><span class="proto">PROTOCOL</span>
+          </span>
+        </span>
+        <span class="footer-text">© 2026</span>
+      </div>
+      <div class="footer-trust">
+        <span>Built for teams running GitHub Actions, ArgoCD, Terraform</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/main.js?v=5"></script>
+</body>
+</html>
