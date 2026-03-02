@@ -1061,51 +1061,15 @@ ul.requirements li::before {
   margin-bottom: 0.5rem;
 }
 
-.checklist-item {
-  cursor: pointer;
-  user-select: none;
-  transition: color 0.15s ease, background-color 0.15s ease;
-  border-radius: 4px;
-}
-
-.checklist-item:hover {
-  color: var(--gray-900, #fff);
-}
-
-.checklist-item:focus-visible {
-  outline: 2px solid #ff4444;
-  outline-offset: 2px;
-}
-
-.checklist-item.checked {
-  color: #e0e0e0;
-}
-
-.checklist-item.checked::before {
-  content: "☑";
-  color: #ff4444;
-}
-
-/* CTA urgency upgrade after 2+ checks */
-#diagnostic-cta.urgent #diagnostic-cta-btn {
-  animation: pulse-cta 1.5s ease-in-out 1;
-  box-shadow: 0 0 0 4px rgba(255, 68, 68, 0.25);
-}
-
-#diagnostic-cta.urgent #diagnostic-cta-copy {
-  color: #ff6666;
-  font-weight: 600;
-}
-
 #diagnostic-conclusion.urgent {
-  color: #ff6666;
+  color: var(--deny);
   font-weight: 600;
 }
 
-@keyframes pulse-cta {
-  0%   { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,68,68,0.4); }
-  50%  { transform: scale(1.04); box-shadow: 0 0 0 8px rgba(255,68,68,0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 4px rgba(255,68,68,0.25); }
+#diagnostic-conclusion.urgent-strong {
+  color: var(--deny);
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 /* Counter badge */
@@ -1120,7 +1084,7 @@ ul.requirements li::before {
 }
 
 .check-counter.hot {
-  color: #ff6666;
+  color: var(--deny);
   font-weight: 600;
 }
 
@@ -1160,7 +1124,7 @@ ul.requirements li::before {
 }
 
 .diagnostic-item:hover .diagnostic-check-icon {
-  border-color: #ff4444;
+  border-color: var(--deny);
 }
 
 .diagnostic-cb {
@@ -1185,8 +1149,8 @@ ul.requirements li::before {
 }
 
 .diagnostic-cb:checked + .diagnostic-check-icon {
-  background: #ff4444;
-  border-color: #ff4444;
+  background: var(--deny);
+  border-color: var(--deny);
 }
 
 .diagnostic-cb:checked + .diagnostic-check-icon::after {
@@ -1216,8 +1180,8 @@ ul.requirements li::before {
   display: none;
   margin-top: 1.5rem;
   padding: 1.25rem 1.5rem;
-  background: linear-gradient(135deg, #1a0a0a 0%, #0f0000 100%);
-  border-left: 3px solid #ff4444;
+  background: linear-gradient(135deg, #151515 0%, #0a0a0a 100%);
+  border-left: 3px solid var(--deny);
   border-radius: 4px;
   animation: slideIn 0.3s ease;
 }
@@ -3341,7 +3305,6 @@ body.dark-brand-page {
 .dark-brand-page .feature-card,
 .dark-brand-page .comparison-table,
 .dark-brand-page .step-card,
-.dark-brand-page .checklist-item,
 .dark-brand-page .config-table,
 .dark-brand-page .form-textarea,
 .dark-brand-page .diagram-node,
@@ -3964,14 +3927,13 @@ body.dark-brand-page {
   flex-wrap: wrap;
 }
 
-.home-redesign .diagnostic-checklist li {
+.home-redesign .diagnostic-checklist--interactive li {
   border-bottom: 1px solid #202020;
-  padding: 0.75rem 0 0.75rem 2rem;
+  padding: 0;
 }
 
-.home-redesign .diagnostic-checklist li::before {
-  content: "✓";
-  color: #44aa99;
+.home-redesign .diagnostic-checklist--interactive li::before {
+  display: none;
 }
 
 .home-redesign .diagnostic-trigger {
