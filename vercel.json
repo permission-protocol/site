@@ -44,6 +44,10 @@
     {
       "source": "/challenge",
       "destination": "/challenge.html"
+    },
+    {
+      "source": "/admin/governance",
+      "destination": "/admin/governance.html"
     }
   ]
 }
