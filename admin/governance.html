@@ -10,7 +10,9 @@
       --bg: #0a0a0a;
       --surface: #151520;
       --surface-2: #1a1a2e;
+      --surface-3: #12121e;
       --border: #2a2a3e;
+      --border-light: #353550;
       --text: #e0e0e0;
       --text-dim: #8888aa;
       --coral: #FF6B5B;
@@ -30,17 +32,8 @@
       max-width: 1400px;
       margin: 0 auto;
     }
-    h1 {
-      font-size: 1.5rem;
-      font-weight: 600;
-      margin-bottom: 0.25rem;
-      color: var(--coral);
-    }
-    .subtitle {
-      color: var(--text-dim);
-      font-size: 0.85rem;
-      margin-bottom: 2rem;
-    }
+    h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--coral); }
+    .subtitle { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 2rem; }
     .stats {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -54,28 +47,10 @@
       padding: 1rem;
       text-align: center;
     }
-    .stat-value {
-      font-size: 1.75rem;
-      font-weight: 700;
-      font-family: var(--mono);
-    }
-    .stat-label {
-      font-size: 0.75rem;
-      color: var(--text-dim);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    h2 {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin: 2rem 0 0.75rem;
-      color: var(--text);
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
-    }
+    .stat-value { font-size: 1.75rem; font-weight: 700; font-family: var(--mono); }
+    .stat-label { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+    h2 { font-size: 1.1rem; font-weight: 600; margin: 2rem 0 0.75rem; color: var(--text); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
     th {
       text-align: left;
       padding: 0.5rem 0.75rem;
@@ -87,12 +62,51 @@
       letter-spacing: 0.05em;
       white-space: nowrap;
     }
+    th.sortable {
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      padding-right: 1.5rem;
+    }
+    th.sortable:hover { color: var(--coral); }
+    th.sortable::after {
+      content: '⇅';
+      position: absolute;
+      right: 0.25rem;
+      opacity: 0.3;
+      font-size: 0.7rem;
+    }
+    th.sortable.asc::after { content: '↑'; opacity: 0.8; color: var(--coral); }
+    th.sortable.desc::after { content: '↓'; opacity: 0.8; color: var(--coral); }
     td {
       padding: 0.5rem 0.75rem;
       border-bottom: 1px solid var(--border);
       vertical-align: top;
     }
-    tr:hover { background: var(--surface); }
+    .process-row:hover { background: var(--surface-2); }
+    .process-row { transition: background 0.15s; }
+    .process-row.expanded { background: var(--surface); border-bottom-color: transparent; }
+    .detail-row td {
+      padding: 0.75rem 1rem 1rem 1rem;
+      background: var(--surface-3);
+      border-bottom: 1px solid var(--border-light);
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.5rem 2rem;
+    }
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+    .detail-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+    }
     code {
       font-family: var(--mono);
       font-size: 0.8rem;
@@ -100,6 +114,13 @@
       padding: 1px 4px;
       border-radius: 3px;
     }
+    .badge {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+    .dim { color: var(--text-dim); }
     .section {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -121,214 +142,223 @@
 </head>
 <body>
   <h1>⬡ Governance Dashboard</h1>
-  <p class="subtitle">Autonomous Process Ledger — generated 2026-03-02T21:23:29Z · 17 processes tracked</p>
+  <p class="subtitle">Autonomous Process Ledger — generated 2026-03-02T21:23:29Z · 17 processes tracked · click a row for details</p>
 
   <div class="stats">
-    <div class="stat">
-      <div class="stat-value" style="color:var(--green)">15</div>
-      <div class="stat-label">Healthy</div>
-    </div>
-    <div class="stat">
-      <div class="stat-value" style="color:var(--text-dim)">2</div>
-      <div class="stat-label">Disabled</div>
-    </div>
-    <div class="stat">
-      <div class="stat-value" style="color:var(--red)">0</div>
-      <div class="stat-label">Drift</div>
-    </div>
-    <div class="stat">
-      <div class="stat-value">2</div>
-      <div class="stat-label">Authority C</div>
-    </div>
-    <div class="stat">
-      <div class="stat-value">5</div>
-      <div class="stat-label">Authority B</div>
-    </div>
-    <div class="stat">
-      <div class="stat-value">7</div>
-      <div class="stat-label">Authority A</div>
-    </div>
+    <div class="stat"><div class="stat-value" style="color:var(--green)">15</div><div class="stat-label">Healthy</div></div>
+    <div class="stat"><div class="stat-value" style="color:var(--text-dim)">2</div><div class="stat-label">Disabled</div></div>
+    <div class="stat"><div class="stat-value" style="color:var(--red)">0</div><div class="stat-label">Drift</div></div>
+    <div class="stat"><div class="stat-value">2</div><div class="stat-label">Authority C</div></div>
+    <div class="stat"><div class="stat-value">5</div><div class="stat-label">Authority B</div></div>
+    <div class="stat"><div class="stat-value">7</div><div class="stat-label">Authority A</div></div>
   </div>
 
   
 
   <div class="section">
     <h2>Processes</h2>
-    <table>
+    <table id="process-table">
       <thead>
-        <tr><th>ID</th><th>Name</th><th>Auth</th><th>Status</th><th>Drift</th><th>Schedule</th><th>Last Run</th><th>Next Run</th><th>SLA</th></tr>
+        <tr>
+          <th class="sortable" data-sort="id" data-type="str">ID</th>
+          <th class="sortable" data-sort="name" data-type="str">Name</th>
+          <th class="sortable" data-sort="auth" data-type="num">Auth</th>
+          <th class="sortable" data-sort="status" data-type="num">Status</th>
+          <th>Drift</th>
+          <th>Schedule</th>
+          <th class="sortable" data-sort="lastrun" data-type="str">Last Run</th>
+          <th class="sortable" data-sort="nextrun" data-type="str">Next Run</th>
+          <th class="sortable" data-sort="sla" data-type="num">SLA</th>
+        </tr>
       </thead>
-      <tbody><tr>
+      <tbody id="process-tbody"><tr class="process-row" data-idx="0" data-id="GOV-001" data-name="governance-integrity-check" data-auth="2" data-status="4" data-sla="30" data-lastrun="0" data-nextrun="2026-03-03T14:00:00Z" onclick="toggleDetail(0)" style="cursor:pointer">
   <td><code>GOV-001</code></td>
-  <td><strong>governance-integrity-check</strong><br><span style="color:#6b7280;font-size:0.8rem">openclaw-cron</span></td>
-  <td><span style="background:#22c55e20;color:#22c55e;padding:2px 8px;border-radius:4px;font-weight:600;font-size:0.8rem">A</span></td>
+  <td><strong>governance-integrity-check</strong><br><span class="dim" style="font-size:0.8rem">openclaw-cron</span></td>
+  <td><span class="badge" style="background:#22c55e20;color:#22c55e">A</span></td>
   <td><span style="color:#22c55e;font-weight:500">● ok</span></td>
   <td>—</td>
   <td style="font-size:0.85rem"><code>0 7 * * *</code></td>
   <td style="font-size:0.85rem">—</td>
   <td style="font-size:0.85rem">Mar 03 14:00 UTC</td>
   <td><span style="color:#22c55e">30d</span></td>
-</tr><tr>
+</tr>
+<tr class="detail-row" id="detail-0" style="display:none"><td colspan="9"><div class="detail-grid"><div class="detail-item"><span class="detail-label">Model</span><code>sonnet</code></div><div class="detail-item"><span class="detail-label">Timeout</span><span>60s</span></div><div class="detail-item"><span class="detail-label">Session</span><span>isolated</span></div><div class="detail-item"><span class="detail-label">Timezone</span><span>America/Denver</span></div><div class="detail-item"><span class="detail-label">Ledger Schedule</span><code>0 7 * * * (Denver)</code></div><div class="detail-item"><span class="detail-label">Last Reviewed</span><span>2026-03-02</span></div><div class="detail-item"><span class="detail-label">Cron ID</span><code class="dim">60a9e179-3d6…</code></div><div class="detail-item"><span class="detail-label">Risk</span><span>Low</span></div></div></td></tr><tr class="process-row" data-idx="1" data-id="PP-001" data-name="pp-os-execute-ready" data-auth="0" data-status="4" data-sla="30" data-lastrun="2026-03-02T20:05:00Z" data-nextrun="2026-03-02T22:05:00Z" onclick="toggleDetail(1)" style="cursor:pointer">
   <td><code>PP-001</code></td>
-  <td><strong>pp-os-execute-ready</strong><br><span style="color:#6b7280;font-size:0.8rem">openclaw-cron</span></td>
-  <td><span style="background:#ef444420;color:#ef4444;padding:2px 8px;border-radius:4px;font-weight:600;font-size:0.8rem">C</span></td>
+  <td><strong>pp-os-execute-ready</strong><br><span class="dim" style="font-size:0.8rem">openclaw-cron</span></td>
+  <td><span class="badge" style="background:#ef444420;color:#ef4444">C</span></td>
   <td><span style="color:#22c55e;font-weight:500">● ok</span></td>
   <td>—</td>
   <td style="font-size:0.85rem"><code>5 9,11,13,15,17 * * *</code></td>
   <td style="font-size:0.85rem">Mar 02 20:05 UTC</td>
   <td style="font-size:0.85rem">Mar 02 22:05 UTC</td>
   <td><span style="color:#22c55e">30d</span></td>
-</tr><tr>
+</tr>
+<tr class="detail-row" id="detail-1" style="display:none"><td colspan="9"><div class="detail-grid"><div class="detail-item"><span class="detail-label">Human Gate</span><span>Approval for merges</span></div><div class="detail-item"><span class="detail-label">Model</span><code>anthropic/claude-sonnet-4-6</code></div><div class="detail-item"><span class="detail-label">Timeout</span><span>900s</span></div><div class="detail-item"><span class="detail-label">Session</span><span>isolated</span></div><div class="detail-item"><span class="detail-label">Ledger Schedule</span><code>5 9,11,13,15,17 * * *</code></div><div class="detail-item"><span class="detail-label">Last Reviewed</span><span>2026-03-02</span></div><div class="detail-item"><span class="detail-label">Cron ID</span><code class="dim">db5b5d84-c92…</code></div><div class="detail-item"><span class="detail-label">Risk</span><span>High</span></div></div></td></tr><tr class="process-row" data-idx="2" data-id="PP-002" data-name="pp-os-daily-log-and-plan" data-auth="1" data-status="4" data-sla="30" data-lastrun="2026-03-02T15:03:00Z" data-nextrun="2026-03-03T15:03:00Z" onclick="toggleDetail(2)" style="cursor:pointer">
   <td><code>PP-002</code></td>
-  <td><strong>pp-os-daily-log-and-plan</strong><br><span style="color:#6b7280;font-size:0.8rem">openclaw-cron</span></td>
-  <td><span style="background:#eab30820;color:#eab308;padding:2px 8px;border-radius:4px;font-weight:600;font-size:0.8rem">B</span></td>
+  <td><strong>pp-os-daily-log-and-plan</strong><br><span class="dim" style="font-size:0.8rem">openclaw-cron</span></td>
+  <td><span class="badge" style="background:#eab30820;color:#eab308">B</span></td>
   <td><span style="color:#22c55e;font-weight:500">● ok</span></td>
   <td>—</td>
   <td style="font-size:0.85rem"><code>3 8 * * *</code></td>
   <td style="font-size:0.85rem">Mar 02 15:03 UTC</td>
   <td style="font-size:0.85rem">Mar 03 15:03 UTC</td>
   <td><span style="color:#22c55e">30d</span></td>
-</tr><tr>
+</tr>
+<tr class="detail-row" id="detail-2" style="display:none"><td colspan="9"><div class="detail-grid"><div class="detail-item"><span class="detail-label">Model</span><code>opus</code></div><div class="detail-item"><span class="detail-label">Timeout</span><span>600s</span></div><div class="detail-item"><span class="detail-label">Session</span><span>isolated</span></div><div class="detail-item"><span class="detail-label">Ledger Schedule</span><code>3 8 * * *</code></div><div class="detail-item"><span class="detail-label">Last Reviewed</span><span>2026-03-02</span></div><div class="detail-item"><span class="detail-label">Cron ID</span><code class="dim">f9d08ca6-206…</code></div><div class="detail-item"><span class="detail-label">Risk</span><span>Low</span></div></div></td></tr><tr class="process-row" data-idx="3" data-id="PP-003" data-name="pp-os-qa-review" data-auth="1" data-status="4" data-sla="30" data-lastrun="2026-03-02T09:00:00Z" data-nextrun="2026-03-03T09:00:00Z" onclick="toggleDetail(3)" style="cursor:pointer">
   <td><code>PP-003</code></td>
-  <td><strong>pp-os-qa-review</strong><br><span style="color:#6b7280;font-size:0.8rem">openclaw-cron</span></td>
-  <td><span style="background:#eab30820;color:#eab308;padding:2px 8px;border-radius:4px;font-weight:600;font-size:0.8rem">B</span></td>
+  <td><strong>pp-os-qa-review</strong><br><span class="dim" style="font-size:0.8rem">openclaw-cron</span></td>
+  <td><span class="badge" style="background:#eab30820;color:#eab308">B</span></td>
   <td><span style="color:#22c55e;font-weight:500">● ok</span></td>
   <td>—</td>
   <td style="font-size:0.85rem"><code>0 2 * * *</code></td>
   <td style="font-size:0.85rem">Mar 02 09:00 UTC</td>
   <td style="font-size:0.85rem">Mar 03 09:00 UTC</td>
   <td><span style="color:#22c55e">30d</span></td>
-</tr><tr>
+</tr>
+<tr class="detail-row" id="detail-3" style="display:none"><td colspan="9"><div class="detail-grid"><div class="detail-item"><span class="detail-label">Model</span><code>anthropic/claude-sonnet-4-6</code></div><div class="detail-item"><span class="detail-label">Timeout</span><span>600s</span></div><div class="detail-item"><span class="detail-label">Session</span><span>isolated</span></div><div class="detail-item"><span class="detail-label">Ledger Schedule</span><code>0 2 * * *</code></div><div class="detail-item"><span class="detail-label">Last Reviewed</span><span>2026-03-02</span></div><div class="detail-item"><span class="detail-label">Cron ID</span><code class="dim">16b300bb-563…</code></div><div class="detail-item"><span class="detail-label">Risk</span><span>Low</span></div></div></td></tr><tr class="process-row" data-idx="4" data-id="PP-004" data-name="pp-os-weekly-review" data-auth="2" data-status="4" data-sla="30" data-lastrun="2026-03-01T17:00:00Z" data-nextrun="2026-03-08T16:00:00Z" onclick="toggleDetail(4)" style="cursor:pointer">
   <td><code>PP-004</code></td>
-  <td><strong>pp-os-weekly-review</strong><br><span style="color:#6b7280;font-size:0.8rem">openclaw-cron</span></td>
-  <td><span style="background:#22c55e20;color:#22c55e;padding:2px 8px;border-radius:4px;font-weight:600;font-size:0.8rem">A</span></td>
+  <td><strong>pp-os-weekly-review</strong><br><span class="dim" style="font-size:0.8rem">openclaw-cron</span></td>
+  <td><span class="badge" style="background:#22c55e20;color:#22c55e">A</span></td>
   <td><span style="color:#22c55e;font-weight:500">● ok</span></td>
   <td>—</td>
   <td style="font-size:0.85rem"><code>0 10 * * 0</code></td>
   <td style="font-size:0.85rem">Mar 01 17:00 UTC</td>
   <td style="font-size:0.85rem">Mar 08 16:00 UTC</td>
   <td><span style="color:#22c55e">30d</span></td>
-</tr><tr>
+</tr>
+<tr class="detail-row" id="detail-4" style="display:none"><td colspan="9"><div class="detail-grid"><div class="detail-item"><span class="detail-label">Model</span><code>anthropic/claude-opus-4-6</code></div><div class="detail-item"><span class="detail-label">Timeout</span><span>120s</span></div><div class="detail-item"><span class="detail-label">Session</span><span>isolated</span></div><div class="detail-item"><span class="detail-label">Timezone</span><span>America/Denver</span></div><div class="detail-item"><span class="detail-label">Ledger Schedule</span><code>0 10 * * 0 (Denver)</code></div><div class="detail-item"><span class="detail-label">Last Reviewed</span><span>2026-03-02</span></div><div class="detail-item"><span class="detail-label">Cron ID</span><code class="dim">8e8f1d36-f14…</code></div><div class="detail-item"><span class="detail-label">Risk</span><span>Low</span></div></div></td></tr><tr class="process-row" data-idx="5" data-id="PP-005" data-name="pp-os-incident-scanner" data-auth="2" data-status="2" data-sla="30" data-lastrun="0" data-nextrun="9" onclick="toggleDetail(5)" style="cursor:pointer">
   <td><code>PP-005</code></td>
-  <td><strong>pp-os-incident-scanner</strong><br><span style="color:#6b7280;font-size:0.8rem">openclaw-cron</span></td>
-  <td><span style="background:#22c55e20;color:#22c55e;padding:2px 8px;border-radius:4px;font-weight:600;font-size:0.8rem">A</span></td>
+  <td><strong>pp-os-incident-scanner</strong><br><span class="dim" style="font-size:0.8rem">openclaw-cron</span></td>
+  <td><span class="badge" style="background:#22c55e20;color:#22c55e">A</span></td>
   <td><span style="color:#6b7280;font-weight:500">○ disabled</span></td>
   <td>—</td>
   <td style="font-size:0.85rem"><code>—</code></td>
   <td style="font-size:0.85rem">—</td>
   <td style="font-size:0.85rem">—</td>
   <td><span style="color:#22c55e">30d</span></td>
-</tr><tr>
+</tr>
+<tr class="detail-row" id="detail-5" style="display:none"><td colspan="9"><div class="detail-grid"><div class="detail-item"><span class="detail-label">Ledger Schedule</span><code>2 7 * * *</code></div><div class="detail-item"><span class="detail-label">Last Reviewed</span><span>2026-03-02</span></div><div class="detail-item"><span class="detail-label">Risk</span><span>Low</span></div></div></td></tr><tr class="process-row" data-idx="6" data-id="PP-006" data-name="pr-prescreen-auto" data-auth="1" data-status="4" data-sla="30" data-lastrun="2026-03-02T20:30:00Z" data-nextrun="2026-03-02T22:00:00Z" onclick="toggleDetail(6)" style="cursor:pointer">
   <td><code>PP-006</code></td>
-  <td><strong>pr-prescreen-auto</strong><br><span style="color:#6b7280;font-size:0.8rem">openclaw-cron</span></td>
-  <td><span style="background:#eab30820;color:#eab308;padding:2px 8px;border-radius:4px;font-weight:600;font-size:0.8rem">B</span></td>
+  <td><strong>pr-prescreen-auto</strong><br><span class="dim" style="font-size:0.8rem">openclaw-cron</span></td>
+  <td><span class="badge" style="background:#eab30820;color:#eab308">B</span></td>
   <td><span style="color:#22c55e;font-weight:500">● ok</span></td>
   <td>—</td>
   <td style="font-size:0.85rem"><code>0 9,11,13,15,17 * * 1-6</code></td>
   <td style="font-size:0.85rem">Mar 02 20:30 UTC</td>
   <td style="font-size:0.85rem">Mar 02 22:00 UTC</td>
   <td><span style="color:#22c55e">30d</span></td>
-</tr><tr>
+</tr>
+<tr class="detail-row" id="detail-6" style="display:none"><td colspan="9"><div class="detail-grid"><div class="detail-item"><span class="detail-label">Model</span><code>sonnet</code></div><div class="detail-item"><span class="detail-label">Timeout</span><span>600s</span></div><div class="detail-item"><span class="detail-label">Session</span><span>isolated</span></div><div class="detail-item"><span class="detail-label">Timezone</span><span>America/Denver</span></div><div class="detail-item"><span class="detail-label">Ledger Schedule</span><code>0 9,11,13,15,17 * * 1-6 (Denver)</code></div><div class="detail-item"><span class="detail-label">Last Reviewed</span><span>2026-03-02</span></div><div class="detail-item"><span class="detail-label">Cron ID</span><code class="dim">be3510e3-af1…</code></div><div class="detail-item"><span class="detail-label">Risk</span><span>Low</span></div></div></td></tr><tr class="process-row" data-idx="7" data-id="PP-007" data-name="pp-daily-metrics" data-auth="2" data-status="2" data-sla="30" data-lastrun="0" data-nextrun="9" onclick="toggleDetail(7)" style="cursor:pointer">
   <td><code>PP-007</code></td>
-  <td><strong>pp-daily-metrics</strong><br><span style="color:#6b7280;font-size:0.8rem">openclaw-cron</span></td>
-  <td><span style="background:#22c55e20;color:#22c55e;padding:2px 8px;border-radius:4px;font-weight:600;font-size:0.8rem">A</span></td>
+  <td><strong>pp-daily-metrics</strong><br><span class="dim" style="font-size:0.8rem">openclaw-cron</span></td>
+  <td><span class="badge" style="background:#22c55e20;color:#22c55e">A</span></td>
   <td><span style="color:#6b7280;font-weight:500">○ disabled</span></td>
   <td>—</td>
   <td style="font-size:0.85rem"><code>—</code></td>
   <td style="font-size:0.85rem">—</td>
   <td style="font-size:0.85rem">—</td>
   <td><span style="color:#22c55e">30d</span></td>
-</tr><tr>
+</tr>
+<tr class="detail-row" id="detail-7" style="display:none"><td colspan="9"><div class="detail-grid"><div class="detail-item"><span class="detail-label">Ledger Schedule</span><code>0 9 * * *</code></div><div class="detail-item"><span class="detail-label">Last Reviewed</span><span>2026-03-02</span></div><div class="detail-item"><span class="detail-label">Risk</span><span>Low</span></div></div></td></tr><tr class="process-row" data-idx="8" data-id="PP-008" data-name="pp-linkedin-weekly" data-auth="0" data-status="4" data-sla="30" data-lastrun="0" data-nextrun="2026-03-08T14:00:00Z" onclick="toggleDetail(8)" style="cursor:pointer">
   <td><code>PP-008</code></td>
-  <td><strong>pp-linkedin-weekly</strong><br><span style="color:#6b7280;font-size:0.8rem">openclaw-cron</span></td>
-  <td><span style="background:#ef444420;color:#ef4444;padding:2px 8px;border-radius:4px;font-weight:600;font-size:0.8rem">C</span></td>
+  <td><strong>pp-linkedin-weekly</strong><br><span class="dim" style="font-size:0.8rem">openclaw-cron</span></td>
+  <td><span class="badge" style="background:#ef444420;color:#ef4444">C</span></td>
   <td><span style="color:#22c55e;font-weight:500">● ok</span></td>
   <td>—</td>
   <td style="font-size:0.85rem"><code>0 8 * * 0</code></td>
   <td style="font-size:0.85rem">—</td>
   <td style="font-size:0.85rem">Mar 08 14:00 UTC</td>
   <td><span style="color:#22c55e">30d</span></td>
-</tr><tr>
+</tr>
+<tr class="detail-row" id="detail-8" style="display:none"><td colspan="9"><div class="detail-grid"><div class="detail-item"><span class="detail-label">Human Gate</span><span>Telegram approval</span></div><div class="detail-item"><span class="detail-label">Model</span><code>sonnet</code></div><div class="detail-item"><span class="detail-label">Timeout</span><span>120s</span></div><div class="detail-item"><span class="detail-label">Session</span><span>isolated</span></div><div class="detail-item"><span class="detail-label">Timezone</span><span>America/Denver</span></div><div class="detail-item"><span class="detail-label">Ledger Schedule</span><code>0 8 * * 0 (Denver)</code></div><div class="detail-item"><span class="detail-label">Last Reviewed</span><span>2026-03-02</span></div><div class="detail-item"><span class="detail-label">Cron ID</span><code class="dim">8c0d1fb0-046…</code></div><div class="detail-item"><span class="detail-label">Risk</span><span>Med</span></div></div></td></tr><tr class="process-row" data-idx="9" data-id="SYS-001" data-name="memory-curation-r1" data-auth="1" data-status="4" data-sla="30" data-lastrun="2026-03-01T18:00:00Z" data-nextrun="2026-03-08T17:00:00Z" onclick="toggleDetail(9)" style="cursor:pointer">
   <td><code>SYS-001</code></td>
-  <td><strong>memory-curation-r1</strong><br><span style="color:#6b7280;font-size:0.8rem">openclaw-cron</span></td>
-  <td><span style="background:#eab30820;color:#eab308;padding:2px 8px;border-radius:4px;font-weight:600;font-size:0.8rem">B</span></td>
+  <td><strong>memory-curation-r1</strong><br><span class="dim" style="font-size:0.8rem">openclaw-cron</span></td>
+  <td><span class="badge" style="background:#eab30820;color:#eab308">B</span></td>
   <td><span style="color:#22c55e;font-weight:500">● ok</span></td>
   <td>—</td>
   <td style="font-size:0.85rem"><code>0 11 * * 0</code></td>
   <td style="font-size:0.85rem">Mar 01 18:00 UTC</td>
   <td style="font-size:0.85rem">Mar 08 17:00 UTC</td>
   <td><span style="color:#22c55e">30d</span></td>
-</tr><tr>
+</tr>
+<tr class="detail-row" id="detail-9" style="display:none"><td colspan="9"><div class="detail-grid"><div class="detail-item"><span class="detail-label">Model</span><code>sonnet</code></div><div class="detail-item"><span class="detail-label">Timeout</span><span>600s</span></div><div class="detail-item"><span class="detail-label">Session</span><span>isolated</span></div><div class="detail-item"><span class="detail-label">Timezone</span><span>America/Denver</span></div><div class="detail-item"><span class="detail-label">Ledger Schedule</span><code>0 11 * * 0 (Denver)</code></div><div class="detail-item"><span class="detail-label">Last Reviewed</span><span>2026-03-02</span></div><div class="detail-item"><span class="detail-label">Cron ID</span><code class="dim">ef54b92a-458…</code></div><div class="detail-item"><span class="detail-label">Risk</span><span>Low</span></div></div></td></tr><tr class="process-row" data-idx="10" data-id="SYS-002" data-name="qa-workload1-review" data-auth="2" data-status="4" data-sla="30" data-lastrun="0" data-nextrun="2026-03-07T10:00:00Z" onclick="toggleDetail(10)" style="cursor:pointer">
   <td><code>SYS-002</code></td>
-  <td><strong>qa-workload1-review</strong><br><span style="color:#6b7280;font-size:0.8rem">openclaw-cron</span></td>
-  <td><span style="background:#22c55e20;color:#22c55e;padding:2px 8px;border-radius:4px;font-weight:600;font-size:0.8rem">A</span></td>
+  <td><strong>qa-workload1-review</strong><br><span class="dim" style="font-size:0.8rem">openclaw-cron</span></td>
+  <td><span class="badge" style="background:#22c55e20;color:#22c55e">A</span></td>
   <td><span style="color:#22c55e;font-weight:500">● ok</span></td>
   <td>—</td>
   <td style="font-size:0.85rem"><code>—</code></td>
   <td style="font-size:0.85rem">—</td>
   <td style="font-size:0.85rem">Mar 07 10:00 UTC</td>
   <td><span style="color:#22c55e">30d</span></td>
-</tr><tr>
+</tr>
+<tr class="detail-row" id="detail-10" style="display:none"><td colspan="9"><div class="detail-grid"><div class="detail-item"><span class="detail-label">Model</span><code>sonnet</code></div><div class="detail-item"><span class="detail-label">Timeout</span><span>300s</span></div><div class="detail-item"><span class="detail-label">Session</span><span>isolated</span></div><div class="detail-item"><span class="detail-label">Ledger Schedule</span><code>at 2026-03-07 10:00Z</code></div><div class="detail-item"><span class="detail-label">Last Reviewed</span><span>2026-03-02</span></div><div class="detail-item"><span class="detail-label">Cron ID</span><code class="dim">8b3c2ce7-eb0…</code></div><div class="detail-item"><span class="detail-label">Risk</span><span>Low</span></div></div></td></tr><tr class="process-row" data-idx="11" data-id="SYS-003" data-name="Bootstrap Receipt Reminder" data-auth="2" data-status="4" data-sla="30" data-lastrun="0" data-nextrun="2027-02-12T16:30:00Z" onclick="toggleDetail(11)" style="cursor:pointer">
   <td><code>SYS-003</code></td>
-  <td><strong>Bootstrap Receipt Reminder</strong><br><span style="color:#6b7280;font-size:0.8rem">openclaw-cron</span></td>
-  <td><span style="background:#22c55e20;color:#22c55e;padding:2px 8px;border-radius:4px;font-weight:600;font-size:0.8rem">A</span></td>
+  <td><strong>Bootstrap Receipt Reminder</strong><br><span class="dim" style="font-size:0.8rem">openclaw-cron</span></td>
+  <td><span class="badge" style="background:#22c55e20;color:#22c55e">A</span></td>
   <td><span style="color:#22c55e;font-weight:500">● ok</span></td>
   <td>—</td>
   <td style="font-size:0.85rem"><code>30 9 12 2 *</code></td>
   <td style="font-size:0.85rem">—</td>
   <td style="font-size:0.85rem">Feb 12 16:30 UTC</td>
   <td><span style="color:#22c55e">30d</span></td>
-</tr><tr>
+</tr>
+<tr class="detail-row" id="detail-11" style="display:none"><td colspan="9"><div class="detail-grid"><div class="detail-item"><span class="detail-label">Model</span><code>default</code></div><div class="detail-item"><span class="detail-label">Session</span><span>main</span></div><div class="detail-item"><span class="detail-label">Timezone</span><span>America/Denver</span></div><div class="detail-item"><span class="detail-label">Ledger Schedule</span><code>30 9 12 2 * (Denver)</code></div><div class="detail-item"><span class="detail-label">Last Reviewed</span><span>2026-03-02</span></div><div class="detail-item"><span class="detail-label">Cron ID</span><code class="dim">6d3da517-dbd…</code></div><div class="detail-item"><span class="detail-label">Risk</span><span>Low</span></div></div></td></tr><tr class="process-row" data-idx="12" data-id="SYS-004" data-name="openclaw-gateway" data-auth="3" data-status="5" data-sla="999" data-lastrun="0" data-nextrun="9" onclick="toggleDetail(12)" style="cursor:pointer">
   <td><code>SYS-004</code></td>
-  <td><strong>openclaw-gateway</strong><br><span style="color:#6b7280;font-size:0.8rem">launchd</span></td>
-  <td><span style="background:#6b728020;color:#6b7280;padding:2px 8px;border-radius:4px;font-weight:600;font-size:0.8rem">—</span></td>
+  <td><strong>openclaw-gateway</strong><br><span class="dim" style="font-size:0.8rem">launchd</span></td>
+  <td><span class="badge" style="background:#6b728020;color:#6b7280">—</span></td>
   <td><span style="color:#22c55e;font-weight:500">● running</span></td>
   <td>—</td>
   <td style="font-size:0.85rem"><code>always-on</code></td>
   <td style="font-size:0.85rem">—</td>
   <td style="font-size:0.85rem">—</td>
-  <td><span style="color:#6b7280">—</span></td>
-</tr><tr>
+  <td><span class="dim">—</span></td>
+</tr>
+<tr class="detail-row" id="detail-12" style="display:none"><td colspan="9"><div class="detail-grid"><div class="detail-item"><span class="detail-label">Human Gate</span><span>—</span></div><div class="detail-item"><span class="detail-label">Ledger Schedule</span><code>always-on</code></div><div class="detail-item"><span class="detail-label">Last Reviewed</span><span>2026-03-02</span></div><div class="detail-item"><span class="detail-label">Risk</span><span>High</span></div></div></td></tr><tr class="process-row" data-idx="13" data-id="SYS-005" data-name="openclaw-node" data-auth="3" data-status="5" data-sla="999" data-lastrun="0" data-nextrun="9" onclick="toggleDetail(13)" style="cursor:pointer">
   <td><code>SYS-005</code></td>
-  <td><strong>openclaw-node</strong><br><span style="color:#6b7280;font-size:0.8rem">launchd</span></td>
-  <td><span style="background:#6b728020;color:#6b7280;padding:2px 8px;border-radius:4px;font-weight:600;font-size:0.8rem">—</span></td>
+  <td><strong>openclaw-node</strong><br><span class="dim" style="font-size:0.8rem">launchd</span></td>
+  <td><span class="badge" style="background:#6b728020;color:#6b7280">—</span></td>
   <td><span style="color:#22c55e;font-weight:500">● running</span></td>
   <td>—</td>
   <td style="font-size:0.85rem"><code>always-on</code></td>
   <td style="font-size:0.85rem">—</td>
   <td style="font-size:0.85rem">—</td>
-  <td><span style="color:#6b7280">—</span></td>
-</tr><tr>
+  <td><span class="dim">—</span></td>
+</tr>
+<tr class="detail-row" id="detail-13" style="display:none"><td colspan="9"><div class="detail-grid"><div class="detail-item"><span class="detail-label">Human Gate</span><span>—</span></div><div class="detail-item"><span class="detail-label">Ledger Schedule</span><code>always-on</code></div><div class="detail-item"><span class="detail-label">Last Reviewed</span><span>2026-03-02</span></div><div class="detail-item"><span class="detail-label">Risk</span><span>Med</span></div></div></td></tr><tr class="process-row" data-idx="14" data-id="SYS-006" data-name="pp-prod-postgres" data-auth="3" data-status="5" data-sla="999" data-lastrun="0" data-nextrun="9" onclick="toggleDetail(14)" style="cursor:pointer">
   <td><code>SYS-006</code></td>
-  <td><strong>pp-prod-postgres</strong><br><span style="color:#6b7280;font-size:0.8rem">docker</span></td>
-  <td><span style="background:#6b728020;color:#6b7280;padding:2px 8px;border-radius:4px;font-weight:600;font-size:0.8rem">—</span></td>
+  <td><strong>pp-prod-postgres</strong><br><span class="dim" style="font-size:0.8rem">docker</span></td>
+  <td><span class="badge" style="background:#6b728020;color:#6b7280">—</span></td>
   <td><span style="color:#22c55e;font-weight:500">● running</span></td>
   <td>—</td>
   <td style="font-size:0.85rem"><code>always-on</code></td>
   <td style="font-size:0.85rem">—</td>
   <td style="font-size:0.85rem">—</td>
-  <td><span style="color:#6b7280">—</span></td>
-</tr><tr>
+  <td><span class="dim">—</span></td>
+</tr>
+<tr class="detail-row" id="detail-14" style="display:none"><td colspan="9"><div class="detail-grid"><div class="detail-item"><span class="detail-label">Human Gate</span><span>—</span></div><div class="detail-item"><span class="detail-label">Ledger Schedule</span><code>always-on</code></div><div class="detail-item"><span class="detail-label">Last Reviewed</span><span>2026-03-02</span></div><div class="detail-item"><span class="detail-label">Risk</span><span>High</span></div></div></td></tr><tr class="process-row" data-idx="15" data-id="XD-001" data-name="goal-xdares-seo-daily" data-auth="1" data-status="4" data-sla="30" data-lastrun="2026-03-02T01:00:00Z" data-nextrun="2026-03-03T01:00:00Z" onclick="toggleDetail(15)" style="cursor:pointer">
   <td><code>XD-001</code></td>
-  <td><strong>goal-xdares-seo-daily</strong><br><span style="color:#6b7280;font-size:0.8rem">openclaw-cron</span></td>
-  <td><span style="background:#eab30820;color:#eab308;padding:2px 8px;border-radius:4px;font-weight:600;font-size:0.8rem">B</span></td>
+  <td><strong>goal-xdares-seo-daily</strong><br><span class="dim" style="font-size:0.8rem">openclaw-cron</span></td>
+  <td><span class="badge" style="background:#eab30820;color:#eab308">B</span></td>
   <td><span style="color:#22c55e;font-weight:500">● ok</span></td>
   <td>—</td>
   <td style="font-size:0.85rem"><code>0 18 * * *</code></td>
   <td style="font-size:0.85rem">Mar 02 01:00 UTC</td>
   <td style="font-size:0.85rem">Mar 03 01:00 UTC</td>
   <td><span style="color:#22c55e">30d</span></td>
-</tr><tr>
+</tr>
+<tr class="detail-row" id="detail-15" style="display:none"><td colspan="9"><div class="detail-grid"><div class="detail-item"><span class="detail-label">Model</span><code>anthropic/claude-sonnet-4-6</code></div><div class="detail-item"><span class="detail-label">Session</span><span>isolated</span></div><div class="detail-item"><span class="detail-label">Timezone</span><span>America/Denver</span></div><div class="detail-item"><span class="detail-label">Ledger Schedule</span><code>0 18 * * * (Denver)</code></div><div class="detail-item"><span class="detail-label">Last Reviewed</span><span>2026-03-02</span></div><div class="detail-item"><span class="detail-label">Cron ID</span><code class="dim">84b4bf2a-717…</code></div><div class="detail-item"><span class="detail-label">Risk</span><span>Low</span></div></div></td></tr><tr class="process-row" data-idx="16" data-id="XD-002" data-name="goal-xdares-seo-weekly" data-auth="2" data-status="4" data-sla="30" data-lastrun="2026-03-02T02:00:00Z" data-nextrun="2026-03-09T01:00:00Z" onclick="toggleDetail(16)" style="cursor:pointer">
   <td><code>XD-002</code></td>
-  <td><strong>goal-xdares-seo-weekly</strong><br><span style="color:#6b7280;font-size:0.8rem">openclaw-cron</span></td>
-  <td><span style="background:#22c55e20;color:#22c55e;padding:2px 8px;border-radius:4px;font-weight:600;font-size:0.8rem">A</span></td>
+  <td><strong>goal-xdares-seo-weekly</strong><br><span class="dim" style="font-size:0.8rem">openclaw-cron</span></td>
+  <td><span class="badge" style="background:#22c55e20;color:#22c55e">A</span></td>
   <td><span style="color:#22c55e;font-weight:500">● ok</span></td>
   <td>—</td>
   <td style="font-size:0.85rem"><code>0 19 * * 0</code></td>
   <td style="font-size:0.85rem">Mar 02 02:00 UTC</td>
   <td style="font-size:0.85rem">Mar 09 01:00 UTC</td>
   <td><span style="color:#22c55e">30d</span></td>
-</tr></tbody>
+</tr>
+<tr class="detail-row" id="detail-16" style="display:none"><td colspan="9"><div class="detail-grid"><div class="detail-item"><span class="detail-label">Model</span><code>anthropic/claude-sonnet-4-6</code></div><div class="detail-item"><span class="detail-label">Session</span><span>isolated</span></div><div class="detail-item"><span class="detail-label">Timezone</span><span>America/Denver</span></div><div class="detail-item"><span class="detail-label">Ledger Schedule</span><code>0 19 * * 0 (Denver)</code></div><div class="detail-item"><span class="detail-label">Last Reviewed</span><span>2026-03-02</span></div><div class="detail-item"><span class="detail-label">Cron ID</span><code class="dim">78a53c7c-9bc…</code></div><div class="detail-item"><span class="detail-label">Risk</span><span>Low</span></div></div></td></tr></tbody>
     </table>
   </div>
 
@@ -336,32 +366,82 @@
     <h2>Infrastructure</h2>
     <table>
       <thead><tr><th>Service</th><th>Runtime</th><th>PID / Image</th><th>Status</th></tr></thead>
-      <tbody><tr>
-  <td><span style="color:#22c55e">● </span>ai.openclaw.node</td>
-  <td>launchd</td>
-  <td>21282</td>
-  <td>exit 0</td>
-</tr><tr>
-  <td><span style="color:#22c55e">● </span>ai.openclaw.gateway</td>
-  <td>launchd</td>
-  <td>87628</td>
-  <td>exit 0</td>
-</tr><tr>
-  <td><span style="color:#6b7280">● </span>ai.openclaw.maintenance</td>
-  <td>launchd</td>
-  <td>—</td>
-  <td>exit 0</td>
-</tr><tr>
-  <td><span style="color:#22c55e">● </span>pp-prod-postgres</td>
-  <td>docker</td>
-  <td>postgres:15-alpine</td>
-  <td>Up 2 weeks</td>
-</tr></tbody>
+      <tbody><tr><td><span style="color:#22c55e">● </span>ai.openclaw.node</td><td>launchd</td><td>21282</td><td>exit 0</td></tr><tr><td><span style="color:#22c55e">● </span>ai.openclaw.gateway</td><td>launchd</td><td>87628</td><td>exit 0</td></tr><tr><td><span style="color:#6b7280">● </span>ai.openclaw.maintenance</td><td>launchd</td><td>—</td><td>exit 0</td></tr><tr><td><span style="color:#22c55e">● </span>pp-prod-postgres</td><td>docker</td><td>postgres:15-alpine</td><td>Up 2 weeks</td></tr></tbody>
     </table>
   </div>
 
   <div class="footer">
     Permission Protocol · Autonomous Process Governance · <a href="https://permissionprotocol.com">permissionprotocol.com</a>
   </div>
+
+  <script>
+  // Toggle detail row
+  function toggleDetail(idx) {
+    var detail = document.getElementById('detail-' + idx);
+    var row = document.querySelector('[data-idx="' + idx + '"]');
+    if (!detail) return;
+    var visible = detail.style.display !== 'none';
+    // Close all others
+    document.querySelectorAll('.detail-row').forEach(function(r) { r.style.display = 'none'; });
+    document.querySelectorAll('.process-row').forEach(function(r) { r.classList.remove('expanded'); });
+    if (!visible) {
+      detail.style.display = '';
+      row.classList.add('expanded');
+    }
+  }
+
+  // Column sorting
+  (function() {
+    var headers = document.querySelectorAll('th.sortable');
+    var tbody = document.getElementById('process-tbody');
+    var currentSort = null;
+    var currentDir = 'asc';
+
+    headers.forEach(function(th) {
+      th.addEventListener('click', function() {
+        var key = th.dataset.sort;
+        var type = th.dataset.type;
+
+        // Toggle direction
+        if (currentSort === key) {
+          currentDir = currentDir === 'asc' ? 'desc' : 'asc';
+        } else {
+          currentDir = 'asc';
+          currentSort = key;
+        }
+
+        // Update header classes
+        headers.forEach(function(h) { h.classList.remove('asc', 'desc'); });
+        th.classList.add(currentDir);
+
+        // Collect row pairs (process-row + detail-row)
+        var pairs = [];
+        var rows = tbody.querySelectorAll('.process-row');
+        rows.forEach(function(row) {
+          var idx = row.dataset.idx;
+          var detail = document.getElementById('detail-' + idx);
+          pairs.push({ row: row, detail: detail, val: row.dataset[key] });
+        });
+
+        // Sort
+        pairs.sort(function(a, b) {
+          var va = a.val, vb = b.val;
+          if (type === 'num') {
+            va = parseFloat(va) || 0;
+            vb = parseFloat(vb) || 0;
+          }
+          var cmp = va < vb ? -1 : va > vb ? 1 : 0;
+          return currentDir === 'desc' ? -cmp : cmp;
+        });
+
+        // Re-append in order
+        pairs.forEach(function(p) {
+          tbody.appendChild(p.row);
+          if (p.detail) tbody.appendChild(p.detail);
+        });
+      });
+    });
+  })();
+  </script>
 </body>
 </html>
