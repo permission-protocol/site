@@ -60,7 +60,7 @@ export function SiteHeader() {
             Blog
           </a>
           <a
-            href="https://github.com/Roca-Ventures/permissionprotocol-site"
+            href="https://github.com/permission-protocol"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-signal"
