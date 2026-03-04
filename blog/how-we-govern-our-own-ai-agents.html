@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How We Govern Our Own AI Agents | Permission Protocol</title>
+  <meta name="description" content="We built a full autonomous agent governance system for our own operations — and discovered governance must govern itself. Here's the architecture, the code, and what surprised us.">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="How We Govern Our Own AI Agents">
+  <meta property="og:description" content="We audited 17 autonomous processes running on our own infrastructure, enforced authority levels, added cryptographic approval tokens, and discovered governance must govern itself.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://permissionprotocol.com/blog/how-we-govern-our-own-ai-agents">
+  <meta property="og:image" content="https://permissionprotocol.com/assets/og-image.png">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="How We Govern Our Own AI Agents">
+  <meta name="twitter:description" content="17 autonomous processes. Authority levels. Cryptographic approval tokens. And the recursive problem nobody talks about.">
+
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    body {
+      background: #0a0a0a;
+      color: #e0e0e0;
+    }
+
+    .blog-post {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 4rem 1.5rem;
+    }
+
+    .blog-post h1 {
+      font-size: 2.4rem;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+      color: #ffffff;
+      letter-spacing: -0.03em;
+    }
+
+    .blog-post h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 2.5rem 0 1rem;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+    }
+
+    .blog-post .meta {
+      color: #888888;
+      margin-bottom: 2rem;
+      font-size: 0.9rem;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .blog-post .tag {
+      background: rgba(255, 68, 68, 0.15);
+      color: #ff6b6b;
+      border: 1px solid rgba(255, 68, 68, 0.3);
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-right: 0.75rem;
+    }
+
+    .blog-post p {
+      font-size: 1.125rem;
+      line-height: 1.75;
+      margin-bottom: 1.5rem;
+      color: #e0e0e0;
+    }
+
+    .blog-post strong {
+      color: #f0f0f0;
+    }
+
+    .blog-post em {
+      color: #c0c0c0;
+      font-style: italic;
+    }
+
+    .blog-post ul, .blog-post ol {
+      margin: 1.5rem 0;
+      padding-left: 1.75rem;
+    }
+
+    .blog-post li {
+      font-size: 1.125rem;
+      line-height: 1.7;
+      margin-bottom: 0.75rem;
+      color: #e0e0e0;
+    }
+
+    .highlight {
+      background: #0f0f0f;
+      border-left: 3px solid #ff4444;
+      padding: 1.25rem 1.5rem;
+      margin: 2rem 0;
+      border-radius: 0 4px 4px 0;
+    }
+
+    .highlight p {
+      margin-bottom: 0;
+      color: #c0c0c0;
+    }
+
+    .highlight strong {
+      color: #f0f0f0;
+    }
+
+    pre, code {
+      font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    }
+
+    pre {
+      background: #0f0f0f;
+      border: 1px solid #1e1e1e;
+      border-radius: 6px;
+      padding: 1.5rem;
+      overflow-x: auto;
+      margin: 2rem 0;
+      font-size: 0.875rem;
+      line-height: 1.6;
+      color: #c0c0c0;
+    }
+
+    code {
+      background: #141414;
+      border: 1px solid #222;
+      padding: 0.15rem 0.4rem;
+      border-radius: 3px;
+      font-size: 0.875em;
+      color: #c8c8c8;
+    }
+
+    pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 1em;
+    }
+
+    .arch-diagram {
+      background: #0d0d0d;
+      border: 1px solid #1a1a1a;
+      border-radius: 8px;
+      padding: 2rem;
+      margin: 2rem 0;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.85rem;
+      color: #b0b0b0;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+
+    .arch-diagram .label {
+      color: #ff6b6b;
+      font-weight: 600;
+    }
+
+    .arch-diagram .gate {
+      color: #4caf50;
+    }
+
+    .authority-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0 2rem;
+      font-size: 0.95rem;
+    }
+
+    .authority-table th {
+      background: #111;
+      color: #fff;
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 2px solid #1e1e1e;
+    }
+
+    .authority-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #1a1a1a;
+      color: #c0c0c0;
+    }
+
+    .authority-table tr:hover td {
+      background: #0f0f0f;
+    }
+
+    .auth-a { color: #4caf50; font-weight: 600; }
+    .auth-b { color: #ff9800; font-weight: 600; }
+    .auth-c { color: #ff4444; font-weight: 600; }
+
+    .cta {
+      background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
+      border-radius: 8px;
+      padding: 2.5rem;
+      margin-top: 3rem;
+      text-align: center;
+    }
+
+    .cta h3 {
+      font-size: 1.4rem;
+      color: #ffffff;
+      margin-bottom: 0.75rem;
+    }
+
+    .cta p {
+      color: #b0b0b0;
+      margin-bottom: 1.5rem;
+    }
+
+    .cta .btn-primary {
+      background: #fff;
+      color: #0a0a0a;
+      padding: 0.875rem 2rem;
+      border-radius: 6px;
+      font-weight: 700;
+      text-decoration: none;
+      display: inline-block;
+      margin-right: 1rem;
+    }
+
+    .cta .btn-secondary {
+      background: transparent;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 0.875rem 2rem;
+      border-radius: 6px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 2rem;
+      color: #b0b0b0;
+      text-decoration: none;
+      font-size: 0.9rem;
+      letter-spacing: 0.02em;
+    }
+
+    .back-link:hover { color: #fff; }
+
+    .section-number {
+      color: #ff4444;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+  </style>
+</head>
+<body>
+  <nav style="padding: 1.5rem; border-bottom: 1px solid #1a1a1a; display: flex; align-items: center; justify-content: space-between; max-width: 960px; margin: 0 auto;">
+    <a href="/" style="font-weight: 700; font-size: 1.1rem; color: #fff; text-decoration: none; letter-spacing: -0.02em;">Permission Protocol</a>
+    <a href="/blog" style="color: #b0b0b0; text-decoration: none; font-size: 0.9rem;">← Blog</a>
+  </nav>
+
+  <article class="blog-post">
+    <a href="/blog" class="back-link">← All posts</a>
+
+    <div style="margin-bottom: 1.25rem;">
+      <span class="tag">Field Report</span>
+      <span class="tag" style="background: rgba(255,152,0,0.12); color: #ffa040; border-color: rgba(255,152,0,0.25);">AI Governance</span>
+    </div>
+
+    <h1>How We Govern Our Own AI Agents</h1>
+
+    <div class="meta">March 4, 2026 &nbsp;·&nbsp; Rod Chalski &amp; Charles</div>
+
+    <p>
+      On March 2nd, we sat down and asked a simple question: <em>what is actually running on our infrastructure right now?</em>
+      We expected to count maybe five or six cron jobs. We found seventeen autonomous processes.
+      That's when we built a governance system — not as a product demo, but as a survival requirement.
+    </p>
+
+    <p>
+      This is a field report, not a pitch. The code is real. The incidents are real.
+      Here's what we did, what we found, and why governance of AI agents is harder than it looks.
+    </p>
+
+    <hr style="border: none; border-top: 1px solid #1a1a1a; margin: 2.5rem 0;">
+
+    <h2><span class="section-number">01</span>We Didn't Know What Was Running</h2>
+
+    <p>
+      We run Charles — an autonomous agent that handles our product board, writes code, creates PRs,
+      sends outreach drafts, runs daily planning cycles, and monitors our own operations.
+      Charles spawns cron jobs. Those cron jobs spawn sub-agents. Sub-agents create board items
+      that eventually get executed. By another cron. That we set up six weeks ago.
+    </p>
+
+    <p>
+      There's no "ps aux" for this. There's no unified registry. Each job was set up
+      when it made sense, with whatever scope felt appropriate at the time.
+      The result was a production system running on vibes.
+    </p>
+
+    <div class="highlight">
+      <p><strong>The question that broke us:</strong> "Which of these processes can post publicly without a human seeing it first?"</p>
+      <p>We couldn't answer it. That's a security problem.</p>
+    </div>
+
+    <h2><span class="section-number">02</span>The Inventory: 17 Processes, 4 Authority Levels</h2>
+
+    <p>
+      We audited every cron job, background agent, and scheduled task.
+      The full inventory went into an <strong>Autonomous Process Ledger</strong> — a Markdown file with a strict rule:
+      <em>no process runs without a ledger entry and a review date.</em>
+    </p>
+
+    <p>We assigned each process an authority level:</p>
+
+    <table class="authority-table">
+      <thead>
+        <tr>
+          <th>Level</th>
+          <th>Description</th>
+          <th>Examples</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="auth-a">A</span></td>
+          <td>Read-only — no writes anywhere</td>
+          <td>Metrics collection, incident scanning</td>
+        </tr>
+        <tr>
+          <td><span class="auth-b">B</span></td>
+          <td>Internal write — repos and databases only, no public actions</td>
+          <td>PR drafts, board moves, memory updates</td>
+        </tr>
+        <tr>
+          <td><span class="auth-c">C</span></td>
+          <td>External/public action — can affect the outside world</td>
+          <td>Published blog posts, merged PRs, deployed infra, LinkedIn posts</td>
+        </tr>
+        <tr>
+          <td style="color: #888;">D</td>
+          <td style="color: #888;">Prohibited — must not exist autonomously</td>
+          <td style="color: #888;">Payments, access control changes, secret rotation</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>
+      The final count: <strong>7 Authority A</strong>, <strong>5 Authority B</strong>, <strong>2 Authority C</strong>,
+      <strong>3 infrastructure services</strong>.
+      The two Authority C processes were the ones that could take irreversible public action.
+      Neither had a real gate.
+    </p>
+
+    <h2><span class="section-number">03</span>What We Found: Authority C With No Gate</h2>
+
+    <p>
+      <strong>PP-001</strong> is our product board executor — the cron that runs five times a day,
+      Mon–Sat, picking items from the Ready column and executing them. It can write code,
+      create PRs, move board items, and post content. Authority C. Human gate: "Rod reviews Backlog → Ready manually."
+    </p>
+
+    <p>
+      That gate is real. But it's a workflow gate, not an enforcement gate. The agent could,
+      in principle, create a PR without Rod's knowledge if something in the flow was misconfigured.
+      There was no cryptographic proof that the action was reviewed.
+    </p>
+
+    <p>
+      <strong>PP-008</strong> (LinkedIn weekly poster) had the same problem. Authority C.
+      Human gate: "Telegram approval." But the old <code>approve.sh</code> script accepted a content hash
+      as a parameter — meaning the agent could technically pass its own hash.
+      Prompt-level instructions said "don't do this." That's not enforcement. That's a prayer.
+    </p>
+
+    <div class="highlight">
+      <p><strong>The pattern we kept finding:</strong> "Authority C" processes with gates defined as human intention,
+      not machine-enforced checkpoints. The agent <em>knew</em> it needed approval.
+      It just had no mechanism that actually required it.</p>
+    </div>
+
+    <h2><span class="section-number">04</span>What We Enforced: Tokens, Drift Detection, SLA Auto-Disable</h2>
+
+    <p>Three changes made the system actually enforceable:</p>
+
+    <p><strong>1. Cryptographic approval tokens</strong></p>
+    <p>
+      We replaced the old <code>approve.sh</code> with <code>mint-approval-token.sh</code>.
+      The new script enforces three properties:
+    </p>
+    <ul>
+      <li>Telegram sender ID must match Rod's hardcoded user ID — not agent-configurable</li>
+      <li>Content hash is computed from the actual draft file — never accepted as a parameter</li>
+      <li>UUID nonce per mint — prevents replay attacks</li>
+    </ul>
+
+    <p>
+      The gate script (<code>pp-001-pr-gate.sh</code>) is called at execution boundary —
+      right before <code>git push</code> or PR creation — not at intent stage.
+      If no valid token exists, the action is blocked and the item moves to
+      "Blocked (Human Input Required)" with the draft hash. Fail-closed by design.
+    </p>
+
+    <p>Here's the core of the verification loop — the part that actually enforces the boundary:</p>
+
+    <pre><code>#!/bin/bash
+# pp-001-pr-gate.sh — called at git push / PR create boundary
+# Exit 0 = approved. Exit 1 = denied (PR blocked).
+
+DRAFT_FILE="$1"
+APPROVALS_DIR="$WORKSPACE/company-os/governance/approvals"
+
+# Compute hash of the actual draft
+DRAFT_HASH=$(sha256sum "$DRAFT_FILE" | awk '{print $1}')
+
+# Walk approval tokens
+APPROVED=false
+for token_file in "$APPROVALS_DIR"/*.json; do
+  [ -f "$token_file" ] || continue
+
+  python3 - <<PYEOF
+import json, sys
+from datetime import datetime
+
+with open("$token_file") as f:
+    t = json.load(f)
+
+# 1. Process must match
+if t.get("process_id") != "PP-001":
+    sys.exit(1)
+
+# 2. Content hash must match (covers exact draft content)
+if t.get("content_hash") != "$DRAFT_HASH":
+    sys.exit(1)
+
+# 3. Token must not be expired
+exp = datetime.strptime(t["expires_at"], "%Y-%m-%dT%H:%M:%SZ")
+if datetime.utcnow() > exp:
+    sys.exit(1)
+
+# 4. Sender must be Rod (double-check — minting script also enforces this)
+if t.get("sender_id") != "6091356144":
+    sys.exit(1)
+
+sys.exit(0)
+PYEOF
+
+  if [ $? -eq 0 ]; then
+    APPROVED=true
+    break
+  fi
+done
+
+if [ "$APPROVED" = "true" ]; then
+  echo "✅ PR gate: approved (token verified)"
+  exit 0
+else
+  echo "🔴 PR gate: denied — no valid approval token for this draft"
+  exit 1
+fi</code></pre>
+
+    <p><strong>2. Drift detection</strong></p>
+    <p>
+      Every morning at 7 AM, a governance check scans the live cron state and compares it
+      against the ledger. If a new process appears that isn't registered — or if a process's
+      schedule has changed without a ledger update — it flags a <code>HIGH</code> severity finding
+      and writes it to <code>drift-log.jsonl</code>.
+    </p>
+    <p>
+      The day after we deployed this, it caught two unregistered processes:
+      <code>governance-integrity-check</code> (which we'd just created) and <code>skills-auto-update</code>
+      (which had been running silently). Both were real. Neither was in the ledger yet.
+    </p>
+
+    <p><strong>3. Review SLA auto-disable</strong></p>
+    <p>
+      Every Authority B and C process must be reviewed every 30 days.
+      If <code>last_reviewed</code> is &gt; 30 days old, the governance check auto-disables the process
+      and logs a breach. Re-enabling requires updating the ledger, not just flipping a flag.
+      Warning at 21 days. No exceptions.
+    </p>
+
+    <h2><span class="section-number">05</span>What Surprised Us: Governance Must Govern Itself</h2>
+
+    <p>
+      Here's the recursive problem nobody warns you about.
+    </p>
+
+    <p>
+      GOV-001 is the cron that runs the governance integrity check. It's Authority A — read-only,
+      no external actions, no human gate. That all makes sense. But it logs its findings to
+      <code>drift-log.jsonl</code>. And the thing that monitors <code>drift-log.jsonl</code> for freshness is...
+      also GOV-001.
+    </p>
+
+    <p>
+      <strong>The agent is checking itself.</strong>
+    </p>
+
+    <p>
+      If GOV-001 silently fails — crash, timeout, OpenClaw outage — the drift log goes stale.
+      Nothing alerts. Your Authority C processes are running ungated, and the system designed
+      to catch that has quietly stopped working. You won't know until something breaks publicly.
+    </p>
+
+    <div class="highlight">
+      <p>
+        <strong>The principle we named:</strong> Any governance system that depends on the system it governs
+        to report its own failures is not governance — it's a diary.
+      </p>
+    </div>
+
+    <p>
+      The fix is issue #257 on our board right now: a dead man's switch that alerts if
+      <code>drift-log.jsonl</code> has no entry for 48 hours, triggered by an external mechanism
+      that doesn't flow through Charles at all. GitHub Actions, external uptime monitor,
+      or a Telegram webhook on a separate server. Independent by design.
+    </p>
+
+    <h2><span class="section-number">06</span>Architecture: The Full Approval Flow</h2>
+
+    <div class="arch-diagram">
+<span style="color:#888;">── Authority C Action Flow ──────────────────────────────────────────</span>
+
+<span class="label">Agent</span> (PP-001 cron, 5x daily)
+  │
+  ├─ picks Ready item from board
+  │   └─ Rod is the only path from Backlog → Ready
+  │
+  ├─ drafts content / code changes
+  │   └─ writes to /tmp, does NOT push yet
+  │
+  ├─ <span class="gate">GATE CHECK</span>: pp-001-pr-gate.sh --draft-file &lt;path&gt;
+  │   ├─ looks for approval token in governance/approvals/
+  │   ├─ verifies: process_id, content_hash, expiry, sender_id
+  │   └─ if no valid token → BLOCKED
+  │       ├─ item → "Blocked (Human Input Required)"
+  │       └─ notifies Rod with draft hash via Telegram
+  │
+  ├─ [token valid] → git push + create PR
+  │   └─ PR includes Review Guide comment (mandatory)
+  │
+  └─ item → QA Review (not Done — QA pipeline verifies first)
+
+<span style="color:#888;">── Token Minting Flow (Rod's side) ──────────────────────────────────</span>
+
+<span class="label">Rod</span> (Telegram)
+  │
+  ├─ receives draft + hash notification
+  ├─ reviews content
+  └─ sends approval signal to Telegram bot
+      └─ mint-approval-token.sh
+          ├─ verifies sender ID = 6091356144 (hardcoded)
+          ├─ reads draft file, computes hash itself
+          ├─ generates UUID nonce (no replay)
+          ├─ writes token to governance/approvals/&lt;uuid&gt;.json
+          └─ appends to approval-log.jsonl (append-only)
+    </div>
+
+    <h2><span class="section-number">07</span>What This Cost Us (And What It Bought)</h2>
+
+    <p>
+      The governance build took about four hours. Audit, ledger, scripts, tests.
+      The recurring cost is roughly 10 minutes per new process (ledger entry + Rod review)
+      and a brief daily check. That's it.
+    </p>
+
+    <p>
+      What we got: a system where every autonomous action has a traceable authority level,
+      every external action requires a cryptographic token Rod explicitly minted for that exact content,
+      and every deviation from the ledger is caught within 24 hours.
+    </p>
+
+    <p>
+      We also got a dashboard. Not because we needed another dashboard, but because
+      the audit trail was already there — we just rendered it. Current state of all 17 processes,
+      authority distribution, SLA countdowns, last drift detection result.
+    </p>
+
+    <p>
+      We're not special. The reason we had 17 undocumented processes is the same reason
+      everyone else does: you build them one at a time, when they make sense, and you never
+      stop to ask what the whole looks like. The governance system didn't require new infrastructure.
+      It just required sitting down and being honest about what was running.
+    </p>
+
+    <div class="highlight">
+      <p>
+        <strong>The rule we now enforce:</strong> No autonomous process without a ledger entry, an authority level,
+        and a Last Reviewed date. If you can't answer "what happens if this runs without a human knowing?"
+        in one sentence, it doesn't run yet.
+      </p>
+    </div>
+
+    <p>
+      Permission Protocol is what we're building so other teams don't have to wire this up from scratch.
+      The concepts are the same — authority levels, cryptographic gates, fail-closed defaults,
+      external verification — but as a product that integrates with your existing stack.
+      If you're running agents in production and you don't have an answer to the Authority C question,
+      we'd like to talk.
+    </p>
+
+    <div class="cta">
+      <h3>Running autonomous agents in production?</h3>
+      <p>We're looking for design partners who want enforcement gates, not audit logs after the fact.</p>
+      <a href="https://permissionprotocol.com/#request" class="btn-primary">Request Access</a>
+      <a href="https://permissionprotocol.com/blog" class="btn-secondary">More Posts</a>
+    </div>
+  </article>
+
+  <footer style="text-align: center; padding: 3rem 1.5rem; border-top: 1px solid #1a1a1a; color: #555; font-size: 0.85rem; margin-top: 2rem;">
+    <p>© 2026 Permission Protocol · <a href="https://permissionprotocol.com" style="color: #666;">permissionprotocol.com</a></p>
+  </footer>
+</body>
+</html>
