@@ -33,6 +33,9 @@ export function SiteHeader() {
           <Link href="/pricing" className="hover:text-signal">
             Pricing
           </Link>
+          <Link href="/contact" className="hover:text-signal">
+            Contact
+          </Link>
           <Link href="/developers/quickstart" className="btn-primary rounded-lg px-4 py-2">
             Get Started
           </Link>
