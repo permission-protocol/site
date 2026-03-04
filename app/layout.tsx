@@ -40,9 +40,40 @@ export const metadata: Metadata = {
   },
 };
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Permission Protocol",
+  applicationCategory: "DeveloperApplication",
+  description:
+    "The Signer of Record for AI systems. Cryptographic authority receipts that prove every action was authorized before execution.",
+  url: "https://permissionprotocol.com",
+  operatingSystem: "Cross-platform",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+  author: {
+    "@type": "Organization",
+    name: "Permission Protocol",
+    url: "https://permissionprotocol.com",
+    sameAs: [
+      "https://twitter.com/PermissionPrtcl",
+      "https://github.com/permission-protocol",
+    ],
+  },
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${spaceMono.variable}`}>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body>
         <LayoutChrome>{children}</LayoutChrome>
       </body>
