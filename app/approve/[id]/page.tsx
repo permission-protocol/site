@@ -14,8 +14,8 @@ export default function ApprovePage({ params }: { params: { id: string } }) {
           rows={4}
         />
         <div className="mt-4 flex gap-3">
-          <button className="rounded-lg bg-permit px-4 py-2 font-semibold text-void">Approve</button>
-          <button className="rounded-lg bg-danger px-4 py-2 font-semibold text-void">Reject</button>
+          <button className="btn-primary rounded-lg px-4 py-2">Approve</button>
+          <button className="rounded-lg bg-danger px-4 py-2 font-semibold text-void transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(239,68,68,0.25)]">Reject</button>
         </div>
         <p className="mt-4 text-sm text-secondary">
           Approve result issues a receipt at <Link href="/r/demo" className="text-permit">/r/demo</Link>. Reject records block event.

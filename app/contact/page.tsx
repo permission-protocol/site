@@ -19,7 +19,7 @@ export default function ContactPage() {
             <input className="mt-2 w-full rounded-lg border border-border bg-ash px-3 py-2 text-signal" />
           </label>
         ))}
-        <button className="md:col-span-2 rounded-lg bg-permit px-4 py-2 font-semibold text-void">Submit</button>
+        <button className="btn-primary md:col-span-2 justify-center rounded-lg px-4 py-2">Submit</button>
       </form>
     </section>
   );

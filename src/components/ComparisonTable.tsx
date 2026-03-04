@@ -13,7 +13,7 @@ const rows = [
 export function ComparisonTable() {
   return (
     <div className="overflow-hidden rounded-2xl border border-border">
-      <div className="grid grid-cols-3 bg-card px-5 py-3 text-xs uppercase tracking-[0.14em] text-secondary">
+      <div className="grid grid-cols-3 bg-card px-5 py-3 text-xs uppercase tracking-[0.15em] text-secondary">
         <p>Layer</p>
         <p>System</p>
         <p>What It Proves</p>
@@ -28,12 +28,19 @@ export function ComparisonTable() {
             viewport={{ once: true }}
             transition={{ delay: index * 0.15, duration: 0.35 }}
             className={`grid grid-cols-3 border-t border-border px-5 py-4 text-sm ${
-              isPP ? "bg-permit/10 text-signal shadow-[inset_0_0_30px_rgba(68,170,153,0.14)]" : "bg-ash/70"
+              isPP
+                ? "border-l-[3px] border-l-permit bg-[rgba(68,170,153,0.08)] text-signal shadow-[inset_0_0_34px_rgba(68,170,153,0.16)]"
+                : "bg-ash/70 text-[#888]"
             }`}
+            animate={
+              isPP
+                ? { boxShadow: ["inset 0 0 0 rgba(68,170,153,0)", "inset 0 0 40px rgba(68,170,153,0.28)", "inset 0 0 34px rgba(68,170,153,0.16)"] }
+                : undefined
+            }
           >
-            <p className={isPP ? "font-semibold" : "text-secondary"}>{row[0]}</p>
-            <p className={isPP ? "font-semibold text-permit" : "text-signal"}>{row[1]}</p>
-            <p className={isPP ? "font-semibold" : "text-secondary"}>{row[2]}</p>
+            <p className={isPP ? "font-semibold" : "text-[#888]"}>{row[0]}</p>
+            <p className={isPP ? "font-bold text-permit" : "text-[#888]"}>{row[1]}</p>
+            <p className={isPP ? "font-semibold" : "text-[#888]"}>{row[2]}</p>
           </motion.div>
         );
       })}

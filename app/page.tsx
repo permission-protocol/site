@@ -38,7 +38,7 @@ export default function HomePage() {
       >
         <div className="grid gap-5 lg:grid-cols-2">
           <article className="rounded-2xl border border-danger/40 bg-danger/10 p-6">
-            <p className="text-xs uppercase tracking-[0.2em] text-danger">Today - No Authority Layer</p>
+            <p className="text-xs uppercase tracking-[0.15em] text-danger">Today - No Authority Layer</p>
             <p className="mt-4 text-lg font-semibold">Agent → Tool → Execution</p>
             <ul className="mt-6 space-y-3 text-secondary">
               <li className="flex items-center gap-2">
@@ -53,7 +53,7 @@ export default function HomePage() {
             </ul>
           </article>
           <article className="rounded-2xl border border-permit/40 bg-permit/10 p-6">
-            <p className="text-xs uppercase tracking-[0.2em] text-permit">With Permission Protocol</p>
+            <p className="text-xs uppercase tracking-[0.15em] text-permit">With Permission Protocol</p>
             <p className="mt-4 text-lg font-semibold">Agent → PP → Receipt → Execution</p>
             <ul className="mt-6 space-y-3 text-secondary">
               <li className="flex items-center gap-2">
@@ -146,7 +146,7 @@ export default function HomePage() {
       <SectionBlock headline="Trusted by teams building the future of autonomous systems.">
         <div className="grid gap-4">
           <div className="rounded-2xl border border-border bg-card p-5">
-            <p className="text-xs uppercase tracking-[0.16em] text-secondary">Logo Bar</p>
+            <p className="text-xs uppercase tracking-[0.15em] text-secondary">Logo Bar</p>
             <div className="mt-4 grid grid-cols-2 gap-3 text-center text-sm md:grid-cols-5">
               {["Apex Labs", "Northstar", "Vertex AI Ops", "Helm", "Sovereign Cloud"].map((logo) => (
                 <div key={logo} className="rounded-lg border border-border bg-ash px-3 py-2 text-secondary">

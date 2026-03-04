@@ -13,6 +13,7 @@ html {
 body {
   @apply bg-void text-signal font-sans antialiased;
   background-image:
+    radial-gradient(circle at 50% -5%, rgba(68, 170, 153, 0.16), transparent 38%),
     radial-gradient(circle at 20% 10%, rgba(68, 170, 153, 0.1), transparent 30%),
     radial-gradient(circle at 80% 30%, rgba(68, 170, 153, 0.08), transparent 35%),
     linear-gradient(180deg, #0a0a0a 0%, #0b0b0b 50%, #0a0a0a 100%);
@@ -35,4 +36,38 @@ main {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+a,
+button,
+input,
+textarea,
+summary {
+  @apply transition-all duration-200;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 2px solid #44aa99;
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  @apply inline-flex items-center rounded-xl bg-permit px-5 py-3 font-semibold text-void transition-all duration-200;
+}
+
+.btn-primary:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 20px rgba(68, 170, 153, 0.3);
+}
+
+.btn-secondary {
+  @apply inline-flex items-center rounded-xl border border-border px-5 py-3 font-semibold text-signal transition-all duration-200;
+}
+
+.btn-secondary:hover {
+  @apply border-permit/60 bg-permit/10;
 }

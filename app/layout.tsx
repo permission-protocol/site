@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { SiteHeader } from "@/src/components/SiteHeader";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -28,32 +29,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${jetBrainsMono.variable}`}>
       <body>
-        <header className="fixed inset-x-0 top-0 z-50 border-b border-border/70 bg-void/85 backdrop-blur">
-          <div className="section-shell flex h-16 items-center justify-between">
-            <Link href="/" className="text-sm font-semibold tracking-[0.08em] uppercase">
-              Permission Protocol
-            </Link>
-            <nav className="hidden items-center gap-6 text-sm text-secondary md:flex">
-              <a href="/#how-it-works" className="hover:text-signal">
-                How It Works
-              </a>
-              <Link href="/developers/quickstart" className="hover:text-signal">
-                Developers
-              </Link>
-              <Link href="/pricing" className="hover:text-signal">
-                Pricing
-              </Link>
-              <Link
-                href="/developers/quickstart"
-                className="rounded-lg bg-permit px-4 py-2 font-semibold text-void transition hover:brightness-110"
-              >
-                Get Started
-              </Link>
-            </nav>
-          </div>
-        </header>
+        <SiteHeader />
         <main>{children}</main>
-        <footer className="border-t border-border py-12">
+        <footer className="border-t border-[#222] py-12">
           <div className="section-shell flex flex-col justify-between gap-6 text-sm text-secondary md:flex-row md:items-center">
             <div>
               <p className="font-semibold text-signal">Powered by Permission Protocol</p>

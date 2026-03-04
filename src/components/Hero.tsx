@@ -7,7 +7,7 @@ export function Hero() {
     <section className="section-shell pt-36 pb-24">
       <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
         <div>
-          <p className="mb-4 inline-flex rounded-full border border-permit/40 bg-permit/10 px-3 py-1 text-xs uppercase tracking-[0.2em] text-permit">
+          <p className="mb-4 inline-flex rounded-full border border-permit/40 bg-permit/10 px-3 py-1 text-xs uppercase tracking-[0.15em] text-permit">
             Signer of Record
           </p>
           <h1 className="max-w-2xl text-4xl font-bold leading-tight md:text-6xl">
@@ -18,21 +18,15 @@ export function Hero() {
             action was authorized before it happens.
           </p>
           <div className="mt-8 flex flex-wrap gap-4">
-            <Link
-              href="/developers/quickstart"
-              className="inline-flex items-center rounded-xl bg-permit px-5 py-3 font-semibold text-void transition hover:brightness-110"
-            >
+            <Link href="/developers/quickstart" className="btn-primary">
               Get Started - Free <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
-            <a
-              href="#how-it-works"
-              className="inline-flex items-center rounded-xl border border-border px-5 py-3 font-semibold text-signal transition hover:border-permit/50"
-            >
+            <a href="#how-it-works" className="btn-secondary">
               See How It Works
             </a>
           </div>
         </div>
-        <div className="card-surface p-8">
+        <div className="card-surface p-10">
           <DiagramFlow />
         </div>
       </div>

@@ -15,7 +15,7 @@ export function CopyCommandButton({ command }: { command: string }) {
   return (
     <button
       onClick={onCopy}
-      className="inline-flex items-center rounded-lg border border-border bg-card px-4 py-2 font-mono text-sm"
+      className="btn-secondary rounded-lg bg-card px-4 py-2 font-mono text-sm"
     >
       {copied ? <Check className="mr-2 h-4 w-4 text-permit" /> : <Terminal className="mr-2 h-4 w-4 text-permit" />}
       {copied ? "Copied" : command}

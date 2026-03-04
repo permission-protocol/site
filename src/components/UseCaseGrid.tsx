@@ -39,7 +39,10 @@ export function UseCaseGrid() {
       {useCases.map((useCase) => {
         const Icon = useCase.icon;
         return (
-          <article key={useCase.title} className="rounded-2xl border border-border bg-card p-6 transition hover:border-permit/40">
+          <article
+            key={useCase.title}
+            className="rounded-2xl border border-[#222] bg-card p-6 transition-all duration-200 hover:-translate-y-0.5 hover:border-permit hover:shadow-[0_0_28px_rgba(68,170,153,0.16)]"
+          >
             <Icon className="h-5 w-5 text-permit" />
             <h3 className="mt-4 text-xl font-semibold">{useCase.title}</h3>
             <p className="mt-3 text-secondary">{useCase.body}</p>
