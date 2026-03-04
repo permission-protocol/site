@@ -5,7 +5,7 @@ export function Hero() {
   return (
     <section className="section-shell flex min-h-screen items-center justify-center py-24 text-center">
       <div className="mx-auto flex max-w-5xl flex-col items-center">
-        <h1 className="text-6xl font-bold leading-[0.95] tracking-tight md:text-7xl lg:text-8xl">
+        <h1 className="text-6xl font-medium leading-[0.95] tracking-tight md:text-7xl lg:text-8xl">
           AI agents shouldn&apos;t authorize their own actions.
         </h1>
         <svg

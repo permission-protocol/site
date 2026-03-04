@@ -20,7 +20,7 @@ export function SectionBlock({ id, headline, subheadline, children }: SectionBlo
       transition={{ duration: 0.6, ease: "easeOut" }}
       className="section-shell relative py-32 md:py-40"
     >
-      <h2 className="max-w-3xl text-5xl font-semibold tracking-tight md:text-6xl">{headline}</h2>
+      <h2 className="max-w-3xl text-5xl font-medium tracking-tight md:text-6xl">{headline}</h2>
       {subheadline ? <p className="mt-5 max-w-3xl text-lg leading-relaxed text-secondary">{subheadline}</p> : null}
       <div className="mt-10">{children}</div>
       <div

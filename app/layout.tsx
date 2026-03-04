@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { Space_Grotesk, Space_Mono } from "next/font/google";
 import { LayoutChrome } from "@/src/components/LayoutChrome";
 import "./globals.css";
 
@@ -8,9 +8,10 @@ const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk"
 });
 
-const jetBrainsMono = JetBrains_Mono({
+const spaceMono = Space_Mono({
   subsets: ["latin"],
-  variable: "--font-jetbrains-mono"
+  weight: ["400", "700"],
+  variable: "--font-space-mono"
 });
 
 export const metadata: Metadata = {
@@ -41,7 +42,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} ${jetBrainsMono.variable}`}>
+    <html lang="en" className={`${spaceGrotesk.variable} ${spaceMono.variable}`}>
       <body>
         <LayoutChrome>{children}</LayoutChrome>
       </body>

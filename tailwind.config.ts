@@ -18,7 +18,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-space-grotesk)", "sans-serif"],
-        mono: ["var(--font-jetbrains-mono)", "monospace"]
+        mono: ["var(--font-space-mono)", "monospace"]
       },
       boxShadow: {
         glow: "0 0 0 1px rgba(68,170,153,0.35), 0 0 30px rgba(68,170,153,0.2)",
