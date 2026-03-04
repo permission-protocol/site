@@ -53,7 +53,7 @@ export function ReceiptCard() {
         whileHover={{ rotateY: 180, y: -4 }}
         animate={{ rotateY: flipped ? 180 : 0 }}
         transition={{ duration: 0.45, ease: "easeInOut" }}
-        className="relative h-[420px] w-full max-w-xl cursor-pointer [transform-style:preserve-3d]"
+        className="relative h-[480px] w-full max-w-md cursor-pointer sm:max-w-lg md:max-w-xl [transform-style:preserve-3d]"
         style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.5)" }}
         role="button"
         tabIndex={0}
@@ -65,15 +65,17 @@ export function ReceiptCard() {
             <RotateCcw className="h-4 w-4" />
           </span>
           <dl className="mt-6 space-y-3 text-sm">
-            <div className="flex justify-between"><dt className="text-secondary">Action</dt><dd>deploy</dd></div>
-            <div className="flex justify-between"><dt className="text-secondary">Resource</dt><dd>billing-service</dd></div>
-            <div className="flex justify-between"><dt className="text-secondary">Agent</dt><dd>deploy-bot</dd></div>
-            <div className="flex justify-between"><dt className="text-secondary">Approved by</dt><dd>Sarah Kim</dd></div>
-            <div className="flex justify-between"><dt className="text-secondary">Policy</dt><dd>production-deploy</dd></div>
-            <div className="flex justify-between"><dt className="text-secondary">Timestamp</dt><dd>2026-03-03 10:14 UTC</dd></div>
-            <div className="flex justify-between"><dt className="text-secondary">Signature</dt><dd className="text-permit">Verified</dd></div>
-            <div className="flex justify-between"><dt className="text-secondary">Issuer</dt><dd>Permission Protocol</dd></div>
+            <div className="grid grid-cols-[120px_1fr] gap-2"><dt className="text-secondary">Action</dt><dd className="text-right font-medium">deploy</dd></div>
+            <div className="grid grid-cols-[120px_1fr] gap-2"><dt className="text-secondary">Resource</dt><dd className="text-right font-medium">billing-service</dd></div>
+            <div className="grid grid-cols-[120px_1fr] gap-2"><dt className="text-secondary">Agent</dt><dd className="text-right font-medium">deploy-bot</dd></div>
+            <div className="grid grid-cols-[120px_1fr] gap-2"><dt className="text-secondary">Approved by</dt><dd className="text-right font-medium">Sarah Kim</dd></div>
+            <div className="grid grid-cols-[120px_1fr] gap-2"><dt className="text-secondary">Policy</dt><dd className="text-right font-medium">production-deploy</dd></div>
+            <div className="grid grid-cols-[120px_1fr] gap-2"><dt className="text-secondary">Timestamp</dt><dd className="text-right font-medium">2026-03-03 10:14 UTC</dd></div>
           </dl>
+          <div className="mt-4 border-t border-border pt-4">
+            <div className="grid grid-cols-[120px_1fr] gap-2 text-sm"><dt className="text-secondary">Signature</dt><dd className="text-right font-medium text-permit">Verified ✓</dd></div>
+            <div className="mt-2 grid grid-cols-[120px_1fr] gap-2 text-sm"><dt className="text-secondary">Issuer</dt><dd className="text-right font-medium text-permit">Permission Protocol</dd></div>
+          </div>
           <p className="mt-6 font-mono text-xs text-permit">permissionprotocol.com/r/8f91c2</p>
         </article>
 
