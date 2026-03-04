@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your AI Just Deployed Code. Who Signed It? | Permission Protocol</title>
+  <meta name="description" content="Your AI agent pushed to main. It passed CI. It deployed to production. Who approved it? Not a human. Not a policy. Nobody. That's the gap.">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="Your AI Just Deployed Code. Who Signed It?">
+  <meta property="og:description" content="Your AI agent pushed to main. It passed CI. It deployed to production. Who approved it? Nobody. That's the gap.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://permissionprotocol.com/blog/signer-of-record-gap">
+  <meta property="og:image" content="https://permissionprotocol.com/assets/og-image.png">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Your AI Just Deployed Code. Who Signed It?">
+  <meta name="twitter:description" content="Your AI agent pushed to main. It passed CI. It deployed to production. Who approved it? Nobody.">
+  
+  <link rel="stylesheet" href="../styles.css?v=14">
+</head>
+<body class="dark-brand-page">
+  <nav>
+    <div class="container">
+      <a href="/" class="logo">
+        <span class="pp-lockup">
+          <svg class="pp-gate-svg" width="20" height="20" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="shape-rendering: crispEdges;">
+            <rect x="1.5" y="1.5" width="13" height="13" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="1.5" x2="8" y2="5.5" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="10.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <span class="pp-wordmark-inline">
+            <span class="perm">PERMISSION</span><span class="slash">/</span><span class="proto">PROTOCOL</span>
+          </span>
+        </span>
+      </a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/deploy-gate">Deploy Gate</a></li>
+        <li><a href="/install">Install</a></li>
+        <li><a href="/brand">Brand</a></li>
+        <li><a href="/blog">Blog</a></li>
+        <li><a href="/present">Present</a></li>
+        <li class="mobile-hide"><a href="/request-access" class="primary">Request Access</a></li>
+      </ul>
+      <a href="/request-access" class="nav-cta-btn" data-track="pp_nav_cta_click">Request Access</a>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+  <div class="nav-overlay" id="nav-overlay"></div>
+
+  <main>
+    <article class="blog-post">
+      <a href="/blog" class="blog-back-link">← Back to Blog</a>
+      
+      <h1>Your AI Just Deployed Code. Who Signed It?</h1>
+      <img src="signer-of-record-gap.png" alt="Digital authorization and cryptographic signing visualization showing security gaps in autonomous system approval chains" class="hero-image">
+      <p class="blog-date">February 2026</p>
+      
+      <p>Your AI agent just pushed to main.</p>
+      <p>It passed CI.</p>
+      <p>It deployed to production.</p>
+      
+      <div class="highlight">
+        <p><strong>Who approved it?</strong></p>
+        <p>Not a human. Not a policy. Nobody.</p>
+      </div>
+      
+      <p>That's the gap.</p>
+      
+      <h2>The Problem Isn't AI Writing Code</h2>
+      
+      <p>AI writing code is fine. AI agents committing to repos is fine. Autonomous systems making changes faster than humans can review—that's the whole point.</p>
+      
+      <p>The problem is the <em>authorization layer</em> between "code exists" and "code runs in production."</p>
+      
+      <p>Right now, that layer is:</p>
+      <ul>
+        <li>A merge button someone clicked</li>
+        <li>A CI pipeline that passed</li>
+        <li>An auto-deploy that triggered</li>
+      </ul>
+      
+      <p>None of these are authorization. They're <em>automation</em>.</p>
+      
+      <h2>The Signer of Record</h2>
+      
+      <p>Every production deployment needs a signer of record. Someone—or some policy—that explicitly says: <em>yes, this specific change is authorized to run in production.</em></p>
+      
+      <p>Not "the tests passed."<br>
+      Not "someone merged it."<br>
+      Not "it looks fine."</p>
+      
+      <p>A cryptographic receipt. Immutable. Auditable. Signed.</p>
+      
+      <h2>What This Looks Like</h2>
+      
+      <pre><code>{
+  "status": "APPROVED",
+  "scope": {
+    "repo": "acme/backend",
+    "sha": "abc123",
+    "env": "production"
+  },
+  "approver": "alice@acme.com",
+  "signature": "0x...",
+  "expiresAt": "2026-02-21T00:00:00Z"
+}</code></pre>
+      
+      <p>No receipt? No deploy. Period.</p>
+      
+      <p>This isn't bureaucracy. It's accountability.</p>
+      
+      <h2>The Question You Should Ask</h2>
+      
+      <p>Go look at your last production deployment.</p>
+      
+      <p>Can you answer:</p>
+      <ul>
+        <li>Who specifically authorized it?</li>
+        <li>What exactly did they authorize?</li>
+        <li>When did they authorize it?</li>
+        <li>Is there a cryptographic proof?</li>
+      </ul>
+      
+      <p>If you can't answer all four, you have a gap.</p>
+      
+      <p>And that gap grows wider every time you ship faster.</p>
+
+      <div class="blog-cta">
+        <p>Add a deploy gate to your repo. Two minutes. Zero outages.</p>
+        <a class="cta-link" href="/install">Install Deploy Gate →</a>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="footer-main">
+        <span class="pp-lockup">
+          <svg class="pp-gate-svg" width="20" height="20" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="shape-rendering: crispEdges;">
+            <rect x="1.5" y="1.5" width="13" height="13" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="1.5" x2="8" y2="5.5" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="10.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <span class="pp-wordmark-inline">
+            <span class="perm">PERMISSION</span><span class="slash">/</span><span class="proto">PROTOCOL</span>
+          </span>
+        </span>
+        <span class="footer-text">© 2026</span>
+      </div>
+      <div class="footer-trust">
+        <span>Built for teams running GitHub Actions, ArgoCD, Terraform</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/main.js?v=5"></script>
+</body>
+</html>

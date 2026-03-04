@@ -28,7 +28,10 @@ export function LayoutChrome({ children }: { children: React.ReactNode }) {
             <Link href="/developers/quickstart">Quickstart</Link>
             <Link href="/pricing">Pricing</Link>
             <Link href="/contact">Contact</Link>
+            <a href="/blog">Blog</a>
             <Link href="/r/demo">Demo Receipt</Link>
+            <a href="https://github.com/Roca-Ventures/permissionprotocol-site" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a href="https://twitter.com/PermissionPrtcl" target="_blank" rel="noopener noreferrer">Twitter</a>
           </div>
         </div>
       </footer>

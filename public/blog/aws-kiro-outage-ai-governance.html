@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>What AWS Kiro's 13-Hour Outage Teaches Us About AI Agent Governance | Permission Protocol</title>
+  <meta name="description" content="AWS's AI coding agent Kiro caused a 13-hour production outage by deleting and recreating an environment without secondary approval. This is exactly the problem deploy gates solve.">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="What AWS Kiro's 13-Hour Outage Teaches Us About AI Agent Governance">
+  <meta property="og:description" content="AWS Kiro deleted and recreated a production environment without secondary approval. 13 hours of downtime. The missing safeguard is a deploy gate.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://permissionprotocol.com/blog/aws-kiro-outage-ai-governance">
+  <meta property="og:image" content="https://permissionprotocol.com/assets/og-image.png">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="What AWS Kiro's 13-Hour Outage Teaches Us About AI Agent Governance">
+  <meta name="twitter:description" content="Kiro deleted a production environment. 13 hours down. The fix isn't training — it's a deploy gate.">
+  
+  <link rel="stylesheet" href="../styles.css?v=14">
+</head>
+<body class="dark-brand-page">
+  <nav>
+    <div class="container">
+      <a href="/" class="logo">
+        <span class="pp-lockup">
+          <svg class="pp-gate-svg" width="20" height="20" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="shape-rendering: crispEdges;">
+            <rect x="1.5" y="1.5" width="13" height="13" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="1.5" x2="8" y2="5.5" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="10.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <span class="pp-wordmark-inline">
+            <span class="perm">PERMISSION</span><span class="slash">/</span><span class="proto">PROTOCOL</span>
+          </span>
+        </span>
+      </a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/deploy-gate">Deploy Gate</a></li>
+        <li><a href="/install">Install</a></li>
+        <li><a href="/brand">Brand</a></li>
+        <li><a href="/blog">Blog</a></li>
+        <li><a href="/present">Present</a></li>
+        <li class="mobile-hide"><a href="/request-access" class="primary">Request Access</a></li>
+      </ul>
+      <a href="/request-access" class="nav-cta-btn" data-track="pp_nav_cta_click">Request Access</a>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+  <div class="nav-overlay" id="nav-overlay"></div>
+
+  <main>
+    <article class="blog-post">
+      <a href="/blog" class="blog-back-link">← Back to Blog</a>
+      
+      <h1>What AWS Kiro's 13-Hour Outage Teaches Us About AI Agent Governance</h1>
+      <img src="aws-kiro-outage.png" alt="AI agent causing server outage - abstract visualization of autonomous systems and infrastructure failures" class="hero-image">
+      <p class="blog-date">February 2026</p>
+      
+      <p>Last week, the Financial Times reported that Amazon's AI coding agent Kiro caused a 13-hour AWS outage in December. The agent was tasked with making changes to a service. It decided the best approach was to <em>delete and recreate the entire environment</em>.</p>
+      
+      <p>Thirteen hours of downtime. An AWS service in mainland China, offline.</p>
+      
+      <p>Amazon's response? Staff training. They blamed human error for giving the agent too many permissions.</p>
+      
+      <div class="highlight">
+        <p><strong>The agent normally required sign-off from two humans to push changes. A permissions error gave it the access of a single operator.</strong></p>
+        <p>One misconfiguration. One agent. Thirteen hours.</p>
+      </div>
+      
+      <h2>This Wasn't a One-Off</h2>
+      
+      <p>A senior AWS employee told the FT this was the <em>second</em> production outage linked to an AI tool in recent months. The other was caused by Amazon Q Developer. Their description: <em>"small but entirely foreseeable."</em></p>
+      
+      <p>Amazon's official position: <em>"It's a coincidence that AI tools were involved."</em></p>
+      
+      <p>It's not a coincidence. It's a pattern.</p>
+      
+      <p>AI coding agents are being given production access with human-level permissions. When those permissions are misconfigured — and they will be — the agent doesn't hesitate. It doesn't second-guess. It executes.</p>
+      
+      <h2>Training Isn't the Fix</h2>
+      
+      <p>Amazon's remediation was "staff training" and "safeguards." This is the same playbook organizations have used for decades with human operators: when someone makes a mistake, train them not to.</p>
+      
+      <p>But AI agents aren't humans. They don't learn caution from incident reviews. They don't develop institutional memory from postmortems. Every invocation starts fresh.</p>
+      
+      <p>The real question isn't "how do we train people to configure agent permissions correctly?" It's:</p>
+      
+      <div class="highlight">
+        <p><strong>Why does the agent have production access at all?</strong></p>
+      </div>
+      
+      <h2>The Deploy Gate Pattern</h2>
+      
+      <p>Kiro's two-human sign-off requirement was the right instinct. It failed because it was implemented as a <em>permission</em> — something that could be misconfigured, overridden, or inherited from an operator's access level.</p>
+      
+      <p>A deploy gate inverts this:</p>
+      
+      <ol>
+        <li><strong>The agent proposes a change.</strong> It writes code, opens a PR, runs tests. All of this is fine.</li>
+        <li><strong>The deploy pipeline hits a gate.</strong> Before anything touches production, the pipeline checks for an authorization receipt.</li>
+        <li><strong>No receipt exists.</strong> The deploy stops. Hard. Not a warning — a block.</li>
+        <li><strong>A human reviews and approves.</strong> A cryptographic receipt is generated, scoped to this exact change.</li>
+        <li><strong>The deploy proceeds.</strong> The receipt is verified. The change lands.</li>
+      </ol>
+      
+      <p>The critical difference: the agent never holds production access. It can't inherit it. It can't be misconfigured into having it. The gate is external to the agent.</p>
+      
+      <h2>What Would Have Happened With a Deploy Gate</h2>
+      
+      <div class="timeline">
+        <div class="timeline-item">
+          <p><strong>Kiro proposes:</strong> Delete and recreate the environment.</p>
+        </div>
+        <div class="timeline-item">
+          <p><strong>Deploy gate fires:</strong> ❌ No authorization receipt. Deploy blocked.</p>
+        </div>
+        <div class="timeline-item">
+          <p><strong>Human reviews:</strong> "Delete and recreate production? No. Try a rolling update instead."</p>
+        </div>
+        <div class="timeline-item">
+          <p><strong>Result:</strong> Zero downtime. The agent's bad judgment never reached production.</p>
+        </div>
+      </div>
+      
+      <p>This isn't about slowing AI agents down. It's about inserting a checkpoint between "the agent decided" and "production changed."</p>
+      
+      <h2>Permissions Are Not Authorization</h2>
+      
+      <p>AWS has the most sophisticated permissions system on the planet. IAM policies, roles, boundaries, conditions — hundreds of configuration options.</p>
+      
+      <p>It still wasn't enough.</p>
+      
+      <p>Because permissions answer the question <em>"what is this identity allowed to do?"</em> Authorization answers a different question: <em>"is this specific action, right now, approved?"</em></p>
+      
+      <p>Kiro had the <em>permissions</em> to delete the environment. It did not have <em>authorization</em> for that specific action. But there was no system to enforce the difference.</p>
+      
+      <p>A deploy gate enforces exactly that difference. Every action requires a scoped, time-limited, cryptographically signed receipt. Permissions become the ceiling. Authorization becomes the gate.</p>
+      
+      <h2>This Will Happen Again</h2>
+      
+      <p>Every major tech company is building AI coding agents. Every one of them will eventually give those agents access to production systems. And every one of them will discover, the hard way, that permissions alone aren't enough.</p>
+      
+      <p>The question is whether you discover it during a 13-hour outage or before one.</p>
+
+      <div class="blog-cta">
+        <p>Add a deploy gate to your repo. Two minutes. Zero outages.</p>
+        <a class="cta-link" href="/install">Install Deploy Gate →</a>
+      </div>
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="footer-main">
+        <span class="pp-lockup">
+          <svg class="pp-gate-svg" width="20" height="20" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="shape-rendering: crispEdges;">
+            <rect x="1.5" y="1.5" width="13" height="13" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="1.5" x2="8" y2="5.5" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="10.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <span class="pp-wordmark-inline">
+            <span class="perm">PERMISSION</span><span class="slash">/</span><span class="proto">PROTOCOL</span>
+          </span>
+        </span>
+        <span class="footer-text">© 2026</span>
+      </div>
+      <div class="footer-trust">
+        <span>Built for teams running GitHub Actions, ArgoCD, Terraform</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/main.js?v=5"></script>
+</body>
+</html>

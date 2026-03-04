@@ -14,14 +14,29 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://permissionprotocol.com"),
   title: "Permission Protocol | Signer of Record for AI Systems",
   description:
     "Permission Protocol issues cryptographic authority receipts that prove AI actions were authorized before execution.",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+  },
   openGraph: {
-    title: "Permission Protocol",
-    description: "Authority before execution for AI systems.",
-    images: ["/assets/og-image.png"]
-  }
+    title: "Permission Protocol — AI agents shouldn't authorize their own actions.",
+    description: "The Signer of Record for AI systems. Cryptographic authority receipts that prove every action was authorized before execution.",
+    images: ["/assets/og-image.png"],
+    siteName: "Permission Protocol",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Permission Protocol — AI agents shouldn't authorize their own actions.",
+    description: "The Signer of Record for AI systems.",
+    images: ["/assets/og-image.png"],
+    creator: "@PermissionPrtcl",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

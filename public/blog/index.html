@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blog — Permission Protocol</title>
+  <meta name="description" content="Insights on AI agent governance, deployment security, and cryptographic authorization for autonomous systems.">
+  <link rel="stylesheet" href="../styles.css?v=14">
+</head>
+<body class="dark-brand-page">
+  <nav>
+    <div class="container">
+      <a href="/" class="logo">
+        <span class="pp-lockup">
+          <svg class="pp-gate-svg" width="20" height="20" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="shape-rendering: crispEdges;">
+            <rect x="1.5" y="1.5" width="13" height="13" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="1.5" x2="8" y2="5.5" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="10.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <span class="pp-wordmark-inline">
+            <span class="perm">PERMISSION</span><span class="slash">/</span><span class="proto">PROTOCOL</span>
+          </span>
+        </span>
+      </a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/deploy-gate">Deploy Gate</a></li>
+        <li><a href="/install">Install</a></li>
+        <li><a href="/brand">Brand</a></li>
+        <li><a href="/blog">Blog</a></li>
+        <li><a href="/present">Present</a></li>
+        <li class="mobile-hide"><a href="/request-access" class="primary">Request Access</a></li>
+      </ul>
+      <a href="/request-access" class="nav-cta-btn" data-track="pp_nav_cta_click">Request Access</a>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+  <div class="nav-overlay" id="nav-overlay"></div>
+
+    <main class="main">
+        <section class="blog-hero">
+            <div class="container">
+                <div class="blog-hero-content">
+                    <div class="blog-hero-badge">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M8 0L10.57 5.43L16 8L10.57 10.57L8 16L5.43 10.57L0 8L5.43 5.43L8 0Z" fill="currentColor"/>
+                        </svg>
+                        Latest Insights
+                    </div>
+                    <h1 class="blog-hero-title">Infrastructure Intelligence</h1>
+                    <p class="blog-hero-subtitle">Deep analysis on AI agent governance, cryptographic authorization, and the security patterns that scale with autonomous systems.</p>
+                    <div class="blog-hero-stats">
+                        <div class="stat-item">
+                            <span class="stat-number">5</span>
+                            <span class="stat-label">Analysis</span>
+                        </div>
+                        <div class="stat-separator">•</div>
+                        <div class="stat-item">
+                            <span class="stat-number">42K+</span>
+                            <span class="stat-label">Instances Studied</span>
+                        </div>
+                        <div class="stat-separator">•</div>
+                        <div class="stat-item">
+                            <span class="stat-number">13hr</span>
+                            <span class="stat-label">Max Outage Prevented</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="blog-hero-decoration">
+                    <div class="decoration-grid">
+                        <div class="grid-dot"></div>
+                        <div class="grid-dot"></div>
+                        <div class="grid-dot"></div>
+                        <div class="grid-dot active"></div>
+                        <div class="grid-dot"></div>
+                        <div class="grid-dot active"></div>
+                        <div class="grid-dot"></div>
+                        <div class="grid-dot"></div>
+                        <div class="grid-dot active"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="blog-list" style="padding: 5rem 0;">
+            <div class="container">
+                <div class="blog-grid">
+                    
+                    <article class="blog-card">
+                        <div class="blog-meta">
+                            <time datetime="2026-03">Mar 2026</time>
+                            <span class="blog-tag">Technical Note</span>
+                        </div>
+                        <h2 class="blog-title">
+                            <a href="/blog/why-authorization-must-be-external.html">Why Authorization Must Be External to Autonomous Systems</a>
+                        </h2>
+                        <p class="blog-excerpt">
+                            If an autonomous system controls its own authorization, authorization doesn't exist. A technical argument for external enforcement — separate authority domains, cryptographic proof, and fail-closed gates.
+                        </p>
+                        <a href="/blog/why-authorization-must-be-external.html" class="blog-link">Read the technical note</a>
+                    </article>
+
+                    <article class="blog-card">
+                        <div class="blog-meta">
+                            <time datetime="2026-02">Feb 2026</time>
+                            <span class="blog-tag">Policy</span>
+                        </div>
+                        <h2 class="blog-title">
+                            <a href="/blog/nist-ai-agent-authorization.html">What NIST Gets Right About AI Agent Authorization (And What the Industry Needs to Build)</a>
+                        </h2>
+                        <p class="blog-excerpt">
+                            NIST just named the right problem: how do you identify, manage, and authorize access taken by AI agents? The architecture to answer it — external, cryptographic, fail-closed — exists today. Here's how it works.
+                        </p>
+                        <a href="/blog/nist-ai-agent-authorization.html" class="blog-link">Read the framework</a>
+                    </article>
+
+                    <article class="blog-card">
+                        <div class="blog-meta">
+                            <time datetime="2026-02">Feb 2026</time>
+                            <span class="blog-tag">Incident Thread</span>
+                        </div>
+                        <h2 class="blog-title">
+                            <a href="/blog/amazon-q-developer-deploy-incident">[AI Deploy Incident] Amazon Q Developer Small but Foreseeable Production Incident</a>
+                        </h2>
+                        <p class="blog-excerpt">
+                            Financial Times called it "small but foreseeable." Root cause: AI deploy path without a signed authorization receipt. The deploy gate pattern would have blocked it.
+                        </p>
+                        <a href="/blog/amazon-q-developer-deploy-incident" class="blog-link">Read the incident thread</a>
+                    </article>
+
+                    <article class="blog-card">
+                        <div class="blog-meta">
+                            <time datetime="2026-02">Feb 2026</time>
+                            <span class="blog-tag">Incident Analysis</span>
+                        </div>
+                        <h2 class="blog-title">
+                            <a href="/blog/aws-kiro-outage-ai-governance.html">AWS Kiro's 13-Hour Outage: The Deploy Gate That Wasn't There</a>
+                        </h2>
+                        <p class="blog-excerpt">
+                            Amazon's AI coding agent deleted and recreated an entire production environment, causing 13 hours of downtime in mainland China. A single cryptographic signature requirement would have stopped it in 30 seconds.
+                        </p>
+                        <a href="/blog/aws-kiro-outage-ai-governance.html" class="blog-link">Read the analysis</a>
+                    </article>
+
+        <article class="blog-card">
+          <div class="blog-meta">
+            <time class="" datetime="2026-02">Feb 2026</time>
+            <span class="blog-tag">Explainer</span>
+          </div>
+          <h2>
+            <a href="/blog/why-your-ai-agent-needs-a-deploy-gate.html">Why Your AI Agent Needs a Deploy Gate (Not Just a Linter)</a>
+          </h2>
+          <p>
+            Linters catch syntax. Code review catches bugs. Neither stops an AI agent from deploying code that's technically correct but organizationally catastrophic. That's what deploy gates are for.
+          </p>
+          <a href="/blog/why-your-ai-agent-needs-a-deploy-gate.html" class="blog-link">Read the explainer</a>
+        </article>
+
+        <article class="blog-card">
+          <div class="blog-meta">
+            <time class="" datetime="2026-02">Feb 2026</time>
+            <span class="blog-tag">Incident Analysis</span>
+          </div>
+          <h2>
+            <a href="/blog/aws-kiro-outage-ai-governance.html">AWS Kiro's 13-Hour Outage: The Deploy Gate That Wasn't There</a>
+          </h2>
+          <p>
+            Amazon's AI coding agent deleted and recreated an entire production environment, causing 13 hours of downtime in mainland China. A single cryptographic signature requirement would have stopped it in 30 seconds.
+          </p>
+          <a href="/blog/aws-kiro-outage-ai-governance.html" class="blog-link">Read the analysis</a>
+        </article>
+
+        <article class="blog-card">
+          <div class="blog-meta">
+            <time class="" datetime="2026-02">Feb 2026</time>
+            <span class="blog-tag">Attack Surface</span>
+          </div>
+          <h2>
+            <a href="/blog/openclaw-security-nightmare.html">42,000 Exposed Instances: When AI Agents Become Attack Vectors</a>
+          </h2>
+          <p>
+            OpenClaw proved AI agents work at scale. Then security researchers found 93.4% had authentication bypasses. Cisco called it a "nightmare." Every AI breakthrough creates new governance gaps.
+          </p>
+          <a href="/blog/openclaw-security-nightmare.html" class="blog-link">See the breakdown</a>
+        </article>
+
+        <article class="blog-card">
+          <div class="blog-meta">
+            <time class="" datetime="2026-02">Feb 2026</time>
+            <span class="blog-tag">Architecture</span>
+          </div>
+          <h2>
+            <a href="/blog/signer-of-record-gap.html">The Signer of Record Gap: Who Actually Authorized Your AI's Last Deploy?</a>
+          </h2>
+          <p>
+            Your AI passed tests, deployed code, and is serving production traffic. But trace the authorization chain: who signed off? Not a human. Not a policy. Nobody. That's the gap we're closing.
+          </p>
+          <a href="/blog/signer-of-record-gap.html" class="blog-link">Explore the framework</a>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="footer-main">
+        <span class="pp-lockup">
+          <svg class="pp-gate-svg" width="20" height="20" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="shape-rendering: crispEdges;">
+            <rect x="1.5" y="1.5" width="13" height="13" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="1.5" x2="8" y2="5.5" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="10.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <span class="pp-wordmark-inline">
+            <span class="perm">PERMISSION</span><span class="slash">/</span><span class="proto">PROTOCOL</span>
+          </span>
+        </span>
+        <span class="footer-text">© 2026</span>
+      </div>
+      <div class="footer-trust">
+        <span>Built for teams running GitHub Actions, ArgoCD, Terraform</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/main.js?v=5"></script>
+</body>
+</html>
