@@ -20,8 +20,25 @@ export function SiteHeader() {
       }`}
     >
       <div className="section-shell flex h-16 items-center justify-between">
-        <Link href="/" className="text-sm font-semibold uppercase tracking-[0.08em]">
-          Permission Protocol
+        <Link href="/" className="flex items-center gap-2">
+          <svg
+            className="h-5 w-5 text-signal"
+            width="20"
+            height="20"
+            viewBox="0 0 16 16"
+            fill="none"
+            style={{ shapeRendering: "crispEdges" }}
+          >
+            <rect x="1.5" y="1.5" width="13" height="13" stroke="currentColor" strokeWidth="1.5" fill="none" />
+            <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="currentColor" strokeWidth="1.5" />
+            <line x1="8" y1="1.5" x2="8" y2="5.5" stroke="currentColor" strokeWidth="1.5" />
+            <line x1="8" y1="10.5" x2="8" y2="14.5" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
+          <span className="text-sm font-medium tracking-[0.08em]">
+            <span className="text-signal">PERMISSION</span>
+            <span className="text-permit">/</span>
+            <span className="text-signal">PROTOCOL</span>
+          </span>
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-secondary md:flex">
           <a href="/#how-it-works" className="hover:text-signal">
