@@ -79,27 +79,6 @@ export default function HomePage() {
       </SectionBlock>
 
       <SectionBlock
-        headline="Authority must exist before execution."
-        subheadline="Permission Protocol sits between AI decisions and real-world execution - issuing cryptographic proof that authority existed before the action occurred."
-      >
-        <div className="flex justify-center">
-          <svg
-            width="160"
-            height="160"
-            viewBox="0 0 16 16"
-            fill="none"
-            style={{ shapeRendering: "geometricPrecision" }}
-            className="text-signal"
-          >
-            <rect x="1.5" y="1.5" width="13" height="13" stroke="currentColor" strokeWidth="1.2" fill="none" />
-            <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="currentColor" strokeWidth="1.2" />
-            <line x1="8" y1="1.5" x2="8" y2="5.5" stroke="currentColor" strokeWidth="1.2" />
-            <line x1="8" y1="10.5" x2="8" y2="14.5" stroke="currentColor" strokeWidth="1.2" />
-          </svg>
-        </div>
-      </SectionBlock>
-
-      <SectionBlock
         id="how-it-works"
         headline="How it works."
         subheadline="Every consequential AI action flows through Permission Protocol before execution."
@@ -129,13 +108,15 @@ export default function HomePage() {
         headline="The Receipt."
         subheadline="Every authorized action produces a signed, portable, verifiable receipt."
       >
-        <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
+        <p className="text-3xl font-semibold text-secondary">Fail closed. Evidence, not logs.</p>
+        <div className="mt-8 flex justify-center">
           <ReceiptCard />
-          <Link href="/r/demo" className="inline-flex items-center self-start font-semibold text-permit">
+        </div>
+        <div className="mt-6 text-center">
+          <Link href="/r/demo" className="inline-flex items-center font-semibold text-permit">
             See a live receipt <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </div>
-        <p className="mt-6 text-2xl font-medium text-secondary">Fail closed. Evidence, not logs.</p>
       </SectionBlock>
 
       <SectionBlock

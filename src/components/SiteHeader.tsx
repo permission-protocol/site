@@ -34,11 +34,14 @@ export function SiteHeader() {
             <line x1="8" y1="1.5" x2="8" y2="5.5" stroke="currentColor" strokeWidth="1.5" />
             <line x1="8" y1="10.5" x2="8" y2="14.5" stroke="currentColor" strokeWidth="1.5" />
           </svg>
-          <span className="text-sm font-medium tracking-[0.08em]">
+          <span className="hidden text-sm font-medium tracking-[0.08em] md:inline">
             <span className="text-signal">PERMISSION</span>
             <span className="text-permit">/</span>
             <span className="text-signal">PROTOCOL</span>
           </span>
+        </Link>
+        <Link href="/developers/quickstart" className="btn-primary rounded-lg px-4 py-2 md:hidden">
+          Get Started
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-secondary md:flex">
           <a href="/#how-it-works" className="hover:text-signal">
