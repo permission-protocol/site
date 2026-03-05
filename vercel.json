@@ -1,6 +1,5 @@
 {
-  "cleanUrls": true,
-  "trailingSlash": false,
+  "framework": "nextjs",
   "headers": [
     {
       "source": "/(.*)",
@@ -18,36 +17,6 @@
           "value": "1; mode=block"
         }
       ]
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/deploy-gate",
-      "destination": "/deploy-gate.html"
-    },
-    {
-      "source": "/architecture",
-      "destination": "/architecture.html"
-    },
-    {
-      "source": "/receipt-model",
-      "destination": "/receipt-model.html"
-    },
-    {
-      "source": "/request-access",
-      "destination": "/request-access.html"
-    },
-    {
-      "source": "/install",
-      "destination": "/install.html"
-    },
-    {
-      "source": "/challenge",
-      "destination": "/challenge.html"
-    },
-    {
-      "source": "/admin/governance",
-      "destination": "/admin/governance.html"
     }
   ]
 }
