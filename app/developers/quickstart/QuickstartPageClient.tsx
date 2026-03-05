@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { CopyCommandButton } from "@/src/components/CopyCommandButton";
 
 const reveal = {
@@ -22,6 +22,37 @@ const terminalLines = [
   { text: "> ✓ Approved by sarah.kim", tone: "green" },
   { text: "> ✓ Receipt issued: pp_r_8f91c2", tone: "green" },
   { text: "> ✓ Deployment executed", tone: "green" }
+] as const;
+
+const installTabs = [
+  { id: "python", label: "Python", code: "pip install permission-protocol" },
+  { id: "javascript", label: "TypeScript / JavaScript", code: "npm install @permissionprotocol/sdk" }
+] as const;
+
+const configTabs = [
+  {
+    id: "python",
+    label: "Python",
+    code: `import permission_protocol as pp\n\npp.configure(api_key="pp_key_...")`
+  },
+  {
+    id: "javascript",
+    label: "TypeScript / JavaScript",
+    code: `import { configure } from "@permissionprotocol/sdk";\n\nconfigure({\n  apiKey: process.env.PERMISSION_PROTOCOL_API_KEY!\n});`
+  }
+] as const;
+
+const protectTabs = [
+  {
+    id: "python",
+    label: "Python Decorator",
+    code: `from permission_protocol import require_approval\n\n@require_approval\ndef deploy_service():\n    deploy("billing-api")`
+  },
+  {
+    id: "javascript",
+    label: "JS Wrapper",
+    code: `import { withApproval } from "@permissionprotocol/sdk";\n\nconst deployService = withApproval(\n  async () => {\n    await deploy("billing-api");\n  },\n  { action: "deploy_service" }\n);`
+  }
 ] as const;
 
 function StepCard({ step, title, children }: { step: number; title: string; children: ReactNode }) {
@@ -53,6 +84,61 @@ function TerminalLine({ text, tone }: { text: string; tone: (typeof terminalLine
   return <p className={`font-mono text-xs leading-6 sm:text-sm ${color}`}>{text}</p>;
 }
 
+type CodeTabsProps = {
+  tabs: readonly {
+    id: string;
+    label: string;
+    code: string;
+  }[];
+  ariaLabel: string;
+  showCopyButton?: boolean;
+  helperText?: (activeTabId: string) => ReactNode;
+};
+
+function CodeTabs({ tabs, ariaLabel, showCopyButton = false, helperText }: CodeTabsProps) {
+  const [activeTabId, setActiveTabId] = useState(tabs[0]?.id ?? "");
+  if (tabs.length === 0) return null;
+
+  const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
+
+  return (
+    <>
+      <div role="tablist" aria-label={ariaLabel} className="inline-flex rounded-lg border border-border bg-card p-1">
+        {tabs.map((tab) => {
+          const isActive = tab.id === activeTab.id;
+
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => setActiveTabId(tab.id)}
+              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors sm:text-sm ${
+                isActive ? "bg-permit/20 text-permit" : "text-secondary hover:bg-ash hover:text-signal"
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+      <pre className="mt-3 overflow-x-auto rounded-xl border border-border bg-card p-4 font-mono text-sm text-signal">
+        <code>{activeTab.code}</code>
+      </pre>
+      {showCopyButton ? (
+        <div className="mt-3">
+          <CopyCommandButton
+            commands={tabs.map((tab) => ({ id: tab.id, command: tab.code }))}
+            activeCommandId={activeTab.id}
+          />
+        </div>
+      ) : null}
+      {helperText ? <p className="mt-3 text-sm text-secondary">{helperText(activeTab.id)}</p> : null}
+    </>
+  );
+}
+
 export function QuickstartPageClient() {
   return (
     <section className="bg-void pb-24 pt-28">
@@ -67,32 +153,32 @@ export function QuickstartPageClient() {
 
         <div className="mt-12 space-y-7">
           <StepCard step={1} title="Install the SDK">
-            <div className="rounded-xl border border-border bg-card p-4">
-              <code className="font-mono text-sm text-signal">pip install permission-protocol</code>
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <CopyCommandButton command="pip install permission-protocol" />
-              <p className="text-sm text-secondary">
-                Also available: <code className="font-mono text-signal">npm install @permissionprotocol/sdk</code>
-              </p>
-            </div>
+            <CodeTabs tabs={installTabs} ariaLabel="SDK install commands" showCopyButton />
           </StepCard>
 
           <StepCard step={2} title="Configure your API key">
-            <pre className="overflow-x-auto rounded-xl border border-border bg-card p-4 font-mono text-sm text-signal">
-              <code>{`import permission_protocol as pp\npp.configure(api_key="pp_key_...")`}</code>
-            </pre>
+            <CodeTabs tabs={configTabs} ariaLabel="SDK configuration examples" />
             <p className="mt-3 text-sm text-secondary">Get your free API key at permissionprotocol.com/developers</p>
           </StepCard>
 
           <StepCard step={3} title="Protect a risky action">
-            <pre className="overflow-x-auto rounded-xl border border-border bg-card p-4 font-mono text-sm text-signal">
-              <code>{`from permission_protocol import require_approval\n\n@require_approval\ndef deploy_service():\n    deploy("billing-api")`}</code>
-            </pre>
-            <p className="mt-3 text-sm text-secondary">
-              Any function decorated with <code className="font-mono text-signal">@require_approval</code> will pause until
-              authorized.
-            </p>
+            <CodeTabs
+              tabs={protectTabs}
+              ariaLabel="Approval guard examples"
+              helperText={(activeTabId) =>
+                activeTabId === "python" ? (
+                  <>
+                    Any function decorated with <code className="font-mono text-signal">@require_approval</code> will pause
+                    until authorized.
+                  </>
+                ) : (
+                  <>
+                    Any function wrapped with <code className="font-mono text-signal">withApproval(...)</code> will pause
+                    until authorized.
+                  </>
+                )
+              }
+            />
           </StepCard>
 
           <StepCard step={4} title="See it in action">
@@ -167,22 +253,39 @@ export function QuickstartPageClient() {
         <motion.section {...reveal} className="mt-12 border-t border-border pt-10">
           <h2 className="text-2xl font-semibold text-signal">What&apos;s next?</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-3">
-            {[
-              "Verify receipts in CI/CD",
-              "Explore the SDK API",
-              "Join the community"
-            ].map((label) => (
-              <a
-                key={label}
-                href="#"
-                className="rounded-lg border border-border bg-ash p-4 hover:border-permit/60 hover:bg-permit/10"
-              >
-                <p className="text-sm font-semibold text-signal">{label}</p>
-                <span className="mt-2 inline-flex rounded-full border border-permit/50 bg-permit/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-permit">
-                  Coming soon
-                </span>
-              </a>
-            ))}
+            <a href="#" className="rounded-lg border border-border bg-ash p-4 hover:border-permit/60 hover:bg-permit/10">
+              <p className="text-sm font-semibold text-signal">Verify receipts in CI/CD</p>
+              <span className="mt-2 inline-flex rounded-full border border-permit/50 bg-permit/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-permit">
+                Coming soon
+              </span>
+            </a>
+            <div className="rounded-lg border border-border bg-ash p-4">
+              <p className="text-sm font-semibold text-signal">Explore the SDK API</p>
+              <div className="mt-2 flex flex-wrap items-center gap-3 text-xs">
+                <a
+                  href="https://github.com/permission-protocol/python-sdk"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-permit hover:text-[#6ac9b7]"
+                >
+                  Python SDK
+                </a>
+                <a
+                  href="https://www.npmjs.com/package/@permissionprotocol/sdk"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-permit hover:text-[#6ac9b7]"
+                >
+                  npm package
+                </a>
+              </div>
+            </div>
+            <a href="#" className="rounded-lg border border-border bg-ash p-4 hover:border-permit/60 hover:bg-permit/10">
+              <p className="text-sm font-semibold text-signal">Join the community</p>
+              <span className="mt-2 inline-flex rounded-full border border-permit/50 bg-permit/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-permit">
+                Coming soon
+              </span>
+            </a>
           </div>
         </motion.section>
 

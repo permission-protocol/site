@@ -134,7 +134,12 @@ export default function HomePage() {
       >
         <CodeBlock tabs={developerTabs} />
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <CopyCommandButton command="pip install permission-protocol" />
+          <CopyCommandButton
+            commands={[
+              { id: "python", command: "pip install permission-protocol" },
+              { id: "javascript", command: "npm install @permissionprotocol/sdk" }
+            ]}
+          />
           <Link href="/developers/quickstart" className="font-semibold text-permit">
             Read the Quickstart -&gt;
           </Link>
