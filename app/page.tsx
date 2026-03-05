@@ -84,11 +84,13 @@ export default function HomePage() {
         subheadline="Every consequential AI action flows through Permission Protocol before execution."
       >
         <div className="rounded-2xl border border-border bg-card p-6">
-          <div className="flex flex-wrap items-center justify-center gap-3 text-sm font-medium">
+          <div className="flex flex-col items-center gap-2 text-sm font-medium sm:flex-row sm:justify-center sm:gap-3">
             <span className="rounded-full border border-border bg-ash px-4 py-2">PR Created</span>
-            <span className="text-secondary">→</span>
+            <span className="hidden text-secondary sm:inline">→</span>
+            <span className="text-secondary sm:hidden">↓</span>
             <span className="rounded-full border border-permit/50 bg-permit/10 px-4 py-2 text-permit">Permission Protocol</span>
-            <span className="text-secondary">→</span>
+            <span className="hidden text-secondary sm:inline">→</span>
+            <span className="text-secondary sm:hidden">↓</span>
             <span className="rounded-full border border-border bg-ash px-4 py-2">Decision</span>
           </div>
           <div className="mt-5 flex flex-wrap items-center justify-center gap-3 text-xs uppercase tracking-[0.12em]">
