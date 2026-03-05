@@ -1,6 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  async rewrites() {
+    return [
+      // Serve static blog HTML without .html extension
+      { source: "/blog", destination: "/blog/index.html" },
+      { source: "/blog/:slug", destination: "/blog/:slug.html" },
+    ];
+  },
   async redirects() {
     return [
       // Old site URLs → new equivalents (preserve Google juice)
