@@ -148,10 +148,24 @@
                 <div class="blog-subscribe-card">
                     <h2 class="blog-subscribe-title">Stay in the loop</h2>
                     <p class="blog-subscribe-text">Get notified when we publish new research on AI agent authorization.</p>
-                    <form class="blog-subscribe-form" action="mailto:cgoldber82@gmail.com" method="post" enctype="text/plain">
+                    <form class="blog-subscribe-form" id="blog-subscribe-form">
                         <input type="email" name="email" placeholder="you@company.com" required>
                         <button type="submit">Subscribe</button>
                     </form>
+                    <div id="blog-subscribe-success" style="display:none;color:#44aa99;font-weight:600;font-size:0.9rem;">✓ You're in. We'll be in touch.</div>
+                    <script>
+                      document.getElementById('blog-subscribe-form').addEventListener('submit', async function(e) {
+                        e.preventDefault();
+                        const email = this.email.value;
+                        try {
+                          const res = await fetch('/api/subscribe', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({email}) });
+                          if (res.ok) {
+                            this.style.display = 'none';
+                            document.getElementById('blog-subscribe-success').style.display = 'block';
+                          }
+                        } catch(err) { alert('Something went wrong. Try again.'); }
+                      });
+                    </script>
                 </div>
             </div>
         </section>
