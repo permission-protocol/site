@@ -3,7 +3,7 @@ import { ArrowRight } from "lucide-react";
 
 export function Hero() {
   return (
-    <section className="section-shell flex min-h-[100svh] items-center justify-center py-24 text-center">
+    <section className="section-shell flex items-center justify-center py-24 text-center md:min-h-[100svh]">
       <div className="mx-auto flex max-w-5xl flex-col items-center">
         <h1 className="text-6xl font-medium leading-[0.95] tracking-tight md:text-7xl lg:text-8xl">
           AI agents shouldn&apos;t authorize their own actions.

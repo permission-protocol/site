@@ -1,12 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { Github, Package, Star, Twitter } from "lucide-react";
+import { CheckCircle2, Github, Package, Star, Twitter } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { FormEvent, useCallback, useState } from "react";
 import { SiteHeader } from "@/src/components/SiteHeader";
 
 export function LayoutChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [subEmail, setSubEmail] = useState("");
+  const [subState, setSubState] = useState<"idle" | "sending" | "done" | "error">("idle");
+
+  const handleSubscribe = useCallback(async (e: FormEvent) => {
+    e.preventDefault();
+    setSubState("sending");
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: subEmail }),
+      });
+      if (!res.ok) throw new Error();
+      setSubState("done");
+    } catch {
+      setSubState("error");
+    }
+  }, [subEmail]);
   const hideChrome =
     pathname.startsWith("/r/") ||
     pathname.startsWith("/replay/") ||
@@ -82,22 +101,34 @@ export function LayoutChrome({ children }: { children: React.ReactNode }) {
           <div className="space-y-3">
             <p className="text-xs uppercase tracking-[0.14em] text-signal">Stay Updated</p>
             <p className="text-xs text-secondary">Get product and release updates.</p>
-            <form action="/api/subscribe" method="post" className="flex flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
-              <label htmlFor="footer-email" className="sr-only">
-                Email
-              </label>
-              <input
-                id="footer-email"
-                name="email"
-                type="email"
-                required
-                placeholder="you@company.com"
-                className="w-full rounded-lg border border-border bg-ash px-3 py-2 text-sm text-signal placeholder:text-secondary focus:border-permit focus:outline-none focus:ring-2 focus:ring-permit/40"
-              />
-              <button type="submit" className="rounded-lg bg-permit px-4 py-2 font-semibold text-void hover:brightness-110">
-                Subscribe
-              </button>
-            </form>
+            {subState === "done" ? (
+              <div className="flex items-center gap-2 rounded-lg border border-permit/50 bg-permit/10 px-3 py-2 text-sm font-semibold text-permit">
+                <CheckCircle2 className="h-4 w-4" />
+                You&apos;re in. We&apos;ll be in touch.
+              </div>
+            ) : (
+              <form onSubmit={handleSubscribe} className="flex flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
+                <label htmlFor="footer-email" className="sr-only">
+                  Email
+                </label>
+                <input
+                  id="footer-email"
+                  type="email"
+                  required
+                  value={subEmail}
+                  onChange={(e) => setSubEmail(e.target.value)}
+                  placeholder="you@company.com"
+                  className="w-full rounded-lg border border-border bg-ash px-3 py-2 text-sm text-signal placeholder:text-secondary focus:border-permit focus:outline-none focus:ring-2 focus:ring-permit/40"
+                />
+                <button
+                  type="submit"
+                  disabled={subState === "sending"}
+                  className="rounded-lg bg-permit px-4 py-2 font-semibold text-void hover:brightness-110 disabled:opacity-60"
+                >
+                  {subState === "sending" ? "..." : subState === "error" ? "Retry" : "Subscribe"}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       </footer>
