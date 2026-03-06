@@ -32,10 +32,10 @@ export function CopyCommandButton({ command, commands, activeCommandId }: CopyCo
     <button
       onClick={onCopy}
       disabled={!resolvedCommand}
-      className="btn-secondary rounded-lg bg-card px-4 py-2 font-mono text-sm"
+      className="btn-secondary inline-flex max-w-full items-center overflow-x-auto rounded-lg bg-card px-4 py-2 font-mono text-xs sm:text-sm"
     >
       {copied ? <Check className="mr-2 h-4 w-4 text-permit" /> : <Terminal className="mr-2 h-4 w-4 text-permit" />}
-      {copied ? "Copied" : resolvedCommand}
+      <span className="whitespace-nowrap">{copied ? "Copied" : resolvedCommand}</span>
     </button>
   );
 }
