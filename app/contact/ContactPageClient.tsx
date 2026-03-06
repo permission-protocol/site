@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { motion } from "framer-motion";
+import { CheckCircle2 } from "lucide-react";
 
 const reveal = {
   initial: { opacity: 0, y: 14 },
@@ -54,8 +55,9 @@ export function ContactPageClient() {
 
         <motion.section {...reveal} className="mt-10 rounded-2xl border border-border bg-card p-6">
           {submitted ? (
-            <div className="rounded-xl border border-permit/50 bg-permit/10 p-4 text-sm font-semibold text-permit">
-              Thanks! We&apos;ll be in touch within 24 hours.
+            <div className="flex items-center gap-2 rounded-xl border border-permit/50 bg-permit/10 p-4 text-sm font-semibold text-permit">
+              <CheckCircle2 className="h-5 w-5 text-[#10B981]" />
+              <span>Thanks! We will be in touch within 24 hours.</span>
             </div>
           ) : null}
 
