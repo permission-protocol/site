@@ -64,8 +64,10 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       const requests = data.requests || [];
       if (data.groups) {
         for (const group of data.groups) {
+          if (group.latestPending) requests.push(group.latestPending);
           if (group.requests) requests.push(...group.requests);
           if (group.items) requests.push(...group.items);
+          if (group.history) requests.push(...group.history);
         }
       }
 
