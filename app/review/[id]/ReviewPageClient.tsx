@@ -14,6 +14,34 @@ type GithubPrMetadata = {
   files_changed?: string[];
 };
 
+type RiskSignal = {
+  label: string;
+  severity: "critical" | "high" | "medium" | "low";
+  reason: string;
+};
+
+type PrFile = {
+  filename: string;
+  status: string;
+  additions: number;
+  deletions: number;
+};
+
+type Enrichment = {
+  diff?: {
+    title: string;
+    body: string | null;
+    files: PrFile[];
+    total_additions: number;
+    total_deletions: number;
+    total_files: number;
+    head_branch: string;
+    base_branch: string;
+  } | null;
+  risk_signals?: RiskSignal[];
+  ai_summary?: string | null;
+};
+
 type ReviewRequest = {
   id?: string;
   action?: string;
@@ -26,6 +54,7 @@ type ReviewRequest = {
   created_at?: string;
   status?: string;
   github_pr?: GithubPrMetadata;
+  enrichment?: Enrichment | null;
 };
 
 type MergeState =
@@ -393,7 +422,78 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                 <p className="mt-1 text-sm text-secondary">{formatTimestamp(request.timestamp ?? request.created_at)}</p>
               </div>
 
-              {request.github_pr ? (
+              {/* Phase 2: Rich Review Surface */}
+              {request.enrichment?.ai_summary ? (
+                <div className="mt-6 rounded-xl border border-permit/30 bg-permit/5 p-4">
+                  <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-permit">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    AI Assessment
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-signal">{request.enrichment.ai_summary}</p>
+                </div>
+              ) : null}
+
+              {request.enrichment?.risk_signals && request.enrichment.risk_signals.length > 0 ? (
+                <div className="mt-4 rounded-xl border border-border bg-card p-4">
+                  <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    Risk Signals
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {request.enrichment.risk_signals.map((signal) => (
+                      <span
+                        key={signal.label}
+                        title={signal.reason}
+                        className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium ${
+                          signal.severity === "critical"
+                            ? "border-danger/50 bg-danger/10 text-danger"
+                            : signal.severity === "high"
+                            ? "border-warning/50 bg-warning/10 text-warning"
+                            : "border-border bg-void/50 text-secondary"
+                        }`}
+                      >
+                        {signal.severity === "critical" ? "🔴" : signal.severity === "high" ? "🟠" : "🟡"} {signal.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {request.enrichment?.diff ? (
+                <details className="mt-4 rounded-xl border border-border bg-card p-4">
+                  <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-signal">
+                    <span className="inline-flex items-center gap-2">
+                      <FileCode2 className="h-4 w-4 text-permit" />
+                      {request.enrichment.diff.total_files} files changed
+                      <span className="text-xs font-normal text-[#10B981]">+{request.enrichment.diff.total_additions}</span>
+                      <span className="text-xs font-normal text-danger">-{request.enrichment.diff.total_deletions}</span>
+                    </span>
+                    <ChevronDown className="h-4 w-4 text-muted" />
+                  </summary>
+                  <div className="mt-3 space-y-1">
+                    {request.enrichment.diff.files.map((file) => (
+                      <div key={file.filename} className="flex items-center justify-between rounded-lg border border-border bg-void/30 px-3 py-1.5">
+                        <span className="font-mono text-xs text-secondary truncate max-w-[70%]">{file.filename}</span>
+                        <span className="flex items-center gap-2 text-xs">
+                          {file.additions > 0 ? <span className="text-[#10B981]">+{file.additions}</span> : null}
+                          {file.deletions > 0 ? <span className="text-danger">-{file.deletions}</span> : null}
+                          <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                            file.status === "added" ? "bg-[#10B981]/15 text-[#10B981]"
+                            : file.status === "removed" ? "bg-danger/15 text-danger"
+                            : file.status === "renamed" ? "bg-[#6366F1]/15 text-[#6366F1]"
+                            : "bg-warning/15 text-warning"
+                          }`}>
+                            {file.status}
+                          </span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[10px] text-muted">
+                    {request.enrichment.diff.head_branch} → {request.enrichment.diff.base_branch}
+                  </p>
+                </details>
+              ) : request.github_pr ? (
                 <details className="mt-6 rounded-xl border border-border bg-card p-4">
                   <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-signal">
                     <span className="inline-flex items-center gap-2">
@@ -407,27 +507,6 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                       <p className="text-xs uppercase tracking-[0.12em] text-muted">Title</p>
                       <p className="mt-1 text-sm font-semibold text-signal">{request.github_pr.title ?? "Untitled PR"}</p>
                     </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.12em] text-muted">Description</p>
-                      <p className="mt-1 whitespace-pre-wrap text-sm text-secondary">
-                        {request.github_pr.description ?? "No description provided."}
-                      </p>
-                    </div>
-                    {Array.isArray(request.github_pr.files_changed) && request.github_pr.files_changed.length > 0 ? (
-                      <div>
-                        <p className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.12em] text-muted">
-                          <FileCode2 className="h-3.5 w-3.5" />
-                          Files Changed
-                        </p>
-                        <ul className="mt-2 space-y-1 rounded-lg border border-border bg-void p-3">
-                          {request.github_pr.files_changed.map((file) => (
-                            <li key={file} className="font-mono text-xs text-secondary">
-                              {file}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : null}
                   </div>
                 </details>
               ) : null}
