@@ -57,6 +57,9 @@ export async function POST(request: Request, { params }: { params: { id: string 
         approved_by: "reviewer",
         reason: body.reason,
         productionConfirmed: true,
+        // Required when verification failed (no prior receipt)
+        riskAcceptanceCategory: "OTHER",
+        riskAcceptanceReason: body.reason || "Approved via PP review surface",
       }),
     });
 
