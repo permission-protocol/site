@@ -126,7 +126,9 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
     return "border-[#10B981]/50 bg-[#10B981]/15 text-[#10B981]";
   }, [request?.risk_tier]);
 
-  const canAct = !loading && !fetchError && !!request && decisionState.status !== "approved" && decisionState.status !== "rejected";
+  const isPending = request?.status === "pending";
+  const isAlreadyDecided = request?.status === "approved" || request?.status === "denied" || request?.status === "expired" || request?.status === "superseded" || request?.status === "cancelled";
+  const canAct = !loading && !fetchError && !!request && isPending && decisionState.status !== "approved" && decisionState.status !== "rejected";
 
   async function submitDecision(action: "approve" | "reject") {
     setDecisionState({ status: "submitting", action });
@@ -164,24 +166,45 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
           transition={{ duration: 0.3, ease: "easeOut" }}
           className="sticky top-4 z-20 mb-5 rounded-2xl border border-border bg-card/95 p-3 shadow-[0_16px_36px_rgba(0,0,0,0.4)] backdrop-blur"
         >
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <button
-              disabled={!canAct || decisionState.status === "submitting"}
-              onClick={() => void submitDecision("approve")}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#10B981] px-4 py-3 font-semibold text-void disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <CheckCircle2 className="h-4 w-4" />
-              {decisionState.status === "submitting" && decisionState.action === "approve" ? "Approving..." : "Approve"}
-            </button>
-            <button
-              disabled={!canAct || decisionState.status === "submitting"}
-              onClick={() => void submitDecision("reject")}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-danger bg-danger/10 px-4 py-3 font-semibold text-signal disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <CircleX className="h-4 w-4" />
-              {decisionState.status === "submitting" && decisionState.action === "reject" ? "Rejecting..." : "Reject"}
-            </button>
-          </div>
+          {isAlreadyDecided ? (
+            <div className="flex items-center justify-center gap-3 py-2">
+              {request?.status === "approved" ? (
+                <p className="inline-flex items-center gap-2 text-base font-semibold text-[#10B981]">
+                  <CheckCircle2 className="h-5 w-5" />
+                  Already Approved
+                </p>
+              ) : request?.status === "denied" ? (
+                <p className="inline-flex items-center gap-2 text-base font-semibold text-danger">
+                  <CircleX className="h-5 w-5" />
+                  Denied
+                </p>
+              ) : (
+                <p className="inline-flex items-center gap-2 text-base font-semibold text-muted">
+                  <AlertTriangle className="h-5 w-5" />
+                  {request?.status === "expired" ? "Expired" : request?.status === "superseded" ? "Superseded" : "Cancelled"}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                disabled={!canAct || decisionState.status === "submitting"}
+                onClick={() => void submitDecision("approve")}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#10B981] px-4 py-3 font-semibold text-void disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                {decisionState.status === "submitting" && decisionState.action === "approve" ? "Approving..." : "Approve"}
+              </button>
+              <button
+                disabled={!canAct || decisionState.status === "submitting"}
+                onClick={() => void submitDecision("reject")}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-danger bg-danger/10 px-4 py-3 font-semibold text-signal disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <CircleX className="h-4 w-4" />
+                {decisionState.status === "submitting" && decisionState.action === "reject" ? "Rejecting..." : "Reject"}
+              </button>
+            </div>
+          )}
         </motion.div>
 
         <motion.article
@@ -211,10 +234,27 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
           {!loading && !fetchError && request ? (
             <>
               <div className="flex flex-wrap items-center gap-3">
-                <p className="inline-flex items-center gap-2 rounded-full border border-warning/60 bg-warning/15 px-4 py-2 text-sm font-bold text-warning">
-                  <ShieldCheck className="h-4 w-4" />
-                  REVIEW REQUIRED
-                </p>
+                {isPending ? (
+                  <p className="inline-flex items-center gap-2 rounded-full border border-warning/60 bg-warning/15 px-4 py-2 text-sm font-bold text-warning">
+                    <ShieldCheck className="h-4 w-4" />
+                    REVIEW REQUIRED
+                  </p>
+                ) : request?.status === "approved" ? (
+                  <p className="inline-flex items-center gap-2 rounded-full border border-[#10B981]/60 bg-[#10B981]/15 px-4 py-2 text-sm font-bold text-[#10B981]">
+                    <CheckCircle2 className="h-4 w-4" />
+                    APPROVED
+                  </p>
+                ) : request?.status === "denied" ? (
+                  <p className="inline-flex items-center gap-2 rounded-full border border-danger/60 bg-danger/15 px-4 py-2 text-sm font-bold text-danger">
+                    <CircleX className="h-4 w-4" />
+                    DENIED
+                  </p>
+                ) : (
+                  <p className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-bold text-muted uppercase">
+                    <AlertTriangle className="h-4 w-4" />
+                    {request?.status ?? "Unknown"}
+                  </p>
+                )}
                 <p className={`inline-flex rounded-full border px-4 py-2 text-sm font-semibold ${statusBadge}`}>
                   Risk: {request.risk_tier ?? "Unknown"}
                 </p>
@@ -288,7 +328,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                 </details>
               ) : null}
 
-              <div className="mt-6 rounded-xl border border-border bg-card p-4">
+              {isPending ? <div className="mt-6 rounded-xl border border-border bg-card p-4">
                 <label htmlFor="decision-reason" className="text-sm font-semibold text-signal">
                   Reason (optional)
                 </label>
@@ -312,7 +352,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                     </button>
                   ))}
                 </div>
-              </div>
+              </div> : null}
             </>
           ) : null}
         </motion.article>
