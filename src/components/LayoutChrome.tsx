@@ -7,7 +7,10 @@ import { SiteHeader } from "@/src/components/SiteHeader";
 export function LayoutChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const hideChrome =
-    pathname.startsWith("/r/") || pathname.startsWith("/replay/") || pathname.startsWith("/approve/");
+    pathname.startsWith("/r/") ||
+    pathname.startsWith("/replay/") ||
+    pathname.startsWith("/approve/") ||
+    pathname.startsWith("/review/");
 
   if (hideChrome) {
     return <>{children}</>;
