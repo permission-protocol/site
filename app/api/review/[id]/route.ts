@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getPPAuthHeaders } from "../auth";
+import { enrichReviewRequest } from "../lib/enrich";
 
 const PP_BASE_URL = process.env.PP_API_URL || "https://app.permissionprotocol.com/api/v1";
 const GH_API = "https://api.github.com";
@@ -102,7 +103,16 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
         const prAuthor = match.prNumber && match.repo
           ? await fetchPrAuthor(match.repo, match.prNumber)
           : null;
-        return NextResponse.json(mapToReviewRequest(match, prAuthor));
+
+        // Phase 2: Enrich with diff, risk signals, and AI summary
+        const enrichment = match.prNumber && match.repo
+          ? await enrichReviewRequest(match.repo, match.prNumber)
+          : null;
+
+        return NextResponse.json({
+          ...mapToReviewRequest(match, prAuthor),
+          enrichment,
+        });
       }
     }
 
