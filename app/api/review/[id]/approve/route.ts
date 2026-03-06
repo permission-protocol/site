@@ -3,21 +3,38 @@ import { getPPAuthHeaders } from "../../auth";
 
 const PP_BASE_URL = process.env.PP_API_URL || "https://app.permissionprotocol.com/api/v1";
 
-type GithubPrMetadata = {
-  owner?: string;
-  repo?: string;
-  pr_number?: number;
-};
+const STATUSES = ["pending", "approved", "denied", "expired", "superseded", "cancelled"];
 
-type ApprovalResponse = {
-  receipt_id?: string;
-  receipt?: { id?: string };
-  github_pr?: GithubPrMetadata;
-};
+/**
+ * Fetch the deploy request to get PR metadata (prNumber, repo).
+ * The approve API response doesn't include this.
+ */
+async function fetchRequestDetails(id: string) {
+  const authHeaders = getPPAuthHeaders();
+  for (const status of STATUSES) {
+    const response = await fetch(
+      `${PP_BASE_URL}/deploy-requests?status=${status}&limit=100`,
+      { method: "GET", headers: { Accept: "application/json", ...authHeaders }, cache: "no-store" }
+    );
+    if (!response.ok) continue;
+    const data = await response.json().catch(() => null);
+    if (!data?.groups) continue;
+    for (const group of data.groups) {
+      if (group.latestPending?.id === id) return group.latestPending;
+      for (const item of group.history || []) {
+        if (item.id === id) return item;
+      }
+    }
+  }
+  return null;
+}
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
     const body = (await request.json().catch(() => ({}))) as { reason?: string };
+
+    // Fetch request details FIRST to get PR metadata
+    const requestDetails = await fetchRequestDetails(params.id);
 
     const approveResponse = await fetch(`${PP_BASE_URL}/deploy-requests/${params.id}/approve`, {
       method: "POST",
@@ -33,15 +50,21 @@ export async function POST(request: Request, { params }: { params: { id: string 
       })
     });
 
-    const approveData = (await approveResponse.json().catch(() => ({}))) as ApprovalResponse & { error?: string };
+    const approveData = (await approveResponse.json().catch(() => ({}))) as Record<string, unknown>;
     if (!approveResponse.ok) {
       const errorMessage =
-        approveResponse.status === 409 ? "This request was already approved or decided." : approveData.error ?? "Approval failed.";
+        approveResponse.status === 409
+          ? "This request was already approved or decided."
+          : (approveData.error as string) ?? "Approval failed.";
       return NextResponse.json({ error: errorMessage, details: approveData }, { status: approveResponse.status || 500 });
     }
 
-    const githubPr = approveData.github_pr;
-    const hasPrContext = !!githubPr?.owner && !!githubPr?.repo && typeof githubPr.pr_number === "number";
+    // Extract PR info from the request details (not the approve response)
+    const repo = requestDetails?.repo as string | undefined;
+    const prNumber = requestDetails?.prNumber as number | undefined;
+    const owner = repo?.split("/")[0];
+    const repoName = repo?.split("/")[1];
+    const hasPrContext = !!owner && !!repoName && typeof prNumber === "number";
 
     let mergeResult: { merged: boolean; message?: string; details?: unknown } | null = null;
     if (hasPrContext) {
@@ -50,7 +73,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
         mergeResult = { merged: false, message: "GITHUB_TOKEN is not configured. Skipped PR merge." };
       } else {
         const mergeResponse = await fetch(
-          `https://api.github.com/repos/${githubPr.owner}/${githubPr.repo}/pulls/${githubPr.pr_number}/merge`,
+          `https://api.github.com/repos/${owner}/${repoName}/pulls/${prNumber}/merge`,
           {
             method: "PUT",
             headers: {
@@ -81,11 +104,12 @@ export async function POST(request: Request, { params }: { params: { id: string 
       }
     }
 
-    const receiptId = approveData.receipt_id ?? approveData.receipt?.id ?? null;
+    const receiptId = (approveData.receipt_id ?? (approveData.receipt as any)?.id ?? (approveData.result as any)?.receiptId) as string | null;
     return NextResponse.json({
       ...approveData,
       receipt_id: receiptId,
-      merge: mergeResult
+      merge: mergeResult,
+      github_pr: hasPrContext ? { owner, repo: repoName, pr_number: prNumber } : null
     });
   } catch (error) {
     return NextResponse.json(
