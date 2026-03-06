@@ -28,10 +28,21 @@ type ReviewRequest = {
   github_pr?: GithubPrMetadata;
 };
 
+type MergeInfo = {
+  merged: boolean;
+  blocked?: boolean;
+  message?: string;
+};
+
+type AutoMergeInfo = {
+  enabled: boolean;
+  message?: string;
+};
+
 type DecisionState =
   | { status: "idle" }
   | { status: "submitting"; action: "approve" | "reject" }
-  | { status: "approved"; receiptId: string | null }
+  | { status: "approved"; receiptId: string | null; merge?: MergeInfo | null; autoMerge?: AutoMergeInfo | null }
   | { status: "rejected" }
   | { status: "error"; message: string };
 
@@ -140,14 +151,24 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
         body: JSON.stringify({ reason: reason.trim() || undefined })
       });
 
-      const body = (await response.json().catch(() => ({}))) as { receipt_id?: string; error?: string };
+      const body = (await response.json().catch(() => ({}))) as {
+        receipt_id?: string;
+        error?: string;
+        merge?: MergeInfo | null;
+        auto_merge?: AutoMergeInfo | null;
+      };
       if (!response.ok) {
         setDecisionState({ status: "error", message: normalizeErrorMessage(response.status, body) });
         return;
       }
 
       if (action === "approve") {
-        setDecisionState({ status: "approved", receiptId: body.receipt_id ?? null });
+        setDecisionState({
+          status: "approved",
+          receiptId: body.receipt_id ?? null,
+          merge: body.merge ?? null,
+          autoMerge: body.auto_merge ?? null,
+        });
         return;
       }
 
@@ -361,16 +382,34 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-5 rounded-xl border border-[#10B981]/50 bg-[#10B981]/15 p-4"
+            className="mt-5 space-y-3"
           >
-            <p className="text-sm font-semibold text-[#10B981]">Request approved.</p>
-            {decisionState.receiptId ? (
-              <Link className="mt-2 inline-block text-sm font-semibold text-permit hover:text-[#6ac9b7]" href={`/r/${decisionState.receiptId}`}>
-                View receipt: /r/{decisionState.receiptId}
-              </Link>
-            ) : (
-              <p className="mt-2 text-sm text-secondary">Receipt generated successfully.</p>
-            )}
+            <div className="rounded-xl border border-[#10B981]/50 bg-[#10B981]/15 p-4">
+              <p className="text-sm font-semibold text-[#10B981]">Request approved.</p>
+              {decisionState.receiptId ? (
+                <Link className="mt-2 inline-block text-sm font-semibold text-permit hover:text-[#6ac9b7]" href={`/r/${decisionState.receiptId}`}>
+                  View receipt: /r/{decisionState.receiptId}
+                </Link>
+              ) : (
+                <p className="mt-2 text-sm text-secondary">Receipt generated successfully.</p>
+              )}
+            </div>
+
+            {decisionState.merge?.merged ? (
+              <div className="rounded-xl border border-[#10B981]/50 bg-[#10B981]/10 p-4">
+                <p className="text-sm font-semibold text-[#10B981]">✓ PR merged on GitHub</p>
+              </div>
+            ) : decisionState.autoMerge?.enabled ? (
+              <div className="rounded-xl border border-warning/50 bg-warning/10 p-4">
+                <p className="text-sm font-semibold text-warning">⏳ Auto-merge enabled</p>
+                <p className="mt-1 text-xs text-secondary">PR will merge automatically when all required checks pass.</p>
+              </div>
+            ) : decisionState.merge && !decisionState.merge.merged ? (
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="text-sm font-semibold text-secondary">GitHub commit status set ✓</p>
+                <p className="mt-1 text-xs text-muted">{decisionState.merge.message ?? "Merge pending — requires passing checks or manual merge."}</p>
+              </div>
+            ) : null}
           </motion.div>
         ) : null}
 
