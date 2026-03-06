@@ -213,7 +213,8 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
           className="sticky top-4 z-20 mb-5 rounded-2xl border border-border bg-card/95 p-3 shadow-[0_16px_36px_rgba(0,0,0,0.4)] backdrop-blur"
         >
           {isAlreadyDecided ? (
-            <div className="flex items-center justify-center gap-3 py-2">
+            <div className="space-y-3">
+              <div className="flex items-center justify-center gap-3 py-2">
               {request?.status === "approved" ? (
                 <p className="inline-flex items-center gap-2 text-base font-semibold text-[#10B981]">
                   <CheckCircle2 className="h-5 w-5" />
@@ -230,6 +231,42 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                   {request?.status === "expired" ? "Expired" : request?.status === "superseded" ? "Superseded" : "Cancelled"}
                 </p>
               )}
+              </div>
+
+              {request?.status === "approved" && request?.github_pr?.owner && request?.github_pr?.pr_number && mergeState.status === "idle" ? (
+                <button
+                  onClick={() => void submitMerge()}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#6366F1] px-4 py-3 font-semibold text-white hover:bg-[#5558E6] transition-colors"
+                >
+                  🚀 Merge &amp; Deploy
+                </button>
+              ) : null}
+
+              {mergeState.status === "merging" ? (
+                <div className="rounded-xl border border-[#6366F1]/50 bg-[#6366F1]/10 p-4">
+                  <p className="text-sm font-semibold text-[#6366F1]">Merging…</p>
+                </div>
+              ) : null}
+
+              {mergeState.status === "merged" ? (
+                <div className="rounded-xl border border-[#10B981]/50 bg-[#10B981]/10 p-4">
+                  <p className="text-sm font-semibold text-[#10B981]">✓ PR merged on GitHub</p>
+                </div>
+              ) : null}
+
+              {mergeState.status === "auto-merge" ? (
+                <div className="rounded-xl border border-warning/50 bg-warning/10 p-4">
+                  <p className="text-sm font-semibold text-warning">⏳ Auto-merge enabled</p>
+                  <p className="mt-1 text-xs text-secondary">{mergeState.message ?? "PR will merge when all checks pass."}</p>
+                </div>
+              ) : null}
+
+              {mergeState.status === "error" ? (
+                <div className="rounded-xl border border-danger/50 bg-danger/15 p-4">
+                  <p className="text-sm font-semibold text-danger">Merge failed</p>
+                  <p className="mt-1 text-xs text-secondary">{mergeState.message}</p>
+                </div>
+              ) : null}
             </div>
           ) : (
             <div className="flex flex-col gap-2 sm:flex-row">
