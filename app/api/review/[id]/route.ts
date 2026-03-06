@@ -1,19 +1,6 @@
 import { NextResponse } from "next/server";
-import { getPPAuthHeaders } from "../auth";
 import { enrichReviewRequest } from "../lib/enrich";
-
-const PP_BASE_URL = process.env.PP_API_URL || "https://app.permissionprotocol.com/api/v1";
-const GH_API = "https://api.github.com";
-
-const STATUSES = ["pending", "approved", "denied", "expired", "superseded", "cancelled"];
-
-function ghHeaders(token: string) {
-  return {
-    Accept: "application/vnd.github+json",
-    Authorization: `Bearer ${token}`,
-    "X-GitHub-Api-Version": "2022-11-28",
-  };
-}
+import { GH_API, ghHeaders, fetchRequestDetails } from "../lib/shared";
 
 /**
  * Fetch PR author from GitHub as the actor (PP API doesn't store this).
@@ -67,56 +54,25 @@ function mapToReviewRequest(raw: any, prAuthor?: string | null) {
 
 export async function GET(_: Request, { params }: { params: { id: string } }) {
   try {
-    const authHeaders = getPPAuthHeaders();
-
-    for (const status of STATUSES) {
-      const response = await fetch(
-        `${PP_BASE_URL}/deploy-requests?status=${status}&limit=100`,
-        {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            ...authHeaders,
-          },
-          cache: "no-store",
-        }
-      );
-
-      if (!response.ok) continue;
-
-      const data = await response.json().catch(() => null);
-      if (!data) continue;
-
-      const requests = data.requests || [];
-      if (data.groups) {
-        for (const group of data.groups) {
-          if (group.latestPending) requests.push(group.latestPending);
-          if (group.requests) requests.push(...group.requests);
-          if (group.items) requests.push(...group.items);
-          if (group.history) requests.push(...group.history);
-        }
-      }
-
-      const match = requests.find((r: any) => r.id === params.id);
-      if (match) {
-        // Fetch PR author from GitHub for the actor field
-        const prAuthor = match.prNumber && match.repo
-          ? await fetchPrAuthor(match.repo, match.prNumber)
-          : null;
-
-        // Phase 2: Enrich with diff, risk signals, and AI summary
-        const enrichment = match.prNumber && match.repo
-          ? await enrichReviewRequest(match.repo, match.prNumber)
-          : null;
-
-        return NextResponse.json({
-          ...mapToReviewRequest(match, prAuthor),
-          enrichment,
-        });
-      }
+    const match = await fetchRequestDetails(params.id);
+    if (!match) {
+      return NextResponse.json({ error: "Request not found." }, { status: 404 });
     }
 
-    return NextResponse.json({ error: "Request not found." }, { status: 404 });
+    // Fetch PR author from GitHub for the actor field
+    const prAuthor = match.prNumber && match.repo
+      ? await fetchPrAuthor(match.repo, match.prNumber)
+      : null;
+
+    // Phase 2: Enrich with diff, risk signals, and AI summary
+    const enrichment = match.prNumber && match.repo
+      ? await enrichReviewRequest(match.repo, match.prNumber)
+      : null;
+
+    return NextResponse.json({
+      ...mapToReviewRequest(match, prAuthor),
+      enrichment,
+    });
   } catch (error) {
     return NextResponse.json(
       { error: "Unable to fetch request details.", details: (error as Error).message },
