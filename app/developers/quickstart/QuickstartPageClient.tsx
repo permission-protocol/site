@@ -221,7 +221,7 @@ export function QuickstartPageClient() {
 
           <StepCard step={6} title="Share your proof">
             <div className="rounded-xl border border-border bg-card p-4">
-              <code className="font-mono overflow-x-auto text-xs text-signal sm:text-sm">
+              <code className="font-mono break-all text-xs text-signal sm:text-sm">
                 https://permissionprotocol.com/r/8f91c2
               </code>
             </div>
