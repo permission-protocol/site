@@ -3687,13 +3687,20 @@ body.dark-brand-page {
   border: 1px solid #202020;
   padding: 1.25rem;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   margin: 1.5rem 0;
   border-radius: 0;
 }
 
 .blog-post code {
   font-family: 'Space Mono', monospace;
-  font-size: 13px;
+  font-size: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .blog-post code {
+    font-size: 0.875rem;
+  }
 }
 
 .blog-post img {
@@ -3701,6 +3708,18 @@ body.dark-brand-page {
   height: auto;
   margin: 2rem 0;
   border: 1px solid #1a1a1a;
+}
+
+.blog-post .hero-image {
+  width: 100%;
+  max-height: 16rem;
+  object-fit: cover;
+}
+
+@media (min-width: 640px) {
+  .blog-post .hero-image {
+    max-height: 24rem;
+  }
 }
 
 /* Highlight boxes in articles */
