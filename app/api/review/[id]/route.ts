@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const PP_BASE_URL = "https://api.permissionprotocol.com/api/v1";
+const PP_BASE_URL = process.env.PP_API_URL || "https://app.permissionprotocol.com/api/v1";
 
 export async function GET(_: Request, { params }: { params: { id: string } }) {
   try {
