@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { AlertTriangle, CheckCircle2, ChevronDown, CircleX, ExternalLink, FileCode2, GitPullRequest, ShieldCheck, UserRound } from "lucide-react";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 
 type GithubPrMetadata = {
   owner?: string;
@@ -121,6 +121,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [decisionState, setDecisionState] = useState<DecisionState>({ status: "idle" });
+  const resultRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -552,8 +553,10 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
 
         {decisionState.status === "approved" ? (
           <motion.div
+            ref={resultRef}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
+            onAnimationComplete={() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
             className="mt-5 space-y-3"
           >
             <div className="rounded-xl border border-[#10B981]/50 bg-[#10B981]/15 p-4">
@@ -614,8 +617,10 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
 
         {decisionState.status === "rejected" ? (
           <motion.div
+            ref={resultRef}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
+            onAnimationComplete={() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
             className="mt-5 rounded-xl border border-danger/50 bg-danger/15 p-4"
           >
             <p className="text-sm font-semibold text-danger">Request rejected and blocked.</p>
@@ -623,9 +628,15 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
         ) : null}
 
         {decisionState.status === "error" ? (
-          <div className="mt-5 rounded-xl border border-danger/50 bg-danger/15 p-4">
+          <motion.div
+            ref={resultRef}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            onAnimationComplete={() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
+            className="mt-5 rounded-xl border border-danger/50 bg-danger/15 p-4"
+          >
             <p className="text-sm font-semibold text-danger">{decisionState.message}</p>
-          </div>
+          </motion.div>
         ) : null}
       </div>
     </section>
