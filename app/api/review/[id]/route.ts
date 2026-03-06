@@ -2,19 +2,48 @@ import { NextResponse } from "next/server";
 import { getPPAuthHeaders } from "../auth";
 
 const PP_BASE_URL = process.env.PP_API_URL || "https://app.permissionprotocol.com/api/v1";
+const GH_API = "https://api.github.com";
 
 const STATUSES = ["pending", "approved", "denied", "expired", "superseded", "cancelled"];
+
+function ghHeaders(token: string) {
+  return {
+    Accept: "application/vnd.github+json",
+    Authorization: `Bearer ${token}`,
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+}
+
+/**
+ * Fetch PR author from GitHub as the actor (PP API doesn't store this).
+ */
+async function fetchPrAuthor(repo: string, prNumber: number): Promise<string | null> {
+  const githubToken = process.env.GITHUB_TOKEN;
+  if (!githubToken) return null;
+  try {
+    const res = await fetch(`${GH_API}/repos/${repo}/pulls/${prNumber}`, {
+      headers: ghHeaders(githubToken),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { user?: { login?: string } };
+    return data.user?.login ?? null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Map PP API deploy-request fields to the frontend ReviewRequest shape.
  */
-function mapToReviewRequest(raw: any) {
+function mapToReviewRequest(raw: any, prAuthor?: string | null) {
+  const owner = raw.repo?.split("/")[0];
+  const repoName = raw.repo?.split("/")[1];
   return {
     id: raw.id,
     action: raw.capability || raw.action || "Unknown",
     resource: raw.repo || raw.resource || "Unknown",
-    actor: raw.createdByRef || raw.actor || raw.requested_by || "Unknown",
-    requested_by: raw.createdByRef || raw.requested_by,
+    actor: prAuthor || raw.createdByRef || raw.actor || raw.requested_by || "CI",
+    requested_by: prAuthor || raw.createdByRef || raw.requested_by,
     risk_tier: raw.env === "production" ? "high" : raw.env === "staging" ? "medium" : "low",
     scope: raw.env ? `${raw.env} — ${raw.ref || ""}`.trim() : raw.scope,
     timestamp: raw.createdAt || raw.created_at,
@@ -24,18 +53,14 @@ function mapToReviewRequest(raw: any) {
     commit_sha: raw.commitSha,
     github_pr: raw.prNumber
       ? {
-          owner: raw.repo?.split("/")[0],
-          repo: raw.repo?.split("/")[1],
+          owner,
+          repo: repoName,
           pr_number: raw.prNumber,
           title: `PR #${raw.prNumber}`,
           description: raw.reason || null,
           files_changed: [],
         }
       : undefined,
-    // Pass through raw fields for debugging
-    _raw_env: raw.env,
-    _raw_repo: raw.repo,
-    _raw_capability: raw.capability,
   };
 }
 
@@ -73,7 +98,11 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 
       const match = requests.find((r: any) => r.id === params.id);
       if (match) {
-        return NextResponse.json(mapToReviewRequest(match));
+        // Fetch PR author from GitHub for the actor field
+        const prAuthor = match.prNumber && match.repo
+          ? await fetchPrAuthor(match.repo, match.prNumber)
+          : null;
+        return NextResponse.json(mapToReviewRequest(match, prAuthor));
       }
     }
 
