@@ -2,10 +2,18 @@ import { NextResponse } from "next/server";
 import { enrichReviewRequest } from "../lib/enrich";
 import { GH_API, ghHeaders, fetchRequestDetails } from "../lib/shared";
 
+type PrInfo = {
+  author: string | null;
+  merged: boolean;
+  merge_commit_sha: string | null;
+  state: string; // "open" | "closed"
+  title: string | null;
+};
+
 /**
- * Fetch PR author from GitHub as the actor (PP API doesn't store this).
+ * Fetch PR info from GitHub (author, merge status, title).
  */
-async function fetchPrAuthor(repo: string, prNumber: number): Promise<string | null> {
+async function fetchPrInfo(repo: string, prNumber: number): Promise<PrInfo | null> {
   const githubToken = process.env.GITHUB_TOKEN;
   if (!githubToken) return null;
   try {
@@ -13,8 +21,20 @@ async function fetchPrAuthor(repo: string, prNumber: number): Promise<string | n
       headers: ghHeaders(githubToken),
     });
     if (!res.ok) return null;
-    const data = (await res.json()) as { user?: { login?: string } };
-    return data.user?.login ?? null;
+    const data = (await res.json()) as {
+      user?: { login?: string };
+      merged?: boolean;
+      merge_commit_sha?: string;
+      state?: string;
+      title?: string;
+    };
+    return {
+      author: data.user?.login ?? null,
+      merged: data.merged ?? false,
+      merge_commit_sha: data.merge_commit_sha ?? null,
+      state: data.state ?? "unknown",
+      title: data.title ?? null,
+    };
   } catch {
     return null;
   }
@@ -23,15 +43,15 @@ async function fetchPrAuthor(repo: string, prNumber: number): Promise<string | n
 /**
  * Map PP API deploy-request fields to the frontend ReviewRequest shape.
  */
-function mapToReviewRequest(raw: any, prAuthor?: string | null) {
+function mapToReviewRequest(raw: any, prInfo?: PrInfo | null) {
   const owner = raw.repo?.split("/")[0];
   const repoName = raw.repo?.split("/")[1];
   return {
     id: raw.id,
     action: raw.capability || raw.action || "Unknown",
     resource: raw.repo || raw.resource || "Unknown",
-    actor: prAuthor || raw.createdByRef || raw.actor || raw.requested_by || "CI",
-    requested_by: prAuthor || raw.createdByRef || raw.requested_by,
+    actor: prInfo?.author || raw.createdByRef || raw.actor || raw.requested_by || "CI",
+    requested_by: prInfo?.author || raw.createdByRef || raw.requested_by,
     risk_tier: raw.env === "production" ? "high" : raw.env === "staging" ? "medium" : "low",
     scope: raw.env ? `${raw.env} — ${raw.ref || ""}`.trim() : raw.scope,
     timestamp: raw.createdAt || raw.created_at,
@@ -39,12 +59,15 @@ function mapToReviewRequest(raw: any, prAuthor?: string | null) {
     status: raw.status,
     approval_status: raw.approvalStatus,
     commit_sha: raw.commitSha,
+    pr_merged: prInfo?.merged ?? false,
+    pr_merge_sha: prInfo?.merge_commit_sha ?? null,
+    pr_state: prInfo?.state ?? null,
     github_pr: raw.prNumber
       ? {
           owner,
           repo: repoName,
           pr_number: raw.prNumber,
-          title: `PR #${raw.prNumber}`,
+          title: prInfo?.title || `PR #${raw.prNumber}`,
           description: raw.reason || null,
           files_changed: [],
         }
@@ -59,9 +82,9 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       return NextResponse.json({ error: "Request not found." }, { status: 404 });
     }
 
-    // Fetch PR author from GitHub for the actor field
-    const prAuthor = match.prNumber && match.repo
-      ? await fetchPrAuthor(match.repo, match.prNumber)
+    // Fetch PR info from GitHub (author + merge status)
+    const prInfo = match.prNumber && match.repo
+      ? await fetchPrInfo(match.repo, match.prNumber)
       : null;
 
     // Phase 2: Enrich with diff, risk signals, and AI summary
@@ -70,7 +93,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       : null;
 
     return NextResponse.json({
-      ...mapToReviewRequest(match, prAuthor),
+      ...mapToReviewRequest(match, prInfo),
       enrichment,
     });
   } catch (error) {
