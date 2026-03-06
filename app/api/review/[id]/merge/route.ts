@@ -24,13 +24,20 @@ async function fetchRequestDetails(id: string) {
     );
     if (!response.ok) continue;
     const data = await response.json().catch(() => null);
-    if (!data?.groups) continue;
-    for (const group of data.groups) {
-      if (group.latestPending?.id === id) return group.latestPending;
-      for (const item of group.history || []) {
-        if (item.id === id) return item;
+    if (!data) continue;
+
+    // Check flat requests array (some statuses return this instead of groups)
+    const requests = data.requests || [];
+    if (data.groups) {
+      for (const group of data.groups) {
+        if (group.latestPending) requests.push(group.latestPending);
+        if (group.requests) requests.push(...group.requests);
+        if (group.items) requests.push(...group.items);
+        if (group.history) requests.push(...group.history);
       }
     }
+    const match = requests.find((r: any) => r.id === id);
+    if (match) return match;
   }
   return null;
 }
