@@ -150,8 +150,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
       const body = (await response.json().catch(() => ({}))) as {
         receipt_id?: string;
         error?: string;
-        merge?: MergeInfo | null;
-        auto_merge?: AutoMergeInfo | null;
+        has_pr?: boolean;
       };
       if (!response.ok) {
         setDecisionState({ status: "error", message: normalizeErrorMessage(response.status, body) });
