@@ -28,7 +28,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
       },
       body: JSON.stringify({
         approved_by: "reviewer",
-        reason: body.reason
+        reason: body.reason,
+        productionConfirmed: true
       })
     });
 
