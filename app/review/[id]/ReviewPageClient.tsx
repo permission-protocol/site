@@ -380,6 +380,43 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                 </p>
               </div>
 
+              {/* Phase 2: AI Assessment — first thing the approver reads */}
+              {request.enrichment?.ai_summary ? (
+                <div className="mt-6 rounded-xl border border-permit/30 bg-permit/5 p-4">
+                  <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-permit">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    AI Assessment
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-signal">{request.enrichment.ai_summary}</p>
+                </div>
+              ) : null}
+
+              {request.enrichment?.risk_signals && request.enrichment.risk_signals.length > 0 ? (
+                <div className="mt-4 rounded-xl border border-border bg-card p-4">
+                  <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    Risk Signals
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {request.enrichment.risk_signals.map((signal) => (
+                      <span
+                        key={signal.label}
+                        title={signal.reason}
+                        className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium ${
+                          signal.severity === "critical"
+                            ? "border-danger/50 bg-danger/10 text-danger"
+                            : signal.severity === "high"
+                            ? "border-warning/50 bg-warning/10 text-warning"
+                            : "border-border bg-void/50 text-secondary"
+                        }`}
+                      >
+                        {signal.severity === "critical" ? "🔴" : signal.severity === "high" ? "🟠" : "🟡"} {signal.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               <div className="mt-6 grid gap-4 md:grid-cols-2">
                 <div className="rounded-xl border border-border bg-card p-4">
                   <p className="text-xs uppercase tracking-[0.12em] text-muted">Action</p>
@@ -421,43 +458,6 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                 <p className="text-xs uppercase tracking-[0.12em] text-muted">Timestamp</p>
                 <p className="mt-1 text-sm text-secondary">{formatTimestamp(request.timestamp ?? request.created_at)}</p>
               </div>
-
-              {/* Phase 2: Rich Review Surface */}
-              {request.enrichment?.ai_summary ? (
-                <div className="mt-6 rounded-xl border border-permit/30 bg-permit/5 p-4">
-                  <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-permit">
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    AI Assessment
-                  </p>
-                  <p className="mt-2 text-sm leading-relaxed text-signal">{request.enrichment.ai_summary}</p>
-                </div>
-              ) : null}
-
-              {request.enrichment?.risk_signals && request.enrichment.risk_signals.length > 0 ? (
-                <div className="mt-4 rounded-xl border border-border bg-card p-4">
-                  <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted">
-                    <AlertTriangle className="h-3.5 w-3.5" />
-                    Risk Signals
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {request.enrichment.risk_signals.map((signal) => (
-                      <span
-                        key={signal.label}
-                        title={signal.reason}
-                        className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium ${
-                          signal.severity === "critical"
-                            ? "border-danger/50 bg-danger/10 text-danger"
-                            : signal.severity === "high"
-                            ? "border-warning/50 bg-warning/10 text-warning"
-                            : "border-border bg-void/50 text-secondary"
-                        }`}
-                      >
-                        {signal.severity === "critical" ? "🔴" : signal.severity === "high" ? "🟠" : "🟡"} {signal.label}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
 
               {request.enrichment?.diff ? (
                 <details className="mt-4 rounded-xl border border-border bg-card p-4">
