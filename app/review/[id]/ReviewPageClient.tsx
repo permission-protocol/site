@@ -53,6 +53,9 @@ type ReviewRequest = {
   timestamp?: string;
   created_at?: string;
   status?: string;
+  pr_merged?: boolean;
+  pr_merge_sha?: string | null;
+  pr_state?: string | null;
   github_pr?: GithubPrMetadata;
   enrichment?: Enrichment | null;
 };
@@ -262,7 +265,14 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
               )}
               </div>
 
-              {request?.status === "approved" && request?.github_pr?.owner && request?.github_pr?.pr_number && mergeState.status === "idle" ? (
+              {request?.pr_merged ? (
+                <div className="rounded-xl border border-[#10B981]/50 bg-[#10B981]/10 p-4">
+                  <p className="text-sm font-semibold text-[#10B981]">✓ PR merged on GitHub</p>
+                  {request.pr_merge_sha ? (
+                    <p className="mt-1 font-mono text-xs text-secondary">{request.pr_merge_sha.slice(0, 7)}</p>
+                  ) : null}
+                </div>
+              ) : request?.status === "approved" && request?.github_pr?.owner && request?.github_pr?.pr_number && mergeState.status === "idle" ? (
                 <button
                   onClick={() => void submitMerge()}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#6366F1] px-4 py-3 font-semibold text-white hover:bg-[#5558E6] transition-colors"
