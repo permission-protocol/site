@@ -6,32 +6,33 @@ const PP_BASE_URL = process.env.PP_API_URL || "https://app.permissionprotocol.co
 const STATUSES = ["pending", "approved", "denied", "expired", "superseded", "cancelled"];
 
 export async function GET(_: Request, { params }: { params: { id: string } }) {
+  const debug: any[] = [];
   try {
     const authHeaders = getPPAuthHeaders();
+    debug.push({ authHeadersPresent: !!authHeaders.Authorization, ppApiUrl: PP_BASE_URL });
 
-    // The individual request endpoint doesn't support CLI auth,
-    // so we query the list endpoint (which does) and filter by ID.
     for (const status of STATUSES) {
-      const response = await fetch(
-        `${PP_BASE_URL}/deploy-requests?status=${status}&limit=100`,
-        {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            ...authHeaders,
-          },
-          cache: "no-store",
-        }
-      );
+      const url = `${PP_BASE_URL}/deploy-requests?status=${status}&limit=100`;
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          ...authHeaders,
+        },
+        cache: "no-store",
+      });
+
+      debug.push({ status, httpStatus: response.status, ok: response.ok });
 
       if (!response.ok) continue;
 
       const data = await response.json().catch(() => null);
-      if (!data) continue;
+      if (!data) {
+        debug.push({ status, parseError: true });
+        continue;
+      }
 
-      // List endpoint returns { requests: [...] } or { groups: [...] }
       const requests = data.requests || [];
-      // Also check inside groups if present
       if (data.groups) {
         for (const group of data.groups) {
           if (group.requests) requests.push(...group.requests);
@@ -39,16 +40,18 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
         }
       }
 
+      debug.push({ status, requestCount: requests.length, firstId: requests[0]?.id });
+
       const match = requests.find((r: any) => r.id === params.id);
       if (match) {
         return NextResponse.json(match);
       }
     }
 
-    return NextResponse.json({ error: "Request not found." }, { status: 404 });
+    return NextResponse.json({ error: "Request not found.", debug, searchedId: params.id }, { status: 404 });
   } catch (error) {
     return NextResponse.json(
-      { error: "Unable to fetch request details.", details: (error as Error).message },
+      { error: "Unable to fetch request details.", details: (error as Error).message, debug },
       { status: 500 }
     );
   }
