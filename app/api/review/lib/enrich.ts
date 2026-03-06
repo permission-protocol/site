@@ -2,17 +2,10 @@
  * Phase 2: Rich Review Surface — diff enrichment, risk signals, AI summary.
  */
 
-const GH_API = "https://api.github.com";
+import { GH_API, ghHeaders } from "./shared";
+
 const GEMINI_API = "https://generativelanguage.googleapis.com/v1beta";
 const GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
-
-function ghHeaders(token: string) {
-  return {
-    Accept: "application/vnd.github+json",
-    Authorization: `Bearer ${token}`,
-    "X-GitHub-Api-Version": "2022-11-28",
-  };
-}
 
 // ---------------------------------------------------------------------------
 // Risk signal detection (deterministic — no AI needed)

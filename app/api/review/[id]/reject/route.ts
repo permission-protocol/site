@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getPPAuthHeaders } from "../../auth";
-
-const PP_BASE_URL = process.env.PP_API_URL || "https://app.permissionprotocol.com/api/v1";
+import { PP_BASE_URL } from "../../lib/shared";
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
