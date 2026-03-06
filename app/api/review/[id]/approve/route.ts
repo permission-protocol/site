@@ -2,13 +2,18 @@ import { NextResponse } from "next/server";
 import { getPPAuthHeaders } from "../../auth";
 
 const PP_BASE_URL = process.env.PP_API_URL || "https://app.permissionprotocol.com/api/v1";
-
+const GH_API = "https://api.github.com";
 const STATUSES = ["pending", "approved", "denied", "expired", "superseded", "cancelled"];
 
-/**
- * Fetch the deploy request to get PR metadata (prNumber, repo).
- * The approve API response doesn't include this.
- */
+function ghHeaders(token: string) {
+  return {
+    Accept: "application/vnd.github+json",
+    Authorization: `Bearer ${token}`,
+    "X-GitHub-Api-Version": "2022-11-28",
+    "Content-Type": "application/json",
+  };
+}
+
 async function fetchRequestDetails(id: string) {
   const authHeaders = getPPAuthHeaders();
   for (const status of STATUSES) {
@@ -32,10 +37,9 @@ async function fetchRequestDetails(id: string) {
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
     const body = (await request.json().catch(() => ({}))) as { reason?: string };
-
-    // Fetch request details FIRST to get PR metadata
     const requestDetails = await fetchRequestDetails(params.id);
 
+    // Step 1: Approve on PP
     const approveResponse = await fetch(`${PP_BASE_URL}/deploy-requests/${params.id}/approve`, {
       method: "POST",
       headers: {
@@ -46,8 +50,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
       body: JSON.stringify({
         approved_by: "reviewer",
         reason: body.reason,
-        productionConfirmed: true
-      })
+        productionConfirmed: true,
+      }),
     });
 
     const approveData = (await approveResponse.json().catch(() => ({}))) as Record<string, unknown>;
@@ -59,57 +63,47 @@ export async function POST(request: Request, { params }: { params: { id: string 
       return NextResponse.json({ error: errorMessage, details: approveData }, { status: approveResponse.status || 500 });
     }
 
-    // Extract PR info from the request details (not the approve response)
+    const receiptId = (
+      approveData.receipt_id ??
+      (approveData.receipt as any)?.id ??
+      (approveData.result as any)?.receiptId
+    ) as string | null;
+
+    // Step 2: Set commit status on GitHub (non-blocking)
     const repo = requestDetails?.repo as string | undefined;
     const prNumber = requestDetails?.prNumber as number | undefined;
+    const commitSha = requestDetails?.commitSha as string | undefined;
     const owner = repo?.split("/")[0];
     const repoName = repo?.split("/")[1];
     const hasPrContext = !!owner && !!repoName && typeof prNumber === "number";
 
-    let mergeResult: { merged: boolean; message?: string; details?: unknown } | null = null;
-    if (hasPrContext) {
+    let statusResult: { ok: boolean; error?: string } | null = null;
+    if (hasPrContext && commitSha) {
       const githubToken = process.env.GITHUB_TOKEN;
-      if (!githubToken) {
-        mergeResult = { merged: false, message: "GITHUB_TOKEN is not configured. Skipped PR merge." };
-      } else {
-        const mergeResponse = await fetch(
-          `https://api.github.com/repos/${owner}/${repoName}/pulls/${prNumber}/merge`,
-          {
-            method: "PUT",
-            headers: {
-              Accept: "application/vnd.github+json",
-              Authorization: `Bearer ${githubToken}`,
-              "X-GitHub-Api-Version": "2022-11-28",
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              merge_method: "squash"
-            })
-          }
-        );
-
-        const mergeData = (await mergeResponse.json().catch(() => ({}))) as { message?: string; merged?: boolean };
-        if (!mergeResponse.ok) {
-          mergeResult = {
-            merged: false,
-            message: mergeData.message ?? "PR merge failed after approval.",
-            details: mergeData
-          };
-        } else {
-          mergeResult = {
-            merged: mergeData.merged === true,
-            message: mergeData.message ?? "PR merged."
-          };
-        }
+      if (githubToken) {
+        const targetUrl = `https://www.permissionprotocol.com/review/${params.id}`;
+        const res = await fetch(`${GH_API}/repos/${owner}/${repoName}/statuses/${commitSha}`, {
+          method: "POST",
+          headers: ghHeaders(githubToken),
+          body: JSON.stringify({
+            state: "success",
+            context: "Permission Protocol",
+            description: receiptId ? `Approved — receipt ${receiptId.slice(0, 20)}` : "Approved by reviewer",
+            target_url: targetUrl,
+          }),
+        });
+        statusResult = res.ok
+          ? { ok: true }
+          : { ok: false, error: ((await res.json().catch(() => ({}))) as any).message ?? `${res.status}` };
       }
     }
 
-    const receiptId = (approveData.receipt_id ?? (approveData.receipt as any)?.id ?? (approveData.result as any)?.receiptId) as string | null;
     return NextResponse.json({
       ...approveData,
       receipt_id: receiptId,
-      merge: mergeResult,
-      github_pr: hasPrContext ? { owner, repo: repoName, pr_number: prNumber } : null
+      commit_status: statusResult,
+      has_pr: hasPrContext,
+      github_pr: hasPrContext ? { owner, repo: repoName, pr_number: prNumber } : null,
     });
   } catch (error) {
     return NextResponse.json(
