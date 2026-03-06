@@ -100,12 +100,12 @@ export function CodeBlock({ tabs }: CodeBlockProps) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card">
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.label}
               onClick={() => setActive(tab.label)}
-              className={`relative rounded-md px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] ${
+              className={`relative rounded-md px-2.5 py-1.5 text-xs font-semibold uppercase tracking-[0.15em] sm:px-3 sm:py-1 ${
                 tab.label === active ? "text-permit" : "text-secondary hover:text-signal"
               }`}
             >
@@ -128,10 +128,10 @@ export function CodeBlock({ tabs }: CodeBlockProps) {
           <span className="h-2.5 w-2.5 rounded-full bg-[#10B981]" />
         </div>
       </div>
-      <pre className={`overflow-x-auto p-5 font-mono text-sm leading-relaxed ${isTerminal ? "bg-[#111111]" : ""}`}>
-        <code>
+      <pre className={`overflow-x-auto px-4 py-5 font-mono text-xs leading-relaxed sm:px-5 sm:text-sm ${isTerminal ? "bg-[#111111]" : ""}`}>
+        <code className="overflow-x-auto">
           {current.code.split("\n").map((line, index) => (
-            <span key={`${line}-${index}`} className="block">
+            <span key={`${line}-${index}`} className="block whitespace-nowrap">
               {highlightLine(line, index)}
             </span>
           ))}

@@ -81,7 +81,7 @@ function TerminalLine({ text, tone }: { text: string; tone: (typeof terminalLine
           ? "text-permit"
           : "text-signal";
 
-  return <p className={`font-mono text-xs leading-6 sm:text-sm ${color}`}>{text}</p>;
+  return <p className={`font-mono overflow-x-auto whitespace-nowrap text-xs leading-6 sm:text-sm ${color}`}>{text}</p>;
 }
 
 type CodeTabsProps = {
@@ -114,7 +114,7 @@ function CodeTabs({ tabs, ariaLabel, showCopyButton = false, helperText }: CodeT
               role="tab"
               aria-selected={isActive}
               onClick={() => setActiveTabId(tab.id)}
-              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors sm:text-sm ${
+              className={`rounded-md px-2.5 py-2 text-xs font-semibold transition-colors sm:px-3 sm:py-1.5 sm:text-sm ${
                 isActive ? "bg-permit/20 text-permit" : "text-secondary hover:bg-ash hover:text-signal"
               }`}
             >
@@ -123,8 +123,8 @@ function CodeTabs({ tabs, ariaLabel, showCopyButton = false, helperText }: CodeT
           );
         })}
       </div>
-      <pre className="mt-3 overflow-x-auto rounded-xl border border-border bg-card p-4 font-mono text-sm text-signal">
-        <code>{activeTab.code}</code>
+      <pre className="mt-3 overflow-x-auto rounded-xl border border-border bg-card px-4 py-4 font-mono text-xs text-signal sm:text-sm">
+        <code className="overflow-x-auto">{activeTab.code}</code>
       </pre>
       {showCopyButton ? (
         <div className="mt-3">
@@ -188,7 +188,7 @@ export function QuickstartPageClient() {
                 <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
                 <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
               </div>
-              <div className="space-y-0.5 px-4 py-4">
+              <div className="space-y-0.5 overflow-x-auto px-4 py-4">
                 {terminalLines.map((line) => (
                   <TerminalLine key={line.text} text={line.text} tone={line.tone} />
                 ))}
@@ -221,7 +221,9 @@ export function QuickstartPageClient() {
 
           <StepCard step={6} title="Share your proof">
             <div className="rounded-xl border border-border bg-card p-4">
-              <code className="font-mono text-sm text-signal">https://permissionprotocol.com/r/8f91c2</code>
+              <code className="font-mono overflow-x-auto text-xs text-signal sm:text-sm">
+                https://permissionprotocol.com/r/8f91c2
+              </code>
             </div>
             <p className="mt-3 text-secondary">
               Paste this link anywhere - Slack, GitHub PRs, Jira tickets, compliance docs. Anyone who clicks sees
