@@ -72,29 +72,40 @@ export async function POST(request: Request, { params }: { params: { id: string 
     // Step 2: Set commit status on GitHub (approve only — no merge)
     const repo = requestDetails?.repo as string | undefined;
     const prNumber = requestDetails?.prNumber as number | undefined;
-    const commitSha = requestDetails?.commitSha as string | undefined;
     const owner = repo?.split("/")[0];
     const repoName = repo?.split("/")[1];
     const hasPrContext = !!owner && !!repoName && typeof prNumber === "number";
 
     let statusResult: { ok: boolean; error?: string } | null = null;
-    if (hasPrContext && commitSha) {
+    if (hasPrContext) {
       const githubToken = process.env.GITHUB_TOKEN;
       if (githubToken) {
-        const targetUrl = `https://www.permissionprotocol.com/review/${params.id}`;
-        const res = await fetch(`${GH_API}/repos/${owner}/${repoName}/statuses/${commitSha}`, {
-          method: "POST",
+        // Fetch the PR's CURRENT head SHA from GitHub (not the deploy request's
+        // commitSha which may be stale if the branch was updated)
+        const prRes = await fetch(`${GH_API}/repos/${owner}/${repoName}/pulls/${prNumber}`, {
           headers: ghHeaders(githubToken),
-          body: JSON.stringify({
-            state: "success",
-            context: "Permission Protocol",
-            description: receiptId ? `Approved — receipt ${receiptId.slice(0, 20)}` : "Approved by reviewer",
-            target_url: targetUrl,
-          }),
         });
-        statusResult = res.ok
-          ? { ok: true }
-          : { ok: false, error: ((await res.json().catch(() => ({}))) as any).message ?? `${res.status}` };
+        const prData = (await prRes.json().catch(() => ({}))) as { head?: { sha?: string } };
+        const currentSha = prData.head?.sha;
+
+        if (currentSha) {
+          const targetUrl = `https://www.permissionprotocol.com/review/${params.id}`;
+          const res = await fetch(`${GH_API}/repos/${owner}/${repoName}/statuses/${currentSha}`, {
+            method: "POST",
+            headers: ghHeaders(githubToken),
+            body: JSON.stringify({
+              state: "success",
+              context: "Permission Protocol",
+              description: receiptId ? `Approved — receipt ${receiptId.slice(0, 20)}` : "Approved by reviewer",
+              target_url: targetUrl,
+            }),
+          });
+          statusResult = res.ok
+            ? { ok: true }
+            : { ok: false, error: ((await res.json().catch(() => ({}))) as any).message ?? `${res.status}` };
+        } else {
+          statusResult = { ok: false, error: "Could not fetch current PR head SHA" };
+        }
       }
     }
 
