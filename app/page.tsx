@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Github, Package, ShieldCheck } from "lucide-react";
 import { CTABanner } from "@/src/components/CTABanner";
 import { CodeBlock } from "@/src/components/CodeBlock";
 import { ComparisonTable } from "@/src/components/ComparisonTable";
@@ -77,6 +77,34 @@ export default function HomePage() {
           </article>
         </div>
       </SectionBlock>
+
+      <section className="section-shell py-8">
+        <div className="rounded-2xl border border-border bg-card/70 px-4 py-4 sm:px-5">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="flex items-center gap-2 rounded-xl border border-border/80 bg-ash/60 px-3 py-3">
+              <ShieldCheck className="h-4 w-4 shrink-0 text-permit" />
+              <p className="text-[11px] uppercase tracking-[0.14em] text-secondary">
+                NIST AI Agent Standards
+                <span className="ml-1 text-signal">Official Respondent</span>
+              </p>
+            </div>
+            <div className="flex items-center gap-2 rounded-xl border border-border/80 bg-ash/60 px-3 py-3">
+              <Package className="h-4 w-4 shrink-0 text-permit" />
+              <p className="text-[11px] uppercase tracking-[0.14em] text-secondary">
+                Published on
+                <span className="ml-1 text-signal">npm &amp; PyPI</span>
+              </p>
+            </div>
+            <div className="flex items-center gap-2 rounded-xl border border-border/80 bg-ash/60 px-3 py-3">
+              <Github className="h-4 w-4 shrink-0 text-permit" />
+              <p className="text-[11px] uppercase tracking-[0.14em] text-secondary">
+                Open Source
+                <span className="ml-1 text-signal">SDK</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <SectionBlock
         id="how-it-works"

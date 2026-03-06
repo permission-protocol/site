@@ -68,9 +68,9 @@ export function SiteHeader() {
           </Link>
         </div>
         <nav className="hidden items-center gap-6 text-sm text-secondary md:flex">
-          <a href="/#how-it-works" className="hover:text-signal">
+          <Link href="/how-it-works" className="hover:text-signal">
             How It Works
-          </a>
+          </Link>
           <Link href="/developers/quickstart" className="hover:text-signal">
             Developers
           </Link>
@@ -119,9 +119,9 @@ export function SiteHeader() {
           }`}
         >
           <div className="flex flex-col gap-4 text-sm">
-            <a href="/#how-it-works" className="hover:text-signal" onClick={() => setMobileMenuOpen(false)}>
+            <Link href="/how-it-works" className="hover:text-signal" onClick={() => setMobileMenuOpen(false)}>
               How It Works
-            </a>
+            </Link>
             <Link href="/developers/quickstart" className="hover:text-signal" onClick={() => setMobileMenuOpen(false)}>
               Developers
             </Link>
