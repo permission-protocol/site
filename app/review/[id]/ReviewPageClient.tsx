@@ -262,9 +262,17 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
               ) : null}
 
               {mergeState.status === "error" ? (
-                <div className="rounded-xl border border-danger/50 bg-danger/15 p-4">
-                  <p className="text-sm font-semibold text-danger">Merge failed</p>
-                  <p className="mt-1 text-xs text-secondary">{mergeState.message}</p>
+                <div className="space-y-2">
+                  <div className="rounded-xl border border-danger/50 bg-danger/15 p-4">
+                    <p className="text-sm font-semibold text-danger">Merge failed</p>
+                    <p className="mt-1 text-xs text-secondary">{mergeState.message}</p>
+                  </div>
+                  <button
+                    onClick={() => { setMergeState({ status: "idle" }); void submitMerge(); }}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#6366F1] px-4 py-3 font-semibold text-white hover:bg-[#5558E6] transition-colors"
+                  >
+                    🔄 Retry Merge
+                  </button>
                 </div>
               ) : null}
             </div>
@@ -499,9 +507,17 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
             ) : null}
 
             {mergeState.status === "error" ? (
-              <div className="rounded-xl border border-danger/50 bg-danger/15 p-4">
-                <p className="text-sm font-semibold text-danger">Merge failed</p>
-                <p className="mt-1 text-xs text-secondary">{mergeState.message}</p>
+              <div className="space-y-2">
+                <div className="rounded-xl border border-danger/50 bg-danger/15 p-4">
+                  <p className="text-sm font-semibold text-danger">Merge failed</p>
+                  <p className="mt-1 text-xs text-secondary">{mergeState.message}</p>
+                </div>
+                <button
+                  onClick={() => { setMergeState({ status: "idle" }); void submitMerge(); }}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#6366F1] px-4 py-3 font-semibold text-white hover:bg-[#5558E6] transition-colors"
+                >
+                  🔄 Retry Merge
+                </button>
               </div>
             ) : null}
           </motion.div>
