@@ -28,21 +28,17 @@ type ReviewRequest = {
   github_pr?: GithubPrMetadata;
 };
 
-type MergeInfo = {
-  merged: boolean;
-  blocked?: boolean;
-  message?: string;
-};
-
-type AutoMergeInfo = {
-  enabled: boolean;
-  message?: string;
-};
+type MergeState =
+  | { status: "idle" }
+  | { status: "merging" }
+  | { status: "merged"; message?: string }
+  | { status: "auto-merge"; message?: string }
+  | { status: "error"; message: string };
 
 type DecisionState =
   | { status: "idle" }
   | { status: "submitting"; action: "approve" | "reject" }
-  | { status: "approved"; receiptId: string | null; merge?: MergeInfo | null; autoMerge?: AutoMergeInfo | null }
+  | { status: "approved"; receiptId: string | null; hasPr: boolean }
   | { status: "rejected" }
   | { status: "error"; message: string };
 
@@ -166,8 +162,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
         setDecisionState({
           status: "approved",
           receiptId: body.receipt_id ?? null,
-          merge: body.merge ?? null,
-          autoMerge: body.auto_merge ?? null,
+          hasPr: (body as any).has_pr ?? false,
         });
         return;
       }
@@ -175,6 +170,37 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
       setDecisionState({ status: "rejected" });
     } catch {
       setDecisionState({ status: "error", message: "Network error while submitting decision." });
+    }
+  }
+
+  const [mergeState, setMergeState] = useState<MergeState>({ status: "idle" });
+
+  async function submitMerge() {
+    setMergeState({ status: "merging" });
+    try {
+      const response = await fetch(`/api/review/${id}/merge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const body = (await response.json().catch(() => ({}))) as {
+        merged?: boolean;
+        message?: string;
+        error?: string;
+        auto_merge?: { enabled: boolean } | null;
+      };
+      if (!response.ok) {
+        setMergeState({ status: "error", message: body.error ?? "Merge failed." });
+        return;
+      }
+      if (body.merged) {
+        setMergeState({ status: "merged", message: body.message });
+      } else if (body.auto_merge?.enabled) {
+        setMergeState({ status: "auto-merge", message: body.message });
+      } else {
+        setMergeState({ status: "error", message: body.message ?? "Merge could not be completed." });
+      }
+    } catch {
+      setMergeState({ status: "error", message: "Network error while merging." });
     }
   }
 
@@ -385,29 +411,48 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
             className="mt-5 space-y-3"
           >
             <div className="rounded-xl border border-[#10B981]/50 bg-[#10B981]/15 p-4">
-              <p className="text-sm font-semibold text-[#10B981]">Request approved.</p>
+              <p className="text-sm font-semibold text-[#10B981]">✓ Request approved</p>
               {decisionState.receiptId ? (
-                <Link className="mt-2 inline-block text-sm font-semibold text-permit hover:text-[#6ac9b7]" href={`/r/${decisionState.receiptId}`}>
-                  View receipt: /r/{decisionState.receiptId}
+                <Link className="mt-1 inline-block text-sm font-semibold text-permit hover:text-[#6ac9b7]" href={`/r/${decisionState.receiptId}`}>
+                  Receipt: {decisionState.receiptId.slice(0, 24)}…
                 </Link>
               ) : (
-                <p className="mt-2 text-sm text-secondary">Receipt generated successfully.</p>
+                <p className="mt-1 text-sm text-secondary">Receipt generated.</p>
               )}
             </div>
 
-            {decisionState.merge?.merged ? (
+            {decisionState.hasPr && mergeState.status === "idle" ? (
+              <button
+                onClick={() => void submitMerge()}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#6366F1] px-4 py-3 font-semibold text-white hover:bg-[#5558E6] transition-colors"
+              >
+                🚀 Merge &amp; Deploy
+              </button>
+            ) : null}
+
+            {mergeState.status === "merging" ? (
+              <div className="rounded-xl border border-[#6366F1]/50 bg-[#6366F1]/10 p-4">
+                <p className="text-sm font-semibold text-[#6366F1]">Merging…</p>
+              </div>
+            ) : null}
+
+            {mergeState.status === "merged" ? (
               <div className="rounded-xl border border-[#10B981]/50 bg-[#10B981]/10 p-4">
                 <p className="text-sm font-semibold text-[#10B981]">✓ PR merged on GitHub</p>
               </div>
-            ) : decisionState.autoMerge?.enabled ? (
+            ) : null}
+
+            {mergeState.status === "auto-merge" ? (
               <div className="rounded-xl border border-warning/50 bg-warning/10 p-4">
                 <p className="text-sm font-semibold text-warning">⏳ Auto-merge enabled</p>
-                <p className="mt-1 text-xs text-secondary">PR will merge automatically when all required checks pass.</p>
+                <p className="mt-1 text-xs text-secondary">{mergeState.message ?? "PR will merge when all checks pass."}</p>
               </div>
-            ) : decisionState.merge && !decisionState.merge.merged ? (
-              <div className="rounded-xl border border-border bg-card p-4">
-                <p className="text-sm font-semibold text-secondary">GitHub commit status set ✓</p>
-                <p className="mt-1 text-xs text-muted">{decisionState.merge.message ?? "Merge pending — requires passing checks or manual merge."}</p>
+            ) : null}
+
+            {mergeState.status === "error" ? (
+              <div className="rounded-xl border border-danger/50 bg-danger/15 p-4">
+                <p className="text-sm font-semibold text-danger">Merge failed</p>
+                <p className="mt-1 text-xs text-secondary">{mergeState.message}</p>
               </div>
             ) : null}
           </motion.div>
