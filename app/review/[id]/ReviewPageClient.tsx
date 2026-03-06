@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { AlertTriangle, CheckCircle2, ChevronDown, CircleX, FileCode2, GitPullRequest, ShieldCheck, UserRound } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronDown, CircleX, ExternalLink, FileCode2, GitPullRequest, ShieldCheck, UserRound } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 
 type GithubPrMetadata = {
@@ -314,7 +314,20 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                 </div>
                 <div className="rounded-xl border border-border bg-card p-4">
                   <p className="text-xs uppercase tracking-[0.12em] text-muted">Resource</p>
-                  <p className="mt-1 text-base font-semibold text-signal">{request.resource ?? "Unknown resource"}</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <p className="text-base font-semibold text-signal">{request.resource ?? "Unknown resource"}</p>
+                    {request.github_pr?.owner && request.github_pr?.repo && request.github_pr?.pr_number ? (
+                      <a
+                        href={`https://github.com/${request.github_pr.owner}/${request.github_pr.repo}/pull/${request.github_pr.pr_number}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded-md border border-border bg-void/50 px-2 py-0.5 text-xs font-medium text-permit hover:text-[#6ac9b7] hover:border-permit/40 transition-colors"
+                      >
+                        PR #{request.github_pr.pr_number}
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : null}
+                  </div>
                 </div>
                 <div className="rounded-xl border border-border bg-card p-4">
                   <p className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.12em] text-muted">
