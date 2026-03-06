@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getPPAuthHeaders } from "../../auth";
 
 const PP_BASE_URL = process.env.PP_API_URL || "https://app.permissionprotocol.com/api/v1";
 
@@ -6,11 +7,12 @@ export async function POST(request: Request, { params }: { params: { id: string 
   try {
     const body = (await request.json().catch(() => ({}))) as { reason?: string };
 
-    const rejectResponse = await fetch(`${PP_BASE_URL}/requests/${params.id}/reject`, {
+    const rejectResponse = await fetch(`${PP_BASE_URL}/deploy-requests/${params.id}/reject`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Accept: "application/json"
+        Accept: "application/json",
+        ...getPPAuthHeaders(),
       },
       body: JSON.stringify({
         rejected_by: "reviewer",
