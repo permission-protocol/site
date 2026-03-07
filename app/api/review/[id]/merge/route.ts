@@ -8,12 +8,13 @@ import { PP_BASE_URL } from "../../lib/shared";
  */
 export async function POST(_request: Request, { params }: { params: { id: string } }) {
   try {
+    const authHeaders = await getPPAuthHeaders();
     const res = await fetch(`${PP_BASE_URL}/deploy-requests/${params.id}/merge`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        ...getPPAuthHeaders(),
+        ...authHeaders,
       },
     });
 

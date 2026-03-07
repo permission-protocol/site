@@ -4,6 +4,7 @@ import { PP_BASE_URL, GH_API, ghHeaders, fetchRequestDetails } from "../../lib/s
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
+    const authHeaders = await getPPAuthHeaders();
     const body = (await request.json().catch(() => ({}))) as { reason?: string };
     const requestDetails = await fetchRequestDetails(params.id);
 
@@ -12,7 +13,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        ...getPPAuthHeaders(),
+        ...authHeaders,
       },
       body: JSON.stringify({
         rejected_by: "reviewer",

@@ -27,7 +27,7 @@ async function fetchPrMeta(repo: string, prNumber: number): Promise<PrMeta | nul
 
 export async function GET() {
   try {
-    const authHeaders = getPPAuthHeaders();
+    const authHeaders = await getPPAuthHeaders();
     const statuses = ["pending", "approved"];
     const allRequests: any[] = [];
 
