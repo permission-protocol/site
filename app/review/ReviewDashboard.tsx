@@ -89,7 +89,7 @@ export function ReviewDashboard() {
   const approved = filtered.filter((r) => r.status === "approved");
 
   return (
-    <section className="mx-auto max-w-3xl px-4 py-12">
+    <section className="mx-auto max-w-3xl px-4 pt-24 pb-12">
       <div className="mb-8 flex items-center gap-3">
         <ShieldCheck className="h-8 w-8 text-permit" />
         <div>
