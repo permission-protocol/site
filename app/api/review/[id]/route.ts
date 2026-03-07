@@ -75,6 +75,32 @@ function mapToReviewRequest(raw: any, prInfo?: PrInfo | null) {
   };
 }
 
+/**
+ * Fetch Vercel preview deployment URL for a GitHub PR (if available).
+ */
+async function fetchVercelPreview(repo: string, prNumber: number): Promise<string | null> {
+  const vercelToken = process.env.VERCEL_TOKEN;
+  if (!vercelToken) return null;
+
+  // Only look for previews for repos deployed on Vercel
+  const repoName = repo.split("/").pop()?.toLowerCase();
+  if (repoName !== "permissionprotocol-site") return null;
+
+  try {
+    // Search deployments by meta.githubPrId
+    const res = await fetch(
+      `https://api.vercel.com/v6/deployments?meta-githubPrId=${prNumber}&limit=1&state=READY`,
+      { headers: { Authorization: `Bearer ${vercelToken}` } }
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { deployments?: { url?: string }[] };
+    const dep = data.deployments?.[0];
+    return dep?.url ? `https://${dep.url}` : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(_: Request, { params }: { params: { id: string } }) {
   try {
     const match = await fetchRequestDetails(params.id);
@@ -92,9 +118,15 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       ? await enrichReviewRequest(match.repo, match.prNumber)
       : null;
 
+    // Vercel preview URL (for permissionprotocol-site PRs)
+    const preview_url = match.prNumber && match.repo
+      ? await fetchVercelPreview(match.repo, match.prNumber)
+      : null;
+
     return NextResponse.json({
       ...mapToReviewRequest(match, prInfo),
       enrichment,
+      preview_url,
     });
   } catch (error) {
     return NextResponse.json(

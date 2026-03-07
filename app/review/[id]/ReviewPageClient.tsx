@@ -58,6 +58,7 @@ type ReviewRequest = {
   pr_state?: string | null;
   github_pr?: GithubPrMetadata;
   enrichment?: Enrichment | null;
+  preview_url?: string | null;
 };
 
 type MergeState =
@@ -575,6 +576,34 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                       <p className="text-xs uppercase tracking-[0.12em] text-muted">Title</p>
                       <p className="mt-1 text-sm font-semibold text-signal">{request.github_pr.title ?? "Untitled PR"}</p>
                     </div>
+                  </div>
+                </details>
+              ) : null}
+
+              {request.preview_url ? (
+                <details className="mt-6 rounded-xl border border-permit/30 bg-card p-4" open>
+                  <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-signal">
+                    <span className="inline-flex items-center gap-2">
+                      <ExternalLink className="h-4 w-4 text-permit" />
+                      Live Preview
+                    </span>
+                    <a
+                      href={request.preview_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-xs text-permit hover:underline"
+                    >
+                      Open in new tab ↗
+                    </a>
+                  </summary>
+                  <div className="mt-3 overflow-hidden rounded-lg border border-border">
+                    <iframe
+                      src={request.preview_url}
+                      title="Vercel Preview"
+                      className="h-[400px] w-full bg-white"
+                      sandbox="allow-scripts allow-same-origin"
+                    />
                   </div>
                 </details>
               ) : null}

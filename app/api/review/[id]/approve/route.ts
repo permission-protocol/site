@@ -80,6 +80,21 @@ export async function POST(request: Request, { params }: { params: { id: string 
       }
     }
 
+    // Step 3: Post approval comment on the PR (non-blocking)
+    if (hasPrContext) {
+      const githubToken = process.env.GITHUB_TOKEN;
+      if (githubToken) {
+        const reviewUrl = `https://www.permissionprotocol.com/review/${params.id}`;
+        const reasonText = body.reason ? `\n\n**Reason:** ${body.reason}` : "";
+        const commentBody = `✅ **Permission Protocol** — Approved${reasonText}\n\nReceipt: \`${receiptId?.slice(0, 24) ?? "—"}\`\n🔗 [View on Permission Protocol](${reviewUrl})`;
+        await fetch(`${GH_API}/repos/${owner}/${repoName}/issues/${prNumber}/comments`, {
+          method: "POST",
+          headers: ghHeaders(githubToken!),
+          body: JSON.stringify({ body: commentBody }),
+        }).catch(() => {});
+      }
+    }
+
     return NextResponse.json({
       ...approveData,
       receipt_id: receiptId,
