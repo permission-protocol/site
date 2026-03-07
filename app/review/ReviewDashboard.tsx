@@ -54,7 +54,7 @@ export function ReviewDashboard() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch("/api/review/list", { cache: "no-store" });
+        const res = await fetch("/api/reviews", { cache: "no-store" });
         if (!res.ok) {
           setError("Failed to load requests.");
           return;
