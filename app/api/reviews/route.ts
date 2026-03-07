@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getPPAuthHeaders } from "../auth";
-import { PP_BASE_URL, GH_API, ghHeaders } from "../lib/shared";
+import { getPPAuthHeaders } from "../review/auth";
+import { PP_BASE_URL, GH_API, ghHeaders } from "../review/lib/shared";
 
 type PrMeta = { title: string; author: string };
 
