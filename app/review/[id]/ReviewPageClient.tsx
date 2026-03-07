@@ -123,36 +123,50 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const [decisionState, setDecisionState] = useState<DecisionState>({ status: "idle" });
   const resultRef = useRef<HTMLDivElement>(null);
 
+  // Initial load + real-time polling while pending
   useEffect(() => {
     const controller = new AbortController();
 
-    async function loadRequest() {
-      setLoading(true);
-      setFetchError(null);
+    async function loadRequest(isPolling = false) {
+      if (!isPolling) {
+        setLoading(true);
+        setFetchError(null);
+      }
 
       try {
         const response = await fetch(`/api/review/${id}`, { signal: controller.signal });
         const body = (await response.json().catch(() => ({}))) as unknown;
 
         if (!response.ok) {
-          setFetchError(normalizeErrorMessage(response.status, body));
+          if (!isPolling) setFetchError(normalizeErrorMessage(response.status, body));
           return;
         }
 
         setRequest(body as ReviewRequest);
       } catch (error) {
-        if ((error as Error).name !== "AbortError") {
+        if ((error as Error).name !== "AbortError" && !isPolling) {
           setFetchError("Network error while loading this request.");
         }
       } finally {
-        if (!controller.signal.aborted) {
+        if (!controller.signal.aborted && !isPolling) {
           setLoading(false);
         }
       }
     }
 
     void loadRequest();
-    return () => controller.abort();
+
+    // Poll every 15s while request is pending
+    const interval = setInterval(() => {
+      if (!controller.signal.aborted) {
+        void loadRequest(true);
+      }
+    }, 15000);
+
+    return () => {
+      controller.abort();
+      clearInterval(interval);
+    };
   }, [id]);
 
   const statusBadge = useMemo(() => {
@@ -320,23 +334,50 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
               ) : null}
             </div>
           ) : (
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <button
-                disabled={!canAct || decisionState.status === "submitting"}
-                onClick={() => void submitDecision("approve")}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#10B981] px-4 py-3 font-semibold text-void disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                {decisionState.status === "submitting" && decisionState.action === "approve" ? "Approving..." : "Approve"}
-              </button>
-              <button
-                disabled={!canAct || decisionState.status === "submitting"}
-                onClick={() => void submitDecision("reject")}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-danger bg-danger/10 px-4 py-3 font-semibold text-signal disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <CircleX className="h-4 w-4" />
-                {decisionState.status === "submitting" && decisionState.action === "reject" ? "Rejecting..." : "Reject"}
-              </button>
+            <div className="space-y-3">
+              {/* Approval reason field */}
+              <div>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {reasonPresets.map((preset) => (
+                    <button
+                      key={preset}
+                      onClick={() => setReason(preset)}
+                      className={`rounded-lg border px-2.5 py-1 text-xs transition-colors ${
+                        reason === preset
+                          ? "border-permit bg-permit/15 text-permit"
+                          : "border-border bg-card text-secondary hover:text-signal hover:border-permit/40"
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Reason for approval or rejection (optional)"
+                  rows={2}
+                  className="w-full resize-none rounded-xl border border-border bg-card px-3 py-2 text-sm text-signal placeholder:text-secondary/50 focus:border-permit focus:outline-none focus:ring-1 focus:ring-permit/40"
+                />
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  disabled={!canAct || decisionState.status === "submitting"}
+                  onClick={() => void submitDecision("approve")}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#10B981] px-4 py-3 font-semibold text-void disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  {decisionState.status === "submitting" && decisionState.action === "approve" ? "Approving..." : "Approve"}
+                </button>
+                <button
+                  disabled={!canAct || decisionState.status === "submitting"}
+                  onClick={() => void submitDecision("reject")}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-danger bg-danger/10 px-4 py-3 font-semibold text-signal disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <CircleX className="h-4 w-4" />
+                  {decisionState.status === "submitting" && decisionState.action === "reject" ? "Rejecting..." : "Reject"}
+                </button>
+              </div>
             </div>
           )}
         </motion.div>
