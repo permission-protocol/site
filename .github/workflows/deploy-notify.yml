@@ -1,0 +1,78 @@
+name: Deploy Notification
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for Vercel deploy
+        run: sleep 120
+
+      - name: Smoke test
+        id: smoke
+        run: |
+          BASE="https://www.permissionprotocol.com"
+          PASS=0
+          FAIL=0
+          FAILS=""
+
+          check() {
+            local name="$1" url="$2" expect="${3:-200}"
+            local code
+            code=$(curl -s -o /dev/null -w "%{http_code}" "$url" --max-time 10 2>/dev/null || echo "000")
+            if [ "$code" = "$expect" ]; then
+              PASS=$((PASS + 1))
+            else
+              FAIL=$((FAIL + 1))
+              FAILS="${FAILS}${name} (${code}), "
+            fi
+          }
+
+          check "Homepage" "$BASE/"
+          check "Review dashboard" "$BASE/review"
+          check "Pricing" "$BASE/pricing"
+          check "Reviews API" "$BASE/api/reviews"
+
+          TOTAL=$((PASS + FAIL))
+          echo "pass=$PASS" >> $GITHUB_OUTPUT
+          echo "fail=$FAIL" >> $GITHUB_OUTPUT
+          echo "total=$TOTAL" >> $GITHUB_OUTPUT
+          echo "fails=$FAILS" >> $GITHUB_OUTPUT
+
+          if [ "$FAIL" -gt 0 ]; then
+            echo "status=❌ DEPLOY FAILED" >> $GITHUB_OUTPUT
+          else
+            echo "status=✅ Deploy successful" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Post to Discord
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_DEPLOY_WEBHOOK }}
+        run: |
+          COMMIT="${{ github.event.head_commit.message }}"
+          COMMIT_SHORT=$(echo "$COMMIT" | head -1 | cut -c1-80)
+          SHA="${{ github.sha }}"
+          SHA_SHORT="${SHA:0:7}"
+
+          if [ "${{ steps.smoke.outputs.fail }}" = "0" ]; then
+            COLOR=5763719
+            EMOJI="✅"
+          else
+            COLOR=15548997
+            EMOJI="❌"
+          fi
+
+          curl -s -X POST "$WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"embeds\": [{
+                \"title\": \"${EMOJI} permissionprotocol.com deployed\",
+                \"description\": \"**${COMMIT_SHORT}** (\`${SHA_SHORT}\`)\n\nSmoke test: ${{ steps.smoke.outputs.pass }}/${{ steps.smoke.outputs.total }} passed$( [ -n '${{ steps.smoke.outputs.fails }}' ] && echo '\nFailed: ${{ steps.smoke.outputs.fails }}' )\",
+                \"color\": ${COLOR},
+                \"url\": \"https://github.com/Roca-Ventures/permissionprotocol-site/commit/${SHA}\",
+                \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+              }]
+            }"
