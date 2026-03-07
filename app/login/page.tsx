@@ -1,9 +1,45 @@
 "use client";
 
+import { Suspense, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Github } from "lucide-react";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <main className="relative min-h-screen bg-void px-6 py-20 text-signal">
+        <div className="mx-auto w-full max-w-md text-center">
+          <p className="text-signal/70">Loading…</p>
+        </div>
+      </main>
+    }>
+      <LoginContent />
+    </Suspense>
+  );
+}
+
+function LoginContent() {
+  const { status } = useSession();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/review";
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      window.location.href = callbackUrl;
+    }
+  }, [status, callbackUrl]);
+
+  if (status === "authenticated") {
+    return (
+      <main className="relative min-h-screen bg-void px-6 py-20 text-signal">
+        <div className="mx-auto w-full max-w-md text-center">
+          <p className="text-signal/70">Redirecting…</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="relative min-h-screen bg-void px-6 py-20 text-signal">
       <div className="mx-auto w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-2xl shadow-black/25">
@@ -37,7 +73,7 @@ export default function LoginPage() {
 
         <button
           type="button"
-          onClick={() => signIn("github")}
+          onClick={() => signIn("github", { callbackUrl })}
           className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-ash px-4 py-3 font-medium text-signal transition hover:border-permit hover:text-permit"
         >
           <Github className="h-4 w-4" />
