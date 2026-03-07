@@ -1,11 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { signOut, useSession } from "next-auth/react";
+import { useEffect, useRef, useState } from "react";
 
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { data: session, status } = useSession();
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -13,6 +17,20 @@ export function SiteHeader() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      if (!userMenuRef.current) return;
+      if (!userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    window.addEventListener("mousedown", onPointerDown);
+    return () => window.removeEventListener("mousedown", onPointerDown);
+  }, []);
+
+  const username = session?.login ?? session?.user?.login ?? session?.user?.name ?? "User";
+  const avatar = session?.user?.image;
 
   return (
     <header
@@ -97,6 +115,40 @@ export function SiteHeader() {
           <Link href="/developers/quickstart" className="btn-primary rounded-lg px-4 py-2">
             Get Started
           </Link>
+          {status === "authenticated" ? (
+            <div className="relative" ref={userMenuRef}>
+              <button
+                type="button"
+                onClick={() => setUserMenuOpen((prev) => !prev)}
+                className="inline-flex items-center gap-2 rounded-lg border border-border bg-ash px-2 py-1.5 text-signal"
+              >
+                {avatar ? (
+                  <span
+                    role="img"
+                    aria-label={username}
+                    className="h-6 w-6 rounded-full border border-border bg-cover bg-center"
+                    style={{ backgroundImage: `url(${avatar})` }}
+                  />
+                ) : (
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-xs">
+                    {username.slice(0, 1).toUpperCase()}
+                  </span>
+                )}
+                <span className="max-w-24 truncate text-xs">{username}</span>
+              </button>
+              {userMenuOpen ? (
+                <div className="absolute right-0 top-full mt-2 min-w-36 rounded-lg border border-border bg-card p-1 shadow-lg shadow-black/35">
+                  <button
+                    type="button"
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                    className="w-full rounded-md px-3 py-2 text-left text-xs text-secondary hover:bg-ash hover:text-signal"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </nav>
       </div>
       <div

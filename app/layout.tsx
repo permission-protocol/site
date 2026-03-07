@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, Space_Mono } from "next/font/google";
 import { LayoutChrome } from "@/src/components/LayoutChrome";
+import { Providers } from "./providers";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -80,7 +81,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <LayoutChrome>{children}</LayoutChrome>
+        <Providers>
+          <LayoutChrome>{children}</LayoutChrome>
+        </Providers>
       </body>
     </html>
   );

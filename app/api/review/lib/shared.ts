@@ -25,7 +25,7 @@ export function ghHeaders(token: string) {
  * Queries across all statuses since individual-request endpoint uses different auth.
  */
 export async function fetchRequestDetails(id: string) {
-  const authHeaders = getPPAuthHeaders();
+  const authHeaders = await getPPAuthHeaders();
   for (const status of STATUSES) {
     const response = await fetch(
       `${PP_BASE_URL}/deploy-requests?status=${status}&limit=100`,
