@@ -95,7 +95,7 @@ export function ReviewDashboard() {
         <div className="rounded-xl border border-border bg-card p-12 text-center">
           <CheckCircle2 className="mx-auto h-12 w-12 text-[#10B981]/50" />
           <p className="mt-4 text-lg font-semibold text-signal">All clear</p>
-          <p className="mt-1 text-sm text-secondary">No pending requests. You're up to date.</p>
+          <p className="mt-1 text-sm text-secondary">No pending requests. You&apos;re up to date.</p>
         </div>
       ) : (
         <div className="space-y-6">
