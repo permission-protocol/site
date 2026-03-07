@@ -38,20 +38,35 @@
 </head>
 <body class="dark-brand-page">
   <nav>
-    <div class="container nav-container">
-      <a href="/" class="nav-logo">
-        <img src="/logo.svg" alt="Permission Protocol" width="32" height="32">
-        <span>Permission Protocol</span>
+    <div class="container">
+      <a href="/" class="logo">
+        <span class="pp-lockup">
+          <svg class="pp-gate-svg" width="20" height="20" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="shape-rendering: crispEdges;">
+            <rect x="1.5" y="1.5" width="13" height="13" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="1.5" x2="8" y2="5.5" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="10.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <span class="pp-wordmark-inline">
+            <span class="perm">PERMISSION</span><span class="slash">/</span><span class="proto">PROTOCOL</span>
+          </span>
+        </span>
       </a>
-      <div class="nav-links">
-        <a href="/how-it-works">How It Works</a>
-        <a href="/developers/quickstart">Developers</a>
-        <a href="/pricing">Pricing</a>
-        <a href="/blog">Blog</a>
-        <a href="/developers/quickstart" class="nav-cta">Get Started</a>
-      </div>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/how-it-works">How It Works</a></li>
+        <li><a href="/developers/quickstart">Developers</a></li>
+        <li><a href="/pricing">Pricing</a></li>
+        <li><a href="/blog">Blog</a></li>
+      </ul>
+      <a href="/developers/quickstart" class="nav-cta-btn">Get Started</a>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
     </div>
   </nav>
+  <div class="nav-overlay" id="nav-overlay"></div>
 
   <article class="blog-post">
     <div class="container blog-container">
