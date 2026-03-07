@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { AlertTriangle, CheckCircle2, Clock, GitPullRequest, ShieldCheck } from "lucide-react";
-import { useEffect, useState } from "react";
+import { AlertTriangle, CheckCircle2, Clock, Filter, GitPullRequest, ShieldCheck } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 type RequestSummary = {
   id: string;
@@ -50,6 +50,8 @@ export function ReviewDashboard() {
   const [requests, setRequests] = useState<RequestSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [repoFilter, setRepoFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
     async function load() {
@@ -70,8 +72,21 @@ export function ReviewDashboard() {
     void load();
   }, []);
 
-  const pending = requests.filter((r) => r.status === "pending");
-  const approved = requests.filter((r) => r.status === "approved");
+  const repos = useMemo(() => {
+    const set = new Set(requests.map((r) => r.repo));
+    return Array.from(set).sort();
+  }, [requests]);
+
+  const filtered = useMemo(() => {
+    return requests.filter((r) => {
+      if (repoFilter !== "all" && r.repo !== repoFilter) return false;
+      if (statusFilter !== "all" && r.status !== statusFilter) return false;
+      return true;
+    });
+  }, [requests, repoFilter, statusFilter]);
+
+  const pending = filtered.filter((r) => r.status === "pending");
+  const approved = filtered.filter((r) => r.status === "approved");
 
   return (
     <section className="mx-auto max-w-3xl px-4 py-12">
@@ -82,6 +97,32 @@ export function ReviewDashboard() {
           <p className="text-sm text-secondary">Deploy requests awaiting your decision.</p>
         </div>
       </div>
+
+      {!loading && !error && requests.length > 0 ? (
+        <div className="mb-6 flex flex-wrap items-center gap-3">
+          <Filter className="h-3.5 w-3.5 text-secondary" />
+          <select
+            value={repoFilter}
+            onChange={(e) => setRepoFilter(e.target.value)}
+            className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-signal focus:border-permit focus:outline-none"
+          >
+            <option value="all">All repos</option>
+            {repos.map((repo) => (
+              <option key={repo} value={repo}>{repo}</option>
+            ))}
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-signal focus:border-permit focus:outline-none"
+          >
+            <option value="all">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+          </select>
+          <span className="text-xs text-secondary">{filtered.length} of {requests.length}</span>
+        </div>
+      ) : null}
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
