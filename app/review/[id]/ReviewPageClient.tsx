@@ -239,6 +239,9 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   return (
     <section className="min-h-screen bg-void px-4 py-6 sm:px-6 md:py-10">
       <div className="mx-auto w-full max-w-3xl">
+        <Link href="/review" className="mb-4 inline-flex items-center gap-1 text-xs text-secondary hover:text-permit transition-colors">
+          ← All Requests
+        </Link>
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -364,6 +367,19 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
 
           {!loading && !fetchError && request ? (
             <>
+              {/* PR title as page heading */}
+              <div className="mb-4">
+                <h1 className="text-xl font-bold text-signal">
+                  {request.github_pr?.title ?? request.action ?? "Deploy Request"}
+                </h1>
+                <p className="mt-1 flex items-center gap-2 text-xs text-secondary">
+                  <GitPullRequest className="h-3 w-3" />
+                  {request.resource}
+                  {request.github_pr?.pr_number ? ` · PR #${request.github_pr.pr_number}` : ""}
+                  {request.actor && request.actor !== "CI" ? ` · ${request.actor}` : ""}
+                </p>
+              </div>
+
               <div className="flex flex-wrap items-center gap-3">
                 {isPending ? (
                   <p className="inline-flex items-center gap-2 rounded-full border border-warning/60 bg-warning/15 px-4 py-2 text-sm font-bold text-warning">
