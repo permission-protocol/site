@@ -30,7 +30,8 @@ export function LayoutChrome({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/r/") ||
     pathname.startsWith("/replay/") ||
     pathname.startsWith("/approve/") ||
-    pathname.startsWith("/review/");
+    pathname.startsWith("/review/") ||
+    pathname.startsWith("/login");
 
   if (hideChrome) {
     return <>{children}</>;
