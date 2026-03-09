@@ -132,6 +132,14 @@ export function ReviewDashboard() {
         <div>
           <h1 className="text-2xl font-bold text-signal">Review Queue</h1>
           <p className="text-sm text-secondary">Deploy requests awaiting your decision.</p>
+          <a
+            href="https://app.permissionprotocol.com/pp/deploy-requests"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 inline-block text-xs text-secondary transition-colors hover:text-permit"
+          >
+            View detailed dashboard → app.permissionprotocol.com/pp/deploy-requests
+          </a>
         </div>
       </div>
 
