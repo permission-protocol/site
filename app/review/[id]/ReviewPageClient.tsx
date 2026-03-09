@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { AlertTriangle, CheckCircle2, ChevronDown, CircleX, ExternalLink, FileCode2, GitPullRequest, ShieldCheck, UserRound } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronDown, CircleX, ExternalLink, FileCode2, GitPullRequest, ShieldCheck } from "lucide-react";
 import { useMemo, useState, useEffect, useRef } from "react";
 
 type GithubPrMetadata = {
@@ -261,7 +261,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className="sticky top-4 z-20 mb-5 rounded-2xl border border-border bg-card/95 p-3 shadow-[0_16px_36px_rgba(0,0,0,0.4)] backdrop-blur"
+          className="sticky top-4 z-20 mb-5 rounded-2xl border border-border bg-card/95 p-2.5 shadow-[0_16px_36px_rgba(0,0,0,0.4)] backdrop-blur"
         >
           {isAlreadyDecided ? (
             <div className="space-y-3">
@@ -335,15 +335,14 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
               ) : null}
             </div>
           ) : (
-            <div className="space-y-3">
-              {/* Approval reason field */}
+            <div className="space-y-2.5">
               <div>
-                <div className="flex flex-wrap gap-1.5 mb-2">
+                <div className="mb-1.5 flex flex-wrap gap-1.5">
                   {reasonPresets.map((preset) => (
                     <button
                       key={preset}
                       onClick={() => setReason(preset)}
-                      className={`rounded-lg border px-2.5 py-1 text-xs transition-colors ${
+                      className={`rounded-md border px-2 py-0.5 text-[11px] transition-colors ${
                         reason === preset
                           ? "border-permit bg-permit/15 text-permit"
                           : "border-border bg-card text-secondary hover:text-signal hover:border-permit/40"
@@ -358,14 +357,14 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="Reason for approval or rejection (optional)"
                   rows={2}
-                  className="w-full resize-none rounded-xl border border-border bg-card px-3 py-2 text-sm text-signal placeholder:text-secondary/50 focus:border-permit focus:outline-none focus:ring-1 focus:ring-permit/40"
+                  className="w-full resize-none rounded-lg border border-border bg-card px-3 py-2 text-sm text-signal placeholder:text-secondary/50 focus:border-permit focus:outline-none focus:ring-1 focus:ring-permit/40"
                 />
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <button
                   disabled={!canAct || decisionState.status === "submitting"}
                   onClick={() => void submitDecision("approve")}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#10B981] px-4 py-3 font-semibold text-void disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#10B981] px-3 py-2.5 text-sm font-semibold text-void disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <CheckCircle2 className="h-4 w-4" />
                   {decisionState.status === "submitting" && decisionState.action === "approve" ? "Approving..." : "Approve"}
@@ -373,7 +372,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                 <button
                   disabled={!canAct || decisionState.status === "submitting"}
                   onClick={() => void submitDecision("reject")}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-danger bg-danger/10 px-4 py-3 font-semibold text-signal disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-danger bg-danger/10 px-3 py-2.5 text-sm font-semibold text-signal disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <CircleX className="h-4 w-4" />
                   {decisionState.status === "submitting" && decisionState.action === "reject" ? "Rejecting..." : "Reject"}
@@ -449,87 +448,80 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                 </p>
               </div>
 
-              {/* Phase 2: AI Assessment — first thing the approver reads */}
-              {request.enrichment?.ai_summary ? (
-                <div className="mt-6 rounded-xl border border-permit/30 bg-permit/5 p-4">
-                  <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-permit">
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    AI Assessment
-                  </p>
-                  <p className="mt-2 text-sm leading-relaxed text-signal">{request.enrichment.ai_summary}</p>
-                </div>
-              ) : null}
+              <div
+                className={`mt-6 rounded-xl border p-5 ${
+                  request.enrichment?.risk_signals && request.enrichment.risk_signals.length > 0
+                    ? "border-warning/40 bg-warning/5"
+                    : "border-permit/30 bg-permit/5"
+                }`}
+              >
+                <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-permit">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  AI Assessment
+                </p>
+                <p className="mt-3 text-base leading-relaxed text-signal">
+                  {request.enrichment?.ai_summary ?? "No AI assessment provided for this request."}
+                </p>
 
-              {request.enrichment?.risk_signals && request.enrichment.risk_signals.length > 0 ? (
-                <div className="mt-4 rounded-xl border border-border bg-card p-4">
-                  <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted">
-                    <AlertTriangle className="h-3.5 w-3.5" />
-                    Risk Signals
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
+                {request.enrichment?.risk_signals && request.enrichment.risk_signals.length > 0 ? (
+                  <div className="mt-4 flex flex-wrap gap-2">
                     {request.enrichment.risk_signals.map((signal) => (
                       <span
                         key={signal.label}
                         title={signal.reason}
-                        className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium ${
+                        className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium ${
                           signal.severity === "critical"
-                            ? "border-danger/50 bg-danger/10 text-danger"
+                            ? "border-danger/60 bg-danger/15 text-danger"
                             : signal.severity === "high"
-                            ? "border-warning/50 bg-warning/10 text-warning"
+                            ? "border-warning/60 bg-warning/15 text-warning"
                             : "border-border bg-void/50 text-secondary"
                         }`}
                       >
-                        {signal.severity === "critical" ? "🔴" : signal.severity === "high" ? "🟠" : "🟡"} {signal.label}
+                        {signal.severity === "critical" ? "CRITICAL" : signal.severity.toUpperCase()} · {signal.label}
                       </span>
                     ))}
                   </div>
-                </div>
-              ) : null}
-
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <div className="rounded-xl border border-border bg-card p-4">
-                  <p className="text-xs uppercase tracking-[0.12em] text-muted">Action</p>
-                  <p className="mt-1 text-base font-semibold text-signal">{request.action ?? "Unknown action"}</p>
-                </div>
-                <div className="rounded-xl border border-border bg-card p-4">
-                  <p className="text-xs uppercase tracking-[0.12em] text-muted">Resource</p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <p className="text-base font-semibold text-signal">{request.resource ?? "Unknown resource"}</p>
-                    {request.github_pr?.owner && request.github_pr?.repo && request.github_pr?.pr_number ? (
-                      <a
-                        href={`https://github.com/${request.github_pr.owner}/${request.github_pr.repo}/pull/${request.github_pr.pr_number}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 rounded-md border border-border bg-void/50 px-2 py-0.5 text-xs font-medium text-permit hover:text-[#6ac9b7] hover:border-permit/40 transition-colors"
-                      >
-                        PR #{request.github_pr.pr_number}
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="rounded-xl border border-border bg-card p-4">
-                  <p className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.12em] text-muted">
-                    <UserRound className="h-3.5 w-3.5" />
-                    Actor
-                  </p>
-                  <p className="mt-1 text-base font-semibold text-signal">{request.actor ?? request.requested_by ?? "Unknown actor"}</p>
-                </div>
-                <div className="rounded-xl border border-border bg-card p-4">
-                  <p className="text-xs uppercase tracking-[0.12em] text-muted">Scope</p>
-                  <p className="mt-1 text-base font-semibold text-signal">
-                    {Array.isArray(request.scope) ? request.scope.join(", ") : request.scope ?? "Not specified"}
-                  </p>
-                </div>
+                ) : null}
               </div>
 
-              <div className="mt-4 rounded-xl border border-border bg-card p-4">
-                <p className="text-xs uppercase tracking-[0.12em] text-muted">Timestamp</p>
-                <p className="mt-1 text-sm text-secondary">{formatTimestamp(request.timestamp ?? request.created_at)}</p>
+              <div className="mt-6 overflow-x-auto rounded-xl border border-border bg-card">
+                <div className="flex min-w-max items-center divide-x divide-border">
+                  <div className="px-4 py-3">
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Action</p>
+                    <p className="mt-1 text-sm font-semibold text-signal">{request.action ?? "Unknown action"}</p>
+                  </div>
+                  <div className="px-4 py-3">
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Resource</p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <p className="text-sm font-semibold text-signal">{request.resource ?? "Unknown resource"}</p>
+                      {request.github_pr?.owner && request.github_pr?.repo && request.github_pr?.pr_number ? (
+                        <a
+                          href={`https://github.com/${request.github_pr.owner}/${request.github_pr.repo}/pull/${request.github_pr.pr_number}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-md border border-border bg-void/50 px-2 py-0.5 text-xs font-medium text-permit hover:border-permit/40 hover:text-[#6ac9b7] transition-colors"
+                        >
+                          PR #{request.github_pr.pr_number}
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="px-4 py-3">
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Actor</p>
+                    <p className="mt-1 text-sm font-semibold text-signal">{request.actor ?? request.requested_by ?? "Unknown actor"}</p>
+                  </div>
+                  <div className="px-4 py-3">
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Scope</p>
+                    <p className="mt-1 text-sm font-semibold text-signal">
+                      {Array.isArray(request.scope) ? request.scope.join(", ") : request.scope ?? "Not specified"}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {request.enrichment?.diff ? (
-                <details className="mt-4 rounded-xl border border-border bg-card p-4">
+                <details className="mt-4 rounded-xl border border-border bg-card p-4" open={isPending}>
                   <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-signal">
                     <span className="inline-flex items-center gap-2">
                       <FileCode2 className="h-4 w-4 text-permit" />
@@ -542,7 +534,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                   <div className="mt-3 space-y-1">
                     {request.enrichment.diff.files.map((file) => (
                       <div key={file.filename} className="flex items-center justify-between rounded-lg border border-border bg-void/30 px-3 py-1.5">
-                        <span className="font-mono text-xs text-secondary truncate max-w-[70%]">{file.filename}</span>
+                        <span className="max-w-[70%] truncate font-mono text-xs text-secondary">{file.filename}</span>
                         <span className="flex items-center gap-2 text-xs">
                           {file.additions > 0 ? <span className="text-[#10B981]">+{file.additions}</span> : null}
                           {file.deletions > 0 ? <span className="text-danger">-{file.deletions}</span> : null}
@@ -580,6 +572,11 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                 </details>
               ) : null}
 
+              <div className="mt-4 rounded-xl border border-border bg-card p-4">
+                <p className="text-xs uppercase tracking-[0.12em] text-muted">Timestamp</p>
+                <p className="mt-1 text-sm text-secondary">{formatTimestamp(request.timestamp ?? request.created_at)}</p>
+              </div>
+
               {request.preview_url ? (
                 <details className="mt-6 rounded-xl border border-permit/30 bg-card p-4" open>
                   <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-signal">
@@ -608,31 +605,6 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                 </details>
               ) : null}
 
-              {isPending ? <div className="mt-6 rounded-xl border border-border bg-card p-4">
-                <label htmlFor="decision-reason" className="text-sm font-semibold text-signal">
-                  Reason (optional)
-                </label>
-                <textarea
-                  id="decision-reason"
-                  value={reason}
-                  onChange={(event) => setReason(event.target.value)}
-                  placeholder="Add review context..."
-                  rows={3}
-                  className="mt-2 w-full rounded-xl border border-border bg-[#111] px-3 py-2.5 text-sm text-signal placeholder:text-muted"
-                />
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {reasonPresets.map((preset) => (
-                    <button
-                      key={preset}
-                      onClick={() => setReason(preset)}
-                      type="button"
-                      className="rounded-lg border border-border bg-void px-3 py-1.5 text-sm text-secondary hover:border-permit/60 hover:text-signal"
-                    >
-                      {preset}
-                    </button>
-                  ))}
-                </div>
-              </div> : null}
             </>
           ) : null}
         </motion.article>
