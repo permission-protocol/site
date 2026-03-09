@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { AlertTriangle, CheckCircle2, Clock, Filter, GitPullRequest, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, GitPullRequest, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 type RequestSummary = {
@@ -29,14 +29,41 @@ function timeAgo(dateStr: string): string {
   return `${days}d ago`;
 }
 
+function waitLabel(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const minutes = Math.max(1, Math.floor(diff / 60000));
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `${days}d`;
+}
+
+function averageWait(pending: RequestSummary[]): string {
+  if (pending.length === 0) return "—";
+  const averageMs = pending.reduce((sum, item) => sum + (Date.now() - new Date(item.created_at).getTime()), 0) / pending.length;
+  const totalMinutes = Math.max(1, Math.floor(averageMs / 60000));
+  if (totalMinutes < 60) return `${totalMinutes}m`;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours < 24) return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  const days = Math.floor(hours / 24);
+  const remHours = hours % 24;
+  return remHours > 0 ? `${days}d ${remHours}h` : `${days}d`;
+}
+
 function riskBadge(tier: string) {
   switch (tier) {
+    case "critical":
+      return "border-danger/70 bg-danger/20 text-danger";
     case "high":
       return "border-danger/50 bg-danger/10 text-danger";
     case "medium":
       return "border-warning/50 bg-warning/10 text-warning";
+    case "low":
+      return "border-permit/40 bg-permit/10 text-permit";
     default:
-      return "border-[#10B981]/50 bg-[#10B981]/10 text-[#10B981]";
+      return "border-muted/40 bg-void/40 text-secondary";
   }
 }
 
@@ -87,6 +114,16 @@ export function ReviewDashboard() {
 
   const pending = filtered.filter((r) => r.status === "pending");
   const approved = filtered.filter((r) => r.status === "approved");
+  const denied = filtered.filter((r) => r.status === "denied");
+  const lastApprovedAt = approved
+    .slice()
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at;
+  const statusChips = [
+    { label: "All", value: "all" },
+    { label: "Pending", value: "pending" },
+    { label: "Approved", value: "approved" },
+    { label: "Denied", value: "denied" },
+  ];
 
   return (
     <section className="mx-auto max-w-3xl px-4 pt-24 pb-12">
@@ -97,32 +134,6 @@ export function ReviewDashboard() {
           <p className="text-sm text-secondary">Deploy requests awaiting your decision.</p>
         </div>
       </div>
-
-      {!loading && !error && requests.length > 0 ? (
-        <div className="mb-6 flex flex-wrap items-center gap-3">
-          <Filter className="h-3.5 w-3.5 text-secondary" />
-          <select
-            value={repoFilter}
-            onChange={(e) => setRepoFilter(e.target.value)}
-            className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-signal focus:border-permit focus:outline-none"
-          >
-            <option value="all">All repos</option>
-            {repos.map((repo) => (
-              <option key={repo} value={repo}>{repo}</option>
-            ))}
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-signal focus:border-permit focus:outline-none"
-          >
-            <option value="all">All statuses</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-          </select>
-          <span className="text-xs text-secondary">{filtered.length} of {requests.length}</span>
-        </div>
-      ) : null}
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
@@ -140,6 +151,73 @@ export function ReviewDashboard() {
         </div>
       ) : (
         <div className="space-y-6">
+          <div className="grid gap-3 sm:grid-cols-4">
+            <div className="rounded-xl border border-border bg-card px-4 py-3">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Pending</p>
+              <p className={`mt-2 text-3xl font-bold ${pending.length > 0 ? "text-warning" : "text-signal"}`}>{pending.length}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card px-4 py-3">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Avg wait time</p>
+              <p className="mt-2 text-lg font-semibold text-signal">{averageWait(pending)}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card px-4 py-3">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Last approved</p>
+              <p className="mt-2 text-lg font-semibold text-signal">{lastApprovedAt ? timeAgo(lastApprovedAt) : "Never"}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card px-4 py-3">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Total shown</p>
+              <p className="mt-2 text-lg font-semibold text-signal">{filtered.length}</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {statusChips.map((chip) => (
+                <button
+                  key={chip.value}
+                  type="button"
+                  onClick={() => setStatusFilter(chip.value)}
+                  className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                    statusFilter === chip.value
+                      ? "border-permit bg-permit/15 text-permit"
+                      : "border-border bg-card text-secondary hover:border-permit/40 hover:text-signal"
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+            {repos.length > 1 ? (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRepoFilter("all")}
+                  className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                    repoFilter === "all"
+                      ? "border-permit bg-permit/15 text-permit"
+                      : "border-border bg-card text-secondary hover:border-permit/40 hover:text-signal"
+                  }`}
+                >
+                  All repos
+                </button>
+                {repos.map((repo) => (
+                  <button
+                    key={repo}
+                    type="button"
+                    onClick={() => setRepoFilter(repo)}
+                    className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                      repoFilter === repo
+                        ? "border-permit bg-permit/15 text-permit"
+                        : "border-border bg-card text-secondary hover:border-permit/40 hover:text-signal"
+                    }`}
+                  >
+                    {repo}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
           {pending.length > 0 ? (
             <div>
               <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-warning">
@@ -167,6 +245,20 @@ export function ReviewDashboard() {
               </div>
             </div>
           ) : null}
+
+          {denied.length > 0 ? (
+            <div>
+              <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-danger">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Denied ({denied.length})
+              </h2>
+              <div className="space-y-2">
+                {denied.map((r, i) => (
+                  <RequestCard key={r.id} request={r} index={i} />
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       )}
     </section>
@@ -182,7 +274,9 @@ function RequestCard({ request: r, index }: { request: RequestSummary; index: nu
     >
       <Link
         href={`/review/${r.id}`}
-        className="group block rounded-xl border border-border bg-card p-4 transition-all hover:border-permit/40 hover:bg-card/80"
+        className={`group block rounded-xl border border-border bg-card px-4 py-5 transition-all hover:border-permit/40 hover:bg-card/80 ${
+          r.status === "pending" ? "border-l-4 border-l-warning pl-3" : ""
+        }`}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">
@@ -200,12 +294,12 @@ function RequestCard({ request: r, index }: { request: RequestSummary; index: nu
                 <span>·</span>
                 <span>{r.actor}</span>
                 <span>·</span>
-                <span>{timeAgo(r.created_at)}</span>
+                <span>{r.status === "pending" ? `waiting ${waitLabel(r.created_at)}` : timeAgo(r.created_at)}</span>
               </p>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <span className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase ${riskBadge(r.risk_tier)}`}>
+            <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${riskBadge(r.risk_tier)}`}>
               {r.risk_tier}
             </span>
             <span className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-medium ${
