@@ -78,6 +78,34 @@ export default function HomePage() {
         </div>
       </SectionBlock>
 
+      <SectionBlock
+        id="how-it-works"
+        headline="How it works."
+        subheadline="Every consequential AI action flows through Permission Protocol before execution."
+      >
+        <div className="rounded-2xl border border-border bg-card p-6">
+          <div className="flex flex-col items-center gap-2 text-sm font-medium sm:flex-row sm:justify-center sm:gap-3">
+            <span className="rounded-full border border-border bg-ash px-4 py-2">PR Created</span>
+            <span className="hidden text-secondary sm:inline">→</span>
+            <span className="text-secondary sm:hidden">↓</span>
+            <span className="rounded-full border border-permit/50 bg-permit/10 px-4 py-2 text-permit">Permission Protocol</span>
+            <span className="hidden text-secondary sm:inline">→</span>
+            <span className="text-secondary sm:hidden">↓</span>
+            <span className="rounded-full border border-border bg-ash px-4 py-2">Decision</span>
+          </div>
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-3 text-xs uppercase tracking-[0.12em]">
+            <span className="rounded-full border border-danger/40 bg-danger/10 px-3 py-1 text-danger">Blocked</span>
+            <span className="rounded-full border border-permit/40 bg-permit/10 px-3 py-1 text-permit">Approved</span>
+          </div>
+        </div>
+        <div className="mt-8">
+          <CodeBlock tabs={[{ label: "Python", code: howItWorksCode }]} />
+          <Link href="/developers/quickstart" className="mt-5 inline-flex items-center font-semibold text-permit">
+            Try the SDK <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </div>
+      </SectionBlock>
+
       <section className="section-shell py-8">
         <div className="rounded-2xl border border-border bg-card/70 px-4 py-4 sm:px-5">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -107,34 +135,6 @@ export default function HomePage() {
       </section>
 
       <SectionBlock
-        id="how-it-works"
-        headline="How it works."
-        subheadline="Every consequential AI action flows through Permission Protocol before execution."
-      >
-        <div className="rounded-2xl border border-border bg-card p-6">
-          <div className="flex flex-col items-center gap-2 text-sm font-medium sm:flex-row sm:justify-center sm:gap-3">
-            <span className="rounded-full border border-border bg-ash px-4 py-2">PR Created</span>
-            <span className="hidden text-secondary sm:inline">→</span>
-            <span className="text-secondary sm:hidden">↓</span>
-            <span className="rounded-full border border-permit/50 bg-permit/10 px-4 py-2 text-permit">Permission Protocol</span>
-            <span className="hidden text-secondary sm:inline">→</span>
-            <span className="text-secondary sm:hidden">↓</span>
-            <span className="rounded-full border border-border bg-ash px-4 py-2">Decision</span>
-          </div>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-3 text-xs uppercase tracking-[0.12em]">
-            <span className="rounded-full border border-danger/40 bg-danger/10 px-3 py-1 text-danger">Blocked</span>
-            <span className="rounded-full border border-permit/40 bg-permit/10 px-3 py-1 text-permit">Approved</span>
-          </div>
-        </div>
-        <div className="mt-8">
-          <CodeBlock tabs={[{ label: "Python", code: howItWorksCode }]} />
-          <Link href="/developers/quickstart" className="mt-5 inline-flex items-center font-semibold text-permit">
-            Try the SDK <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </div>
-      </SectionBlock>
-
-      <SectionBlock
         headline="The Receipt."
         subheadline="Every authorized action produces a signed, portable, verifiable receipt."
       >
@@ -150,7 +150,7 @@ export default function HomePage() {
       </SectionBlock>
 
       <SectionBlock
-        headline="Add separation of powers to your AI systems."
+        headline="What happens when an AI agent deploys without you?"
         subheadline="Permission Protocol completes the infrastructure stack."
       >
         <ComparisonTable />
