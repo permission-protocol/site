@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { AlertTriangle, CheckCircle2, Clock, GitPullRequest, ShieldCheck } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, CheckCircle2, Clock, GitPullRequest, Plus, ShieldCheck } from "lucide-react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 type RequestSummary = {
   id: string;
@@ -17,6 +17,16 @@ type RequestSummary = {
   risk_tier: string;
   created_at: string;
 };
+
+type ManualRequestState = {
+  repo: string;
+  prNumber: string;
+  commitSha: string;
+  description: string;
+};
+
+const inputClass =
+  "mt-1 w-full rounded-lg border border-border bg-ash px-3 py-2 text-sm text-signal placeholder:text-secondary/70 focus:border-permit focus:outline-none focus:ring-2 focus:ring-permit/30";
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -79,6 +89,26 @@ export function ReviewDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [repoFilter, setRepoFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [showManualCreate, setShowManualCreate] = useState(false);
+  const [manualRequest, setManualRequest] = useState<ManualRequestState>({
+    repo: "",
+    prNumber: "",
+    commitSha: "",
+    description: "",
+  });
+  const [manualSubmitState, setManualSubmitState] = useState<{ status: "idle" | "submitting" | "success" | "error"; message?: string }>({
+    status: "idle",
+  });
+
+  function upsertRequest(item: RequestSummary) {
+    setRequests((prev) => {
+      const exists = prev.some((r) => r.id === item.id);
+      if (exists) {
+        return prev.map((r) => (r.id === item.id ? item : r));
+      }
+      return [item, ...prev];
+    });
+  }
 
   useEffect(() => {
     async function load() {
@@ -98,6 +128,59 @@ export function ReviewDashboard() {
     }
     void load();
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const repo = params.get("repo") ?? "";
+    const pr = params.get("pr") ?? "";
+    const sha = params.get("sha") ?? "";
+    const description = params.get("description") ?? "";
+    if (!repo && !pr && !sha && !description) return;
+    setManualRequest({
+      repo,
+      prNumber: pr,
+      commitSha: sha,
+      description,
+    });
+    setShowManualCreate(true);
+  }, []);
+
+  async function submitManualRequest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setManualSubmitState({ status: "submitting" });
+
+    try {
+      const response = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          repo: manualRequest.repo.trim(),
+          prNumber: Number(manualRequest.prNumber),
+          commitSha: manualRequest.commitSha.trim(),
+          description: manualRequest.description.trim(),
+        }),
+      });
+
+      const body = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        request?: RequestSummary;
+      };
+
+      if (!response.ok || !body.request) {
+        setManualSubmitState({
+          status: "error",
+          message: body.error ?? "Unable to create request.",
+        });
+        return;
+      }
+
+      upsertRequest(body.request);
+      setManualSubmitState({ status: "success", message: "Deploy request created." });
+      setManualRequest((prev) => ({ ...prev, description: "" }));
+    } catch {
+      setManualSubmitState({ status: "error", message: "Network error while creating request." });
+    }
+  }
 
   const repos = useMemo(() => {
     const set = new Set(requests.map((r) => r.repo));
@@ -129,7 +212,7 @@ export function ReviewDashboard() {
     <section className="mx-auto max-w-3xl px-4 pt-24 pb-12">
       <div className="mb-8 flex items-center gap-3">
         <ShieldCheck className="h-8 w-8 text-permit" />
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold text-signal">Review Queue</h1>
           <p className="text-sm text-secondary">Deploy requests awaiting your decision.</p>
           <a
@@ -141,7 +224,81 @@ export function ReviewDashboard() {
             View detailed dashboard → app.permissionprotocol.com/pp/deploy-requests
           </a>
         </div>
+        <button
+          type="button"
+          onClick={() => setShowManualCreate((prev) => !prev)}
+          className="inline-flex items-center gap-2 rounded-lg border border-permit/40 bg-permit/10 px-3 py-2 text-sm font-semibold text-permit transition-colors hover:border-permit hover:bg-permit/15"
+        >
+          <Plus className="h-4 w-4" />
+          Create Request
+        </button>
       </div>
+
+      {showManualCreate ? (
+        <form onSubmit={submitManualRequest} className="mb-6 rounded-xl border border-border bg-card p-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-xs font-medium uppercase tracking-[0.08em] text-secondary">
+              Repo
+              <input
+                value={manualRequest.repo}
+                onChange={(event) => setManualRequest((prev) => ({ ...prev, repo: event.target.value }))}
+                placeholder="owner/repo"
+                className={inputClass}
+                required
+              />
+            </label>
+            <label className="text-xs font-medium uppercase tracking-[0.08em] text-secondary">
+              PR Number
+              <input
+                value={manualRequest.prNumber}
+                onChange={(event) => setManualRequest((prev) => ({ ...prev, prNumber: event.target.value }))}
+                placeholder="123"
+                className={inputClass}
+                inputMode="numeric"
+                pattern="[0-9]+"
+                required
+              />
+            </label>
+          </div>
+          <div className="mt-3 grid gap-3">
+            <label className="text-xs font-medium uppercase tracking-[0.08em] text-secondary">
+              Commit SHA
+              <input
+                value={manualRequest.commitSha}
+                onChange={(event) => setManualRequest((prev) => ({ ...prev, commitSha: event.target.value }))}
+                placeholder="a1b2c3d4e5f6..."
+                className={inputClass}
+                required
+              />
+            </label>
+            <label className="text-xs font-medium uppercase tracking-[0.08em] text-secondary">
+              Description
+              <textarea
+                value={manualRequest.description}
+                onChange={(event) => setManualRequest((prev) => ({ ...prev, description: event.target.value }))}
+                placeholder="Why this deploy needs manual approval."
+                className={`${inputClass} min-h-24 resize-y`}
+              />
+            </label>
+          </div>
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <p className="text-xs text-secondary">Prefill supported via URL: `?repo=owner/repo&pr=123&sha=abc123`</p>
+            <button
+              type="submit"
+              disabled={manualSubmitState.status === "submitting"}
+              className="rounded-lg bg-permit px-4 py-2 text-sm font-semibold text-void transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {manualSubmitState.status === "submitting" ? "Creating..." : "Create Request"}
+            </button>
+          </div>
+          {manualSubmitState.status === "error" ? (
+            <p className="mt-3 text-sm text-danger">{manualSubmitState.message}</p>
+          ) : null}
+          {manualSubmitState.status === "success" ? (
+            <p className="mt-3 text-sm text-[#10B981]">{manualSubmitState.message}</p>
+          ) : null}
+        </form>
+      ) : null}
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
