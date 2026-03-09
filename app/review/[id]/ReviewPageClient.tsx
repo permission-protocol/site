@@ -183,6 +183,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
 
   const isPending = request?.status === "pending";
   const isAlreadyDecided = request?.status === "approved" || request?.status === "denied" || request?.status === "expired" || request?.status === "superseded" || request?.status === "cancelled";
+  const showAuditTrailLink = Boolean(request?.id && (request.status === "approved" || request.status === "denied" || request.status === "expired"));
   const canAct = !loading && !fetchError && !!request && isPending && decisionState.status !== "approved" && decisionState.status !== "rejected";
 
   async function submitDecision(action: "approve" | "reject") {
@@ -381,6 +382,17 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
             </div>
           )}
         </motion.div>
+
+        {showAuditTrailLink ? (
+          <a
+            href={`https://app.permissionprotocol.com/pp/deploy-requests/${request?.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mb-5 inline-block text-xs text-secondary transition-colors hover:text-permit"
+          >
+            🔐 View full audit trail → app.permissionprotocol.com/pp/deploy-requests/{request?.id}
+          </a>
+        ) : null}
 
         <motion.article
           initial={{ opacity: 0, y: 14 }}
