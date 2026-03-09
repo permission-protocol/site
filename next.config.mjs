@@ -18,9 +18,7 @@ const nextConfig = {
       { source: "/architecture", destination: "/", permanent: true },
       { source: "/receipt-model", destination: "/r/demo", permanent: true },
       { source: "/present", destination: "/", permanent: true },
-      // Review surface → app product
-      { source: "/review", destination: "https://app.permissionprotocol.com/pp/deploy-requests", permanent: false },
-      { source: "/review/:id", destination: "https://app.permissionprotocol.com/pp/deploy-requests/:id", permanent: false },
+      // Review surface renders locally (ReviewPageClient.tsx) — link to app for full control plane
       { source: "/login", destination: "https://app.permissionprotocol.com/auth/signin", permanent: false },
     ];
   },
