@@ -30,11 +30,8 @@ export async function POST(_request: Request, { params }: { params: { id: string
     // Map backend response to frontend's expected shape
     const mergeResult = (data.merge_result ?? data.post_approval_result ?? {}) as Record<string, unknown>;
     return NextResponse.json({
-      merged: mergeResult.status === "success" && !mergeResult.autoMergeEnabled,
+      merged: mergeResult.status === "success",
       message: (mergeResult.message as string) ?? "Merge completed.",
-      auto_merge: mergeResult.autoMergeEnabled
-        ? { enabled: true }
-        : null,
     });
   } catch (error) {
     return NextResponse.json(
