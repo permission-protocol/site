@@ -2,8 +2,18 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { AlertTriangle, CheckCircle2, ChevronDown, CircleX, ExternalLink, FileCode2, GitPullRequest, ShieldCheck } from "lucide-react";
-import { useCallback, useMemo, useState, useEffect, useRef } from "react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronDown,
+  CircleX,
+  ExternalLink,
+  FileCode2,
+  GitPullRequest,
+  ShieldCheck,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { formatTimestamp, timeAgo } from "@/lib/time";
 
 type GithubPrMetadata = {
   owner?: string;
@@ -18,6 +28,13 @@ type RiskSignal = {
   label: string;
   severity: "critical" | "high" | "medium" | "low";
   reason: string;
+};
+
+type PeerReviews = {
+  total: number;
+  approved: number;
+  changes_requested: number;
+  commented: number;
 };
 
 type PrFile = {
@@ -40,6 +57,8 @@ type Enrichment = {
   } | null;
   risk_signals?: RiskSignal[];
   ai_summary?: string | null;
+  blast_radius?: string[];
+  peer_reviews?: PeerReviews | null;
 };
 
 type MergeReadiness = {
@@ -99,25 +118,23 @@ type ReviewPageClientProps = {
   id: string;
 };
 
-const reasonPresets = ["Reviewed", "LGTM", "Routine deploy"] as const;
+type TrustSignal = {
+  id: string;
+  title: string;
+  summary: string;
+  tone: "failure" | "warning" | "success" | "neutral";
+  details: string[];
+};
 
-function formatTimestamp(input?: string): string {
-  if (!input) {
-    return "Unknown";
-  }
-  const date = new Date(input);
-  if (Number.isNaN(date.getTime())) {
-    return input;
-  }
-  return date.toLocaleString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    timeZoneName: "short"
-  });
+const reasonPresets = ["Reviewed", "LGTM", "Routine deploy"] as const;
+const rejectReasonPresets = ["Not ready", "Needs tests", "Wrong branch", "Needs discussion"] as const;
+const HOLD_DURATION_MS = 1000;
+const UNDO_DURATION_MS = 5000;
+
+function getEnvironmentLabel(request: ReviewRequest | null): string {
+  const rawScope = Array.isArray(request?.scope) ? request?.scope[0] : request?.scope;
+  const candidate = rawScope?.split("—")[0]?.trim();
+  return candidate || "Preview";
 }
 
 function normalizeErrorMessage(status: number, body: unknown): string {
@@ -146,19 +163,104 @@ function getGithubPrUrl(request: ReviewRequest | null): string | null {
 
 function allChecksPassing(readiness: MergeReadiness | null | undefined): boolean {
   if (!readiness) return false;
-  return readiness.checks_passing === readiness.checks_total
-    && readiness.checks.every((check) => check.status === "completed" && check.conclusion === "success");
+  return (
+    readiness.checks_passing === readiness.checks_total &&
+    readiness.checks.every((check) => check.status === "completed" && check.conclusion === "success")
+  );
 }
 
 function getCheckSummary(readiness: MergeReadiness | null | undefined): string {
-  if (!readiness) return "Checking GitHub status...";
+  if (!readiness) return "GitHub checks not available yet.";
   if (readiness.checks_total === 0) {
     return "No check runs reported (0/0)";
   }
   if (allChecksPassing(readiness)) {
-    return `All checks passing (${readiness.checks_passing}/${readiness.checks_total})`;
+    return `Tests passing (${readiness.checks_passing}/${readiness.checks_total})`;
   }
-  return `${readiness.checks_total - readiness.checks_passing} check${readiness.checks_total - readiness.checks_passing === 1 ? "" : "s"} not passing`;
+  return `${readiness.checks_total - readiness.checks_passing} check${readiness.checks_total - readiness.checks_passing === 1 ? "" : "s"} failing`;
+}
+
+function riskPillClasses(risk?: string): string {
+  const normalized = risk?.toLowerCase();
+  if (normalized === "critical" || normalized === "high") {
+    return "border-danger/60 bg-danger/15 text-danger";
+  }
+  if (normalized === "medium") {
+    return "border-warning/60 bg-warning/15 text-warning";
+  }
+  return "border-permit/50 bg-permit/10 text-permit";
+}
+
+function environmentPillClasses(env?: string): string {
+  const normalized = env?.toLowerCase();
+  if (normalized === "production") return "bg-[#EF4444] text-white";
+  if (normalized === "staging") return "bg-[#F59E0B] text-void";
+  return "bg-slate-500 text-white";
+}
+
+function riskScoreMeta(request: ReviewRequest | null) {
+  const tier = request?.risk_tier?.toLowerCase();
+  const topSignal = request?.enrichment?.risk_signals?.[0];
+
+  if (tier === "critical" || tier === "high") {
+    return {
+      label: "High risk",
+      tone: "text-danger",
+      chip: "border-danger/50 bg-danger/10 text-danger",
+      rationale: topSignal?.reason ?? "Touches production-sensitive surfaces and needs a deliberate review.",
+    };
+  }
+
+  if (tier === "medium") {
+    return {
+      label: "Medium risk",
+      tone: "text-warning",
+      chip: "border-warning/50 bg-warning/10 text-warning",
+      rationale: topSignal?.reason ?? "Moderate product impact. Confirm expected behavior and deployment timing.",
+    };
+  }
+
+  return {
+    label: "Low risk",
+    tone: "text-permit",
+    chip: "border-permit/50 bg-permit/10 text-permit",
+    rationale: topSignal?.reason ?? "Scoped change with limited operational impact.",
+  };
+}
+
+function summaryCopy(request: ReviewRequest | null): string {
+  if (request?.enrichment?.ai_summary) return request.enrichment.ai_summary;
+  if (request?.github_pr?.description) return request.github_pr.description;
+  if (request?.github_pr?.title) return `Deploy request for ${request.github_pr.title}. Review the trust signals before sending this live.`;
+  return "No AI assessment is available for this deploy request.";
+}
+
+function metadataItems(request: ReviewRequest) {
+  return [
+    { label: "Action", value: request.action ?? "Unknown action" },
+    { label: "Resource", value: request.resource ?? "Unknown resource" },
+    { label: "Actor", value: request.actor ?? request.requested_by ?? "Unknown actor" },
+    {
+      label: "Scope",
+      value: Array.isArray(request.scope) ? request.scope.join(", ") : request.scope ?? "Not specified",
+    },
+  ];
+}
+
+function trustToneClasses(tone: TrustSignal["tone"]): string {
+  if (tone === "failure") return "border-danger/40 bg-danger/10 text-danger";
+  if (tone === "warning") return "border-warning/40 bg-warning/10 text-warning";
+  if (tone === "success") return "border-permit/40 bg-permit/10 text-permit";
+  return "border-border bg-card text-secondary";
+}
+
+function statusCopy(status?: string) {
+  if (status === "approved") return { label: "Approved", tone: "text-permit", icon: CheckCircle2 };
+  if (status === "denied") return { label: "Denied", tone: "text-danger", icon: CircleX };
+  if (status === "superseded") return { label: "Superseded", tone: "text-warning", icon: AlertTriangle };
+  if (status === "expired") return { label: "Expired", tone: "text-warning", icon: AlertTriangle };
+  if (status === "cancelled") return { label: "Cancelled", tone: "text-warning", icon: AlertTriangle };
+  return { label: "Review required", tone: "text-warning", icon: ShieldCheck };
 }
 
 export function ReviewPageClient({ id }: ReviewPageClientProps) {
@@ -170,52 +272,94 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const [decisionState, setDecisionState] = useState<DecisionState>({ status: "idle" });
   const [mergeState, setMergeState] = useState<MergeState>({ status: "idle" });
   const [updateBranchState, setUpdateBranchState] = useState<UpdateBranchState>({ status: "idle" });
-  const [showChecks, setShowChecks] = useState(false);
-  const resultRef = useRef<HTMLDivElement>(null);
+  const [showRejectSheet, setShowRejectSheet] = useState(false);
+  const [holdProgress, setHoldProgress] = useState(0);
+  const [undoExpiresAt, setUndoExpiresAt] = useState<number | null>(null);
+  const [undoCountdown, setUndoCountdown] = useState(0);
+  const holdFrameRef = useRef<number | null>(null);
+  const holdStartedAtRef = useRef<number | null>(null);
 
-  const loadRequest = useCallback(async (isPolling = false, signal?: AbortSignal) => {
-    if (!isPolling) {
-      setLoading(true);
-      setFetchError(null);
-    }
+  const loadRequest = useCallback(
+    async (isPolling = false, signal?: AbortSignal) => {
+      if (!isPolling) {
+        setLoading(true);
+        setFetchError(null);
+      }
+
+      try {
+        const response = await fetch(`/api/review/${id}`, signal ? { signal } : undefined);
+        const body = (await response.json().catch(() => ({}))) as unknown;
+
+        if (!response.ok) {
+          if (!isPolling) setFetchError(normalizeErrorMessage(response.status, body));
+          return;
+        }
+
+        const nextRequest = body as ReviewRequest;
+        setRequest(nextRequest);
+        requestStateRef.current = {
+          status: nextRequest.status ?? "pending",
+          prMerged: nextRequest.pr_merged ?? false,
+        };
+      } catch (error) {
+        if ((error as Error).name !== "AbortError" && !isPolling) {
+          setFetchError("Network error while loading this request.");
+        }
+      } finally {
+        if (!(signal?.aborted) && !isPolling) {
+          setLoading(false);
+        }
+      }
+    },
+    [id]
+  );
+
+  const submitDecision = useCallback(async (action: "approve" | "reject") => {
+    setDecisionState({ status: "submitting", action });
 
     try {
-      const response = await fetch(`/api/review/${id}`, signal ? { signal } : undefined);
-      const body = (await response.json().catch(() => ({}))) as unknown;
+      const response = await fetch(`/api/review/${id}/${action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: reason.trim() || undefined }),
+      });
 
+      const body = (await response.json().catch(() => ({}))) as {
+        receipt_id?: string;
+        error?: string;
+        has_pr?: boolean;
+      };
       if (!response.ok) {
-        if (!isPolling) setFetchError(normalizeErrorMessage(response.status, body));
+        setDecisionState({ status: "error", message: normalizeErrorMessage(response.status, body) });
         return;
       }
 
-      const nextRequest = body as ReviewRequest;
-      setRequest(nextRequest);
-      requestStateRef.current = {
-        status: nextRequest.status ?? "pending",
-        prMerged: nextRequest.pr_merged ?? false,
-      };
-    } catch (error) {
-      if ((error as Error).name !== "AbortError" && !isPolling) {
-        setFetchError("Network error while loading this request.");
+      if (action === "approve") {
+        setDecisionState({
+          status: "approved",
+          receiptId: body.receipt_id ?? null,
+          hasPr: body.has_pr ?? false,
+        });
+        void loadRequest(true);
+        return;
       }
-    } finally {
-      if (!(signal?.aborted) && !isPolling) {
-        setLoading(false);
-      }
-    }
-  }, [id]);
 
-  // Initial load + real-time polling while pending
+      setDecisionState({ status: "rejected" });
+      setShowRejectSheet(false);
+    } catch {
+      setDecisionState({ status: "error", message: "Network error while submitting decision." });
+    }
+  }, [id, loadRequest, reason]);
+
   useEffect(() => {
     const controller = new AbortController();
 
     void loadRequest(false, controller.signal);
 
-    // Keep polling for pending requests and approved requests that still need merge readiness updates.
     const interval = setInterval(() => {
       const shouldPoll =
-        requestStateRef.current.status === "pending"
-        || (requestStateRef.current.status === "approved" && !requestStateRef.current.prMerged);
+        requestStateRef.current.status === "pending" ||
+        (requestStateRef.current.status === "approved" && !requestStateRef.current.prMerged);
       if (!controller.signal.aborted && shouldPoll) {
         void loadRequest(true, controller.signal);
       }
@@ -233,56 +377,194 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
     }
   }, [request?.merge_readiness?.mergeable_state, updateBranchState.status]);
 
-  const statusBadge = useMemo(() => {
-    const risk = request?.risk_tier?.toLowerCase();
-    if (risk === "high" || risk === "critical") {
-      return "border-danger/60 bg-danger/15 text-danger";
-    }
-    if (risk === "medium") {
-      return "border-warning/60 bg-warning/15 text-warning";
-    }
-    return "border-[#10B981]/50 bg-[#10B981]/15 text-[#10B981]";
-  }, [request?.risk_tier]);
+  useEffect(() => {
+    if (!undoExpiresAt) return;
 
+    const tick = () => {
+      const secondsRemaining = Math.max(0, Math.ceil((undoExpiresAt - Date.now()) / 1000));
+      setUndoCountdown(secondsRemaining);
+      if (secondsRemaining === 0) {
+        setUndoExpiresAt(null);
+        void submitDecision("approve");
+      }
+    };
+
+    tick();
+    const interval = window.setInterval(tick, 200);
+    return () => window.clearInterval(interval);
+  }, [submitDecision, undoExpiresAt]);
+
+  useEffect(() => {
+    return () => {
+      if (holdFrameRef.current) cancelAnimationFrame(holdFrameRef.current);
+    };
+  }, []);
+
+  const readiness = request?.merge_readiness ?? null;
+  const githubPrUrl = getGithubPrUrl(request);
   const isPending = request?.status === "pending";
-  const isAlreadyDecided = request?.status === "approved" || request?.status === "denied" || request?.status === "expired" || request?.status === "superseded" || request?.status === "cancelled";
-  const showAuditTrailLink = Boolean(request?.id && (request.status === "approved" || request.status === "denied" || request.status === "expired"));
-  const canAct = !loading && !fetchError && !!request && isPending && decisionState.status !== "approved" && decisionState.status !== "rejected";
+  const isAlreadyDecided =
+    request?.status === "approved" ||
+    request?.status === "denied" ||
+    request?.status === "expired" ||
+    request?.status === "superseded" ||
+    request?.status === "cancelled";
+  const showAuditTrailLink = Boolean(
+    request?.id && (request.status === "approved" || request.status === "denied" || request.status === "expired")
+  );
+  const canAct =
+    !loading &&
+    !fetchError &&
+    !!request &&
+    isPending &&
+    decisionState.status !== "approved" &&
+    decisionState.status !== "rejected" &&
+    !undoExpiresAt;
+  const showChecklist = request?.status === "approved" && !request?.pr_merged;
+  const hasLinkedPr = Boolean(request?.github_pr?.owner && request?.github_pr?.repo && request?.github_pr?.pr_number);
+  const checksPassing = allChecksPassing(readiness);
+  const branchBehind = readiness?.mergeable_state === "behind" || (readiness?.behind_by ?? 0) > 0;
+  const hasConflict = readiness?.mergeable_state === "dirty" || readiness?.mergeable === false;
+  const canMergeNow = readiness?.mergeable_state === "clean" && checksPassing;
+  const checksBlocked = Boolean(readiness) && !checksPassing;
+  const mergeBlockedReason = !readiness
+    ? "Merge readiness is still being computed."
+    : checksBlocked
+      ? "Checks must pass before merging."
+      : branchBehind
+        ? "Update branch before merging."
+        : hasConflict
+          ? "Resolve merge conflicts on GitHub before merging."
+          : "Merge is not available yet.";
+  const riskMeta = riskScoreMeta(request);
+  const environmentLabel = getEnvironmentLabel(request);
+  const needsHoldToApprove =
+    environmentLabel.toLowerCase() === "production" ||
+    request?.risk_tier?.toLowerCase() === "high" ||
+    request?.risk_tier?.toLowerCase() === "critical";
+  const relativeTimestamp = timeAgo(request?.timestamp ?? request?.created_at);
+  const createdAt = formatTimestamp(request?.timestamp ?? request?.created_at, { includeSeconds: false });
+  const blastRadius = request?.enrichment?.blast_radius?.length
+    ? request.enrichment.blast_radius.join(", ")
+    : "Limited scope";
+  const summary = summaryCopy(request);
+  const stateMeta = statusCopy(request?.status);
+  const StateIcon = stateMeta.icon;
 
-  async function submitDecision(action: "approve" | "reject") {
-    setDecisionState({ status: "submitting", action });
+  const trustSignals = useMemo<TrustSignal[]>(() => {
+    const items: TrustSignal[] = [];
 
-    try {
-      const response = await fetch(`/api/review/${id}/${action}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: reason.trim() || undefined })
+    if (readiness) {
+      const failing = readiness.checks_total - readiness.checks_passing;
+      items.push({
+        id: "ci",
+        title: "CI status",
+        summary:
+          readiness.checks_total === 0
+            ? "No checks reported"
+            : failing === 0
+              ? `✅ Tests passing (${readiness.checks_passing}/${readiness.checks_total})`
+              : `❌ ${failing} check${failing === 1 ? "" : "s"} failing`,
+        tone: readiness.checks_total === 0 ? "warning" : failing === 0 ? "success" : "failure",
+        details:
+          readiness.checks.length > 0
+            ? readiness.checks.map((check) => {
+                const passed = check.status === "completed" && check.conclusion === "success";
+                const pending = check.status !== "completed";
+                return `${check.name}: ${pending ? "Pending" : passed ? "Passing" : check.conclusion ?? "Failed"}`;
+              })
+            : ["No GitHub check runs were reported for this PR."],
       });
-
-      const body = (await response.json().catch(() => ({}))) as {
-        receipt_id?: string;
-        error?: string;
-        has_pr?: boolean;
-      };
-      if (!response.ok) {
-        setDecisionState({ status: "error", message: normalizeErrorMessage(response.status, body) });
-        return;
-      }
-
-      if (action === "approve") {
-        setDecisionState({
-          status: "approved",
-          receiptId: body.receipt_id ?? null,
-          hasPr: (body as any).has_pr ?? false,
-        });
-        void loadRequest(true);
-        return;
-      }
-
-      setDecisionState({ status: "rejected" });
-    } catch {
-      setDecisionState({ status: "error", message: "Network error while submitting decision." });
     }
+
+    if (request?.enrichment?.peer_reviews) {
+      const peer = request.enrichment.peer_reviews;
+      items.push({
+        id: "peer-reviews",
+        title: "Peer review",
+        summary:
+          peer.total > 0
+            ? `${peer.total} reviewer${peer.total === 1 ? "" : "s"} responded`
+            : "No reviewer activity recorded",
+        tone: peer.changes_requested > 0 ? "warning" : peer.approved > 0 ? "success" : "neutral",
+        details: [
+          `${peer.approved} approved`,
+          `${peer.changes_requested} requested changes`,
+          `${peer.commented} commented`,
+        ],
+      });
+    }
+
+    if (request?.enrichment?.risk_signals?.length) {
+      for (const signal of request.enrichment.risk_signals) {
+        items.push({
+          id: `risk-${signal.label}`,
+          title: `${signal.label} signal`,
+          summary: signal.reason,
+          tone: signal.severity === "critical" || signal.severity === "high" ? "failure" : "warning",
+          details: [`Severity: ${signal.severity}`, signal.reason],
+        });
+      }
+    } else if (request) {
+      items.push({
+        id: "risk-clear",
+        title: "Risk scan",
+        summary: "No elevated risk patterns detected in changed files.",
+        tone: "success",
+        details: ["The deterministic scan did not find auth, infra, database, or secrets-related hotspots."],
+      });
+    }
+
+    const toneOrder = { failure: 0, warning: 1, success: 2, neutral: 3 };
+    return items.sort((a, b) => toneOrder[a.tone] - toneOrder[b.tone]);
+  }, [readiness, request]);
+
+  function cancelHold() {
+    if (holdFrameRef.current) {
+      cancelAnimationFrame(holdFrameRef.current);
+      holdFrameRef.current = null;
+    }
+    holdStartedAtRef.current = null;
+    setHoldProgress(0);
+  }
+
+  function queueApproval() {
+    navigator.vibrate?.(50);
+    setDecisionState((current) => (current.status === "error" ? { status: "idle" } : current));
+    setUndoExpiresAt(Date.now() + UNDO_DURATION_MS);
+    setUndoCountdown(Math.ceil(UNDO_DURATION_MS / 1000));
+  }
+
+  function startHold() {
+    if (!canAct || decisionState.status === "submitting") return;
+    if (!needsHoldToApprove) {
+      queueApproval();
+      return;
+    }
+
+    holdStartedAtRef.current = performance.now();
+
+    const step = (now: number) => {
+      const startedAt = holdStartedAtRef.current;
+      if (startedAt == null) return;
+      const progress = Math.min(1, (now - startedAt) / HOLD_DURATION_MS);
+      setHoldProgress(progress);
+
+      if (progress >= 1) {
+        cancelHold();
+        queueApproval();
+        return;
+      }
+
+      holdFrameRef.current = requestAnimationFrame(step);
+    };
+
+    holdFrameRef.current = requestAnimationFrame(step);
+  }
+
+  function undoApproval() {
+    setUndoExpiresAt(null);
+    setUndoCountdown(0);
   }
 
   async function submitMerge() {
@@ -326,89 +608,52 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
         setUpdateBranchState({ status: "error", message: body.message ?? "Unable to update branch." });
         return;
       }
-      setUpdateBranchState({ status: "updated", message: "Branch updated — waiting for checks..." });
+      setUpdateBranchState({ status: "updated", message: "Branch updated. Waiting for checks..." });
       void loadRequest(true);
     } catch {
       setUpdateBranchState({ status: "error", message: "Network error while updating branch." });
     }
   }
 
-  const readiness = request?.merge_readiness ?? null;
-  const githubPrUrl = getGithubPrUrl(request);
-  const showChecklist = request?.status === "approved" && !request?.pr_merged;
-  const hasLinkedPr = Boolean(request?.github_pr?.owner && request?.github_pr?.repo && request?.github_pr?.pr_number);
-  const checksPassing = allChecksPassing(readiness);
-  const branchBehind = readiness?.mergeable_state === "behind" || (readiness?.behind_by ?? 0) > 0;
-  const hasConflict = readiness?.mergeable_state === "dirty" || readiness?.mergeable === false;
-  const canMergeNow = readiness?.mergeable_state === "clean" && checksPassing;
-  const checksBlocked = Boolean(readiness) && !checksPassing;
-  const mergeBlockedReason = !readiness
-    ? "Merge readiness is still being computed."
-    : checksBlocked
-    ? "Checks must pass before merging."
-    : branchBehind
-    ? "Update branch before merging."
-    : hasConflict
-    ? "Resolve merge conflicts on GitHub before merging."
-    : "Merge is not available yet.";
-
   function renderPreMergeChecklist() {
     if (!showChecklist) return null;
 
-    const checksSummaryTone = checksPassing ? "text-[#10B981]" : "text-[#EF4444]";
-    const checksSummaryIcon = checksPassing ? "✅" : "❌";
-    const branchTone = !readiness ? "text-[#888888]" : hasConflict ? "text-[#EF4444]" : branchBehind ? "text-[#F59E0B]" : "text-[#10B981]";
-    const branchIcon = !readiness ? "⚠️" : hasConflict ? "❌" : branchBehind ? "⚠️" : "✅";
-    const branchLabel = !readiness
-      ? "Waiting for GitHub mergeability status..."
-      : hasConflict
-      ? "Merge conflict"
-      : branchBehind
-      ? `Branch is ${readiness.behind_by ?? 0} commit${(readiness.behind_by ?? 0) === 1 ? "" : "s"} behind ${request?.enrichment?.diff?.base_branch ?? "base"}`
-      : `Branch up to date with ${request?.enrichment?.diff?.base_branch ?? "base"}`;
-
     return (
-      <div className="rounded-xl border border-[#222222] bg-[#111111] p-4">
-        <p className="text-xs uppercase tracking-[0.12em] text-[#888888]">Pre-merge checks</p>
-        <div className="mt-3 space-y-2 text-sm text-[#c8c8c8]">
-          <div className="flex items-start justify-between gap-3">
-            <p className={`flex items-start gap-2 ${checksSummaryTone}`}>
-              <span className="mt-0.5">{checksSummaryIcon}</span>
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Pre-merge checks</p>
+        <div className="mt-3 space-y-3">
+          <details className="rounded-xl border border-border bg-void/40 p-3" open={!checksPassing}>
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-signal">
               <span>{getCheckSummary(readiness)}</span>
-            </p>
-            {readiness?.checks?.length ? (
-              <button
-                type="button"
-                onClick={() => setShowChecks((current) => !current)}
-                className="inline-flex items-center gap-1 text-xs text-[#888888] transition-colors hover:text-[#c8c8c8]"
-              >
-                {showChecks ? "Hide details" : "Show details"}
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showChecks ? "rotate-180" : ""}`} />
-              </button>
-            ) : null}
-          </div>
-
-          {showChecks && readiness?.checks?.length ? (
-            <div className="space-y-2 rounded-lg border border-[#222222] bg-[#0a0a0a] p-3">
-              {readiness.checks.map((check) => {
-                const passed = check.status === "completed" && check.conclusion === "success";
-                const pending = check.status !== "completed";
-                return (
-                  <div key={check.name} className="flex items-center justify-between gap-3 text-xs">
-                    <span className="text-[#c8c8c8]">{check.name}</span>
-                    <span className={passed ? "text-[#10B981]" : pending ? "text-[#F59E0B]" : "text-[#EF4444]"}>
-                      {pending ? "Pending" : passed ? "Passing" : check.conclusion ?? "Failed"}
-                    </span>
-                  </div>
-                );
-              })}
+              <ChevronDown className="h-4 w-4 text-muted" />
+            </summary>
+            <div className="mt-3 space-y-2 text-sm text-secondary">
+              {readiness?.checks?.length ? (
+                readiness.checks.map((check) => {
+                  const passed = check.status === "completed" && check.conclusion === "success";
+                  const pending = check.status !== "completed";
+                  return (
+                    <div key={check.name} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+                      <span className="text-signal">{check.name}</span>
+                      <span className={passed ? "text-permit" : pending ? "text-warning" : "text-danger"}>
+                        {pending ? "Pending" : passed ? "Passing" : check.conclusion ?? "Failed"}
+                      </span>
+                    </div>
+                  );
+                })
+              ) : (
+                <p>No checks reported.</p>
+              )}
             </div>
-          ) : null}
+          </details>
 
-          <p className={`flex items-start gap-2 ${branchTone}`}>
-            <span className="mt-0.5">{branchIcon}</span>
-            <span>{branchLabel}</span>
-          </p>
+          <div className={`rounded-xl border px-4 py-3 text-sm ${hasConflict ? "border-danger/40 bg-danger/10 text-danger" : branchBehind ? "border-warning/40 bg-warning/10 text-warning" : "border-permit/40 bg-permit/10 text-permit"}`}>
+            {hasConflict
+              ? "Merge conflict detected on GitHub."
+              : branchBehind
+                ? `Branch is ${readiness?.behind_by ?? 0} commit${(readiness?.behind_by ?? 0) === 1 ? "" : "s"} behind ${request?.enrichment?.diff?.base_branch ?? "base"}.`
+                : `Branch is up to date with ${request?.enrichment?.diff?.base_branch ?? "base"}.`}
+          </div>
         </div>
       </div>
     );
@@ -417,11 +662,9 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   function renderMergeAction() {
     if (request?.pr_merged) {
       return (
-        <div className="rounded-xl border border-[#10B981]/50 bg-[#10B981]/10 p-4">
-          <p className="text-sm font-semibold text-[#10B981]">✓ PR merged on GitHub</p>
-          {request.pr_merge_sha ? (
-            <p className="mt-1 font-mono text-xs text-secondary">{request.pr_merge_sha.slice(0, 7)}</p>
-          ) : null}
+        <div className="rounded-2xl border border-permit/40 bg-permit/10 p-4">
+          <p className="text-sm font-semibold text-permit">PR merged on GitHub</p>
+          {request.pr_merge_sha ? <p className="mt-1 font-mono text-xs text-secondary">{request.pr_merge_sha.slice(0, 7)}</p> : null}
         </div>
       );
     }
@@ -433,9 +676,9 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
             type="button"
             disabled={updateBranchState.status === "updating"}
             onClick={() => void submitUpdateBranch()}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#F59E0B] bg-transparent px-5 py-4 text-lg font-bold text-[#F59E0B] transition-colors hover:bg-[#F59E0B]/10 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-2xl border border-warning bg-warning/10 px-4 py-3 text-sm font-semibold text-warning disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {updateBranchState.status === "updating" ? "Updating Branch..." : "Update Branch"}
+            {updateBranchState.status === "updating" ? "Updating branch..." : "Update branch"}
           </button>
         );
       }
@@ -446,9 +689,9 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
             href={githubPrUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#222222] bg-transparent px-5 py-4 text-lg font-bold text-[#c8c8c8] transition-colors hover:border-[#3B82F6] hover:text-white"
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm font-semibold text-signal hover:border-permit/40"
           >
-            View on GitHub
+            Resolve on GitHub
             <ExternalLink className="h-4 w-4" />
           </a>
         );
@@ -460,17 +703,17 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
           title={!canMergeNow ? mergeBlockedReason : undefined}
           disabled={!canMergeNow || mergeState.status === "merging"}
           onClick={() => void submitMerge()}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#3B82F6] px-5 py-4 text-lg font-bold text-white shadow-lg shadow-[#3B82F6]/25 transition-all hover:bg-[#2563EB] hover:shadow-[#3B82F6]/40 disabled:cursor-not-allowed disabled:bg-[#3B82F6]/50 disabled:shadow-none"
+          className="inline-flex min-h-11 w-full items-center justify-center rounded-2xl bg-[#3B82F6] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {mergeState.status === "merging" ? "Merging..." : "Merge & Deploy"}
+          {mergeState.status === "merging" ? "Merging..." : "Merge & deploy"}
         </button>
       );
     }
 
     if (request?.status === "approved") {
       return (
-        <div className="rounded-xl border border-[#10B981]/30 bg-[#10B981]/5 p-3 text-center">
-          <p className="text-xs text-secondary">No PR linked — merge manually on GitHub</p>
+        <div className="rounded-2xl border border-border bg-card p-4 text-sm text-secondary">
+          No PR linked. Merge manually on GitHub.
         </div>
       );
     }
@@ -479,106 +722,231 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   }
 
   return (
-    <section className="min-h-screen bg-void px-4 py-6 sm:px-6 md:py-10">
-      <div className="mx-auto w-full max-w-3xl">
-        <Link href="/review" className="mb-4 inline-flex items-center gap-1 text-xs text-secondary hover:text-permit transition-colors">
+    <section className="min-h-screen bg-void px-4 pb-40 pt-4 sm:px-6 sm:pb-32">
+      <div className="mx-auto max-w-3xl">
+        <Link href="/review" className="mb-3 inline-flex min-h-11 items-center gap-1 text-sm text-secondary transition-colors hover:text-permit">
           ← All Requests
         </Link>
+
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-          className="sticky top-4 z-20 mb-5 rounded-2xl border border-border bg-card/95 p-2.5 shadow-[0_16px_36px_rgba(0,0,0,0.4)] backdrop-blur"
+          transition={{ duration: 0.25, ease: "easeOut" }}
+          className="sticky top-3 z-30 mb-4 rounded-3xl border border-border bg-card/95 p-4 shadow-[0_16px_36px_rgba(0,0,0,0.45)] backdrop-blur"
         >
-          {isAlreadyDecided ? (
+          {loading ? (
+            <div className="space-y-2 animate-pulse">
+              <div className="h-4 w-24 rounded bg-ash" />
+              <div className="h-6 w-40 rounded bg-ash" />
+              <div className="h-4 w-48 rounded bg-ash" />
+            </div>
+          ) : request ? (
             <div className="space-y-3">
-              <div className="flex items-center justify-center gap-3 py-2">
-              {request?.status === "approved" ? (
-                <p className="inline-flex items-center gap-2 text-sm font-medium text-[#10B981]">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Approved
-                </p>
-              ) : request?.status === "denied" ? (
-                <p className="inline-flex items-center gap-2 text-base font-semibold text-danger">
-                  <CircleX className="h-5 w-5" />
-                  Denied
-                </p>
-              ) : request?.status === "superseded" && request?.supersededByRequestId ? (
-                <div className="flex flex-col gap-2">
-                  <p className="inline-flex items-center gap-2 text-base font-semibold text-muted">
-                    <AlertTriangle className="h-5 w-5" />
-                    Superseded by newer version
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Requested by</p>
+                  <p className="truncate text-lg font-semibold text-signal">{request.actor ?? request.requested_by ?? "Unknown requester"}</p>
+                  <p className="mt-1 text-sm text-secondary">
+                    {relativeTimestamp}
+                    <span className="mx-1.5 text-muted">•</span>
+                    {createdAt}
                   </p>
-                  <Link
-                    href={`/review/${request.supersededByRequestId}`}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#3B82F6] px-4 py-2 text-sm font-medium text-white hover:bg-[#2563EB]"
-                  >
-                    View latest request →
-                  </Link>
                 </div>
-              ) : (
-                <p className="inline-flex items-center gap-2 text-base font-semibold text-muted">
-                  <AlertTriangle className="h-5 w-5" />
-                  {request?.status === "expired" ? "Expired" : request?.status === "superseded" ? "Superseded" : "Cancelled"}
-                </p>
-              )}
+                <span className={`inline-flex min-h-11 items-center rounded-full px-3 text-xs font-semibold uppercase tracking-[0.14em] ${environmentPillClasses(environmentLabel)}`}>
+                  {environmentLabel}
+                </span>
               </div>
 
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex min-h-11 items-center rounded-full border border-border px-3 text-xs font-medium text-secondary">
+                  {request.github_pr?.owner && request.github_pr?.repo
+                    ? `${request.github_pr.owner}/${request.github_pr.repo}`
+                    : request.resource ?? "Unknown repository"}
+                </span>
+                <span className={`inline-flex min-h-11 items-center rounded-full border px-3 text-xs font-semibold uppercase ${riskPillClasses(request.risk_tier)}`}>
+                  {request.risk_tier ?? "unknown"} risk
+                </span>
+                <span className={`inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-xs font-semibold ${stateMeta.tone}`}>
+                  <StateIcon className="h-4 w-4" />
+                  {stateMeta.label}
+                </span>
+              </div>
+            </div>
+          ) : null}
+        </motion.div>
+
+        {showAuditTrailLink ? (
+          <a
+            href={`https://app.permissionprotocol.com/pp/deploy-requests/${request?.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mb-4 inline-flex min-h-11 items-center text-sm text-secondary transition-colors hover:text-permit"
+          >
+            View full audit trail on Permission Protocol →
+          </a>
+        ) : null}
+
+        <motion.article
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: "easeOut", delay: 0.04 }}
+          className="space-y-4 rounded-[28px] border border-border bg-ash p-4 shadow-[0_20px_60px_rgba(0,0,0,0.45)] sm:p-6"
+        >
+          {loading ? (
+            <div className="space-y-3 animate-pulse">
+              <div className="h-28 rounded-3xl bg-card" />
+              <div className="h-24 rounded-3xl bg-card" />
+              <div className="h-24 rounded-3xl bg-card" />
+            </div>
+          ) : null}
+
+          {!loading && fetchError ? (
+            <div className="rounded-3xl border border-danger/50 bg-danger/10 p-4 text-sm text-danger">{fetchError}</div>
+          ) : null}
+
+          {!loading && !fetchError && request ? (
+            <>
+              <section className="rounded-3xl border border-border bg-card p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">AI summary</p>
+                    <h1 className="mt-2 text-xl font-semibold text-signal">
+                      {request.github_pr?.title ?? request.action ?? "Deploy request"}
+                    </h1>
+                  </div>
+                  {hasLinkedPr && githubPrUrl ? (
+                    <a
+                      href={githubPrUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-border px-3 text-xs font-medium text-secondary hover:border-permit/40 hover:text-signal"
+                    >
+                      PR #{request.github_pr?.pr_number}
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  ) : null}
+                </div>
+
+                <p className="mt-4 text-base leading-7 text-signal sm:text-lg">{summary}</p>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                  <div className={`rounded-2xl border px-4 py-3 ${riskMeta.chip}`}>
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em]">Risk score</p>
+                    <p className={`mt-1 text-lg font-semibold ${riskMeta.tone}`}>{riskMeta.label}</p>
+                    <p className="mt-1 text-sm text-secondary">{riskMeta.rationale}</p>
+                  </div>
+                  <div className="rounded-2xl border border-border bg-void/40 px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Blast radius</p>
+                    <p className="mt-1 text-sm font-medium text-signal">{blastRadius}</p>
+                    <p className="mt-1 text-sm text-secondary">Affected surfaces inferred from changed paths.</p>
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-3xl border border-border bg-card p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Trust signals</p>
+                    <p className="mt-1 text-sm text-secondary">Failures first. Expand any item for details.</p>
+                  </div>
+                </div>
+                <div className="mt-4 space-y-3">
+                  {trustSignals.map((signal) => (
+                    <details key={signal.id} className={`rounded-2xl border p-4 ${trustToneClasses(signal.tone)}`} open={signal.tone !== "success"}>
+                      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold">{signal.title}</p>
+                          <p className="mt-1 text-sm">{signal.summary}</p>
+                        </div>
+                        <ChevronDown className="h-4 w-4 shrink-0" />
+                      </summary>
+                      <div className="mt-3 space-y-2 border-t border-current/15 pt-3 text-sm">
+                        {signal.details.map((detail, index) => (
+                          <p key={`${signal.id}-${index}`}>{detail}</p>
+                        ))}
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              </section>
+
+              {decisionState.status === "approved" ? (
+                <div className="rounded-3xl border border-permit/50 bg-permit/10 p-4">
+                  <p className="text-sm font-semibold text-permit">Request approved</p>
+                  {decisionState.receiptId ? (
+                    <Link className="mt-1 inline-block text-sm font-semibold text-permit hover:underline" href={`/r/${decisionState.receiptId}`}>
+                      Receipt: {decisionState.receiptId.slice(0, 24)}…
+                    </Link>
+                  ) : (
+                    <p className="mt-1 text-sm text-secondary">Receipt generated.</p>
+                  )}
+                </div>
+              ) : null}
+
+              {decisionState.status === "rejected" ? (
+                <div className="rounded-3xl border border-danger/50 bg-danger/10 p-4 text-sm font-semibold text-danger">
+                  Request rejected and blocked.
+                </div>
+              ) : null}
+
+              {decisionState.status === "error" ? (
+                <div className="rounded-3xl border border-danger/50 bg-danger/10 p-4 text-sm font-semibold text-danger">
+                  {decisionState.message}
+                </div>
+              ) : null}
+
               {renderPreMergeChecklist()}
-
               {mergeState.status === "idle" ? renderMergeAction() : null}
-
               {mergeState.status === "merging" ? (
-                <div className="rounded-xl border border-[#6366F1]/50 bg-[#6366F1]/10 p-4">
-                  <p className="text-sm font-semibold text-[#6366F1]">Merging…</p>
+                <div className="rounded-3xl border border-[#3B82F6]/50 bg-[#3B82F6]/10 p-4 text-sm font-semibold text-[#3B82F6]">
+                  Merging...
                 </div>
               ) : null}
-
               {mergeState.status === "merged" ? (
-                <div className="rounded-xl border border-[#10B981]/50 bg-[#10B981]/10 p-4">
-                  <p className="text-sm font-semibold text-[#10B981]">✓ PR merged on GitHub</p>
+                <div className="rounded-3xl border border-permit/50 bg-permit/10 p-4 text-sm font-semibold text-permit">
+                  PR merged on GitHub
                 </div>
               ) : null}
-
               {mergeState.status === "error" ? (
-                <div className="space-y-2">
-                  <div className="rounded-xl border border-danger/50 bg-danger/15 p-4">
+                <div className="space-y-3">
+                  <div className="rounded-3xl border border-danger/50 bg-danger/10 p-4">
                     <p className="text-sm font-semibold text-danger">Merge failed</p>
-                    <p className="mt-1 text-xs text-secondary">{mergeState.message}</p>
+                    <p className="mt-1 text-sm text-secondary">{mergeState.message}</p>
                   </div>
                   <button
-                    onClick={() => { setMergeState({ status: "idle" }); void submitMerge(); }}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#6366F1] px-4 py-3 font-semibold text-white hover:bg-[#5558E6] transition-colors"
+                    onClick={() => {
+                      setMergeState({ status: "idle" });
+                      void submitMerge();
+                    }}
+                    className="inline-flex min-h-11 w-full items-center justify-center rounded-2xl bg-[#3B82F6] px-4 py-3 text-sm font-semibold text-white"
                   >
-                    🔄 Retry Merge
+                    Retry merge
                   </button>
                 </div>
               ) : null}
-
               {updateBranchState.status === "updated" ? (
-                <div className="rounded-xl border border-[#10B981]/40 bg-[#10B981]/10 p-4">
-                  <p className="text-sm font-semibold text-[#10B981]">{updateBranchState.message}</p>
+                <div className="rounded-3xl border border-permit/40 bg-permit/10 p-4 text-sm font-semibold text-permit">
+                  {updateBranchState.message}
+                </div>
+              ) : null}
+              {updateBranchState.status === "error" ? (
+                <div className="rounded-3xl border border-danger/40 bg-danger/10 p-4 text-sm font-semibold text-danger">
+                  {updateBranchState.message}
                 </div>
               ) : null}
 
-              {updateBranchState.status === "error" ? (
-                <div className="rounded-xl border border-[#EF4444]/40 bg-[#EF4444]/10 p-4">
-                  <p className="text-sm font-semibold text-[#EF4444]">{updateBranchState.message}</p>
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <div className="space-y-2.5">
-              <div>
-                <div className="mb-1.5 flex flex-wrap gap-1.5">
+              <section className="rounded-3xl border border-border bg-card p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Decision note</p>
+                <div className="mt-3 flex flex-wrap gap-2">
                   {reasonPresets.map((preset) => (
                     <button
                       key={preset}
+                      type="button"
                       onClick={() => setReason(preset)}
-                      className={`rounded-md border px-2 py-0.5 text-[11px] transition-colors ${
+                      className={`inline-flex min-h-11 items-center rounded-full border px-4 text-xs font-medium ${
                         reason === preset
-                          ? "border-permit bg-permit/15 text-permit"
-                          : "border-border bg-card text-secondary hover:text-signal hover:border-permit/40"
+                          ? "border-permit bg-permit/10 text-permit"
+                          : "border-border bg-void/50 text-secondary hover:border-permit/40 hover:text-signal"
                       }`}
                     >
                       {preset}
@@ -587,360 +955,230 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                 </div>
                 <textarea
                   value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder="Reason for approval or rejection (optional)"
-                  rows={2}
-                  className="w-full resize-none rounded-lg border border-border bg-card px-3 py-2 text-sm text-signal placeholder:text-secondary/50 focus:border-permit focus:outline-none focus:ring-1 focus:ring-permit/40"
+                  onChange={(event) => setReason(event.target.value)}
+                  rows={3}
+                  placeholder="Optional note included with the decision."
+                  className="mt-3 w-full rounded-2xl border border-border bg-void/50 px-4 py-3 text-sm text-signal placeholder:text-secondary/70 focus:border-permit focus:outline-none"
                 />
-              </div>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <button
-                  disabled={!canAct || decisionState.status === "submitting"}
-                  onClick={() => void submitDecision("approve")}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#10B981] px-3 py-2.5 text-sm font-semibold text-void disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  {decisionState.status === "submitting" && decisionState.action === "approve" ? "Approving..." : "Approve"}
-                </button>
-                <button
-                  disabled={!canAct || decisionState.status === "submitting"}
-                  onClick={() => void submitDecision("reject")}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-danger bg-danger/10 px-3 py-2.5 text-sm font-semibold text-signal disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <CircleX className="h-4 w-4" />
-                  {decisionState.status === "submitting" && decisionState.action === "reject" ? "Rejecting..." : "Reject"}
-                </button>
-              </div>
-            </div>
-          )}
-        </motion.div>
+              </section>
 
-        {showAuditTrailLink ? (
-          <a
-            href={`https://app.permissionprotocol.com/pp/deploy-requests/${request?.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mb-5 inline-block text-xs text-secondary transition-colors hover:text-permit"
-          >
-            🔐 View full audit trail → app.permissionprotocol.com/pp/deploy-requests/{request?.id}
-          </a>
-        ) : null}
-
-        <motion.article
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.34, ease: "easeOut", delay: 0.06 }}
-          className="rounded-[28px] border border-border bg-ash p-6 shadow-[0_20px_60px_rgba(0,0,0,0.5)] md:p-8"
-        >
-          {loading ? (
-            <div className="space-y-3 animate-pulse">
-              <div className="h-7 w-52 rounded bg-card" />
-              <div className="h-4 w-40 rounded bg-card" />
-              <div className="h-24 rounded-xl bg-card" />
-              <div className="h-24 rounded-xl bg-card" />
-            </div>
-          ) : null}
-
-          {!loading && fetchError ? (
-            <div className="rounded-xl border border-danger/50 bg-danger/15 p-4">
-              <p className="inline-flex items-center gap-2 text-sm font-semibold text-danger">
-                <AlertTriangle className="h-4 w-4" />
-                {fetchError}
-              </p>
-            </div>
-          ) : null}
-
-          {!loading && !fetchError && request ? (
-            <>
-              {/* PR title as page heading */}
-              <div className="mb-4">
-                <h1 className="text-xl font-bold text-signal">
-                  {request.github_pr?.title ?? request.action ?? "Deploy Request"}
-                </h1>
-                <p className="mt-1 flex items-center gap-2 text-xs text-secondary">
-                  <GitPullRequest className="h-3 w-3" />
-                  {request.resource}
-                  {request.github_pr?.pr_number ? ` · PR #${request.github_pr.pr_number}` : ""}
-                  {request.actor && request.actor !== "CI" ? ` · ${request.actor}` : ""}
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                {isPending ? (
-                  <p className="inline-flex items-center gap-2 rounded-full border border-warning/60 bg-warning/15 px-4 py-2 text-sm font-bold text-warning">
-                    <ShieldCheck className="h-4 w-4" />
-                    REVIEW REQUIRED
-                  </p>
-                ) : request?.status === "approved" ? (
-                  <p className="inline-flex items-center gap-2 rounded-full border border-[#10B981]/60 bg-[#10B981]/15 px-4 py-2 text-sm font-bold text-[#10B981]">
-                    <CheckCircle2 className="h-4 w-4" />
-                    APPROVED
-                  </p>
-                ) : request?.status === "denied" ? (
-                  <p className="inline-flex items-center gap-2 rounded-full border border-danger/60 bg-danger/15 px-4 py-2 text-sm font-bold text-danger">
-                    <CircleX className="h-4 w-4" />
-                    DENIED
-                  </p>
-                ) : (
-                  <p className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-bold text-muted uppercase">
-                    <AlertTriangle className="h-4 w-4" />
-                    {request?.status ?? "Unknown"}
-                  </p>
-                )}
-                <p className={`inline-flex rounded-full border px-4 py-2 text-sm font-semibold ${statusBadge}`}>
-                  Risk: {request.risk_tier ?? "Unknown"}
-                </p>
-              </div>
-
-              <div
-                className={`mt-6 rounded-xl border p-5 ${
-                  request.enrichment?.risk_signals && request.enrichment.risk_signals.length > 0
-                    ? "border-warning/40 bg-warning/5"
-                    : "border-permit/30 bg-permit/5"
-                }`}
-              >
-                <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-permit">
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                  AI Assessment
-                </p>
-                <p className="mt-3 text-base leading-relaxed text-signal">
-                  {request.enrichment?.ai_summary ?? "No AI assessment provided for this request."}
-                </p>
-
-                {request.enrichment?.risk_signals && request.enrichment.risk_signals.length > 0 ? (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {request.enrichment.risk_signals.map((signal) => (
-                      <span
-                        key={signal.label}
-                        title={signal.reason}
-                        className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium ${
-                          signal.severity === "critical"
-                            ? "border-danger/60 bg-danger/15 text-danger"
-                            : signal.severity === "high"
-                            ? "border-warning/60 bg-warning/15 text-warning"
-                            : "border-border bg-void/50 text-secondary"
-                        }`}
-                      >
-                        {signal.severity === "critical" ? "CRITICAL" : signal.severity.toUpperCase()} · {signal.label}
-                      </span>
-                    ))}
+              <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {metadataItems(request).map((item) => (
+                  <div key={item.label} className="rounded-3xl border border-border bg-card p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">{item.label}</p>
+                    <p className="mt-2 break-words text-sm font-medium text-signal">{item.value}</p>
                   </div>
-                ) : null}
-              </div>
+                ))}
+              </section>
 
-              <div className="mt-6 overflow-x-auto rounded-xl border border-border bg-card">
-                <div className="flex min-w-max items-center divide-x divide-border">
-                  <div className="px-4 py-3">
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Action</p>
-                    <p className="mt-1 text-sm font-semibold text-signal">{request.action ?? "Unknown action"}</p>
-                  </div>
-                  <div className="px-4 py-3">
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Resource</p>
-                    <div className="mt-1 flex items-center gap-2">
-                      <p className="text-sm font-semibold text-signal">{request.resource ?? "Unknown resource"}</p>
-                      {request.github_pr?.owner && request.github_pr?.repo && request.github_pr?.pr_number ? (
-                        <a
-                          href={`https://github.com/${request.github_pr.owner}/${request.github_pr.repo}/pull/${request.github_pr.pr_number}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 rounded-md border border-border bg-void/50 px-2 py-0.5 text-xs font-medium text-permit hover:border-permit/40 hover:text-[#6ac9b7] transition-colors"
-                        >
-                          PR #{request.github_pr.pr_number}
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="px-4 py-3">
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Actor</p>
-                    <p className="mt-1 text-sm font-semibold text-signal">{request.actor ?? request.requested_by ?? "Unknown actor"}</p>
-                  </div>
-                  <div className="px-4 py-3">
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Scope</p>
-                    <p className="mt-1 text-sm font-semibold text-signal">
-                      {Array.isArray(request.scope) ? request.scope.join(", ") : request.scope ?? "Not specified"}
-                    </p>
-                  </div>
-                </div>
+              <div className="rounded-3xl border border-border bg-card p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Timestamp</p>
+                <p className="mt-2 text-sm text-secondary">{formatTimestamp(request.timestamp ?? request.created_at)}</p>
               </div>
 
               {request.enrichment?.diff ? (
-                <details className="mt-4 rounded-xl border border-border bg-card p-4" open={isPending}>
-                  <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-signal">
+                <details className="rounded-3xl border border-border bg-card p-4" open={isPending}>
+                  <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-signal">
                     <span className="inline-flex items-center gap-2">
                       <FileCode2 className="h-4 w-4 text-permit" />
                       {request.enrichment.diff.total_files} files changed
-                      <span className="text-xs font-normal text-[#10B981]">+{request.enrichment.diff.total_additions}</span>
-                      <span className="text-xs font-normal text-danger">-{request.enrichment.diff.total_deletions}</span>
                     </span>
                     <ChevronDown className="h-4 w-4 text-muted" />
                   </summary>
-                  <div className="mt-3 space-y-1">
+                  <div className="mt-4 space-y-2">
                     {request.enrichment.diff.files.map((file) => (
-                      <div key={file.filename} className="flex items-center justify-between rounded-lg border border-border bg-void/30 px-3 py-1.5">
-                        <span className="max-w-[70%] truncate font-mono text-xs text-secondary">{file.filename}</span>
-                        <span className="flex items-center gap-2 text-xs">
-                          {file.additions > 0 ? <span className="text-[#10B981]">+{file.additions}</span> : null}
+                      <div key={file.filename} className="rounded-2xl border border-border bg-void/40 p-3">
+                        <p className="break-all font-mono text-xs text-secondary">{file.filename}</p>
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                          {file.additions > 0 ? <span className="text-permit">+{file.additions}</span> : null}
                           {file.deletions > 0 ? <span className="text-danger">-{file.deletions}</span> : null}
-                          <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                            file.status === "added" ? "bg-[#10B981]/15 text-[#10B981]"
-                            : file.status === "removed" ? "bg-danger/15 text-danger"
-                            : file.status === "renamed" ? "bg-[#6366F1]/15 text-[#6366F1]"
-                            : "bg-warning/15 text-warning"
-                          }`}>
-                            {file.status}
-                          </span>
-                        </span>
+                          <span className="rounded-full border border-border px-2 py-1 text-secondary">{file.status}</span>
+                        </div>
                       </div>
                     ))}
                   </div>
-                  <p className="mt-2 text-[10px] text-muted">
+                  <p className="mt-3 text-xs text-muted">
                     {request.enrichment.diff.head_branch} → {request.enrichment.diff.base_branch}
                   </p>
                 </details>
               ) : request.github_pr ? (
-                <details className="mt-6 rounded-xl border border-border bg-card p-4">
-                  <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-signal">
+                <details className="rounded-3xl border border-border bg-card p-4">
+                  <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-signal">
                     <span className="inline-flex items-center gap-2">
                       <GitPullRequest className="h-4 w-4 text-permit" />
-                      GitHub PR Context
+                      GitHub PR context
                     </span>
                     <ChevronDown className="h-4 w-4 text-muted" />
                   </summary>
-                  <div className="mt-4 space-y-3">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.12em] text-muted">Title</p>
-                      <p className="mt-1 text-sm font-semibold text-signal">{request.github_pr.title ?? "Untitled PR"}</p>
-                    </div>
-                  </div>
+                  <p className="mt-3 text-sm text-signal">{request.github_pr.title ?? "Untitled PR"}</p>
                 </details>
               ) : null}
 
-              <div className="mt-4 rounded-xl border border-border bg-card p-4">
-                <p className="text-xs uppercase tracking-[0.12em] text-muted">Timestamp</p>
-                <p className="mt-1 text-sm text-secondary">{formatTimestamp(request.timestamp ?? request.created_at)}</p>
-              </div>
-
               {request.preview_url ? (
-                <details className="mt-6 rounded-xl border border-permit/30 bg-card p-4" open>
-                  <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-signal">
+                <details className="rounded-3xl border border-permit/30 bg-card p-4">
+                  <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-signal">
                     <span className="inline-flex items-center gap-2">
                       <ExternalLink className="h-4 w-4 text-permit" />
-                      Live Preview
+                      Live preview
                     </span>
                     <a
                       href={request.preview_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(event) => event.stopPropagation()}
                       className="text-xs text-permit hover:underline"
                     >
-                      Open in new tab ↗
+                      Open ↗
                     </a>
                   </summary>
-                  <div className="mt-3 overflow-hidden rounded-lg border border-border">
+                  <div className="mt-3 overflow-hidden rounded-2xl border border-border">
                     <iframe
                       src={request.preview_url}
                       title="Vercel Preview"
-                      className="h-[400px] w-full bg-white"
+                      className="h-[360px] w-full bg-white"
                       sandbox="allow-scripts allow-same-origin"
                     />
                   </div>
                 </details>
               ) : null}
 
+              {request.status === "superseded" && request.supersededByRequestId ? (
+                <div className="rounded-3xl border border-warning/40 bg-warning/10 p-4">
+                  <p className="text-sm font-semibold text-warning">This request was superseded by a newer version.</p>
+                  <Link
+                    href={`/review/${request.supersededByRequestId}`}
+                    className="mt-3 inline-flex min-h-11 items-center rounded-2xl border border-warning px-4 text-sm font-semibold text-warning"
+                  >
+                    View latest request
+                  </Link>
+                </div>
+              ) : null}
             </>
           ) : null}
         </motion.article>
+      </div>
 
-        {decisionState.status === "approved" ? (
-          <motion.div
-            ref={resultRef}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            onAnimationComplete={() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
-            className="mt-5 space-y-3"
+      {showRejectSheet ? (
+        <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={() => setShowRejectSheet(false)}>
+          <div
+            className="absolute inset-x-0 bottom-0 rounded-t-[28px] border border-border bg-card p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-[0_-16px_40px_rgba(0,0,0,0.45)]"
+            onClick={(event) => event.stopPropagation()}
           >
-            <div className="rounded-xl border border-[#10B981]/50 bg-[#10B981]/15 p-4">
-              <p className="text-sm font-semibold text-[#10B981]">✓ Request approved</p>
-              {decisionState.receiptId ? (
-                <Link className="mt-1 inline-block text-sm font-semibold text-permit hover:text-[#6ac9b7]" href={`/r/${decisionState.receiptId}`}>
-                  Receipt: {decisionState.receiptId.slice(0, 24)}…
-                </Link>
-              ) : (
-                <p className="mt-1 text-sm text-secondary">Receipt generated.</p>
-              )}
+            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-border" />
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-lg font-semibold text-signal">Reject request</p>
+                <p className="mt-1 text-sm text-secondary">Choose a reason or add your own note.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowRejectSheet(false)}
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border text-secondary"
+              >
+                <CircleX className="h-4 w-4" />
+              </button>
             </div>
 
-            {decisionState.hasPr && mergeState.status === "idle" ? renderPreMergeChecklist() : null}
-
-            {decisionState.hasPr && mergeState.status === "idle" ? renderMergeAction() : null}
-
-            {mergeState.status === "merging" ? (
-              <div className="rounded-xl border border-[#6366F1]/50 bg-[#6366F1]/10 p-4">
-                <p className="text-sm font-semibold text-[#6366F1]">Merging…</p>
-              </div>
-            ) : null}
-
-            {mergeState.status === "merged" ? (
-              <div className="rounded-xl border border-[#10B981]/50 bg-[#10B981]/10 p-4">
-                <p className="text-sm font-semibold text-[#10B981]">✓ PR merged on GitHub</p>
-              </div>
-            ) : null}
-
-            {mergeState.status === "error" ? (
-              <div className="space-y-2">
-                <div className="rounded-xl border border-danger/50 bg-danger/15 p-4">
-                  <p className="text-sm font-semibold text-danger">Merge failed</p>
-                  <p className="mt-1 text-xs text-secondary">{mergeState.message}</p>
-                </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {rejectReasonPresets.map((preset) => (
                 <button
-                  onClick={() => { setMergeState({ status: "idle" }); void submitMerge(); }}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#6366F1] px-4 py-3 font-semibold text-white hover:bg-[#5558E6] transition-colors"
+                  key={preset}
+                  type="button"
+                  onClick={() => setReason(preset)}
+                  className={`inline-flex min-h-11 items-center rounded-full border px-4 text-sm ${
+                    reason === preset
+                      ? "border-danger bg-danger/10 text-danger"
+                      : "border-border bg-void/40 text-secondary"
+                  }`}
                 >
-                  🔄 Retry Merge
+                  {preset}
+                </button>
+              ))}
+            </div>
+
+            <textarea
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              rows={4}
+              placeholder="Why should this not go live?"
+              className="mt-4 w-full rounded-2xl border border-border bg-void/50 px-4 py-3 text-sm text-signal placeholder:text-secondary/70 focus:border-danger focus:outline-none"
+            />
+
+            <button
+              type="button"
+              disabled={!canAct || decisionState.status === "submitting"}
+              onClick={() => void submitDecision("reject")}
+              className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-2xl border border-danger bg-danger/10 px-4 py-3 text-sm font-semibold text-danger disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {decisionState.status === "submitting" && decisionState.action === "reject" ? "Rejecting..." : "Confirm reject"}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {canAct ? (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur">
+          <div className="mx-auto max-w-3xl px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3 sm:px-6">
+            {undoExpiresAt ? (
+              <div className="rounded-3xl border border-permit/40 bg-permit/10 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-permit">Approval queued</p>
+                    <p className="mt-1 text-sm text-secondary">Undo within {undoCountdown}s before it is submitted.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={undoApproval}
+                    className="inline-flex min-h-11 items-center rounded-full border border-permit px-4 text-sm font-semibold text-permit"
+                  >
+                    Undo
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  disabled={!canAct || decisionState.status === "submitting"}
+                  onClick={needsHoldToApprove ? undefined : () => queueApproval()}
+                  onPointerDown={needsHoldToApprove ? startHold : undefined}
+                  onPointerUp={needsHoldToApprove ? cancelHold : undefined}
+                  onPointerLeave={needsHoldToApprove ? cancelHold : undefined}
+                  onPointerCancel={needsHoldToApprove ? cancelHold : undefined}
+                  className="relative inline-flex min-h-11 w-full touch-none items-center justify-center overflow-hidden rounded-2xl bg-[#10B981] px-4 py-4 text-base font-semibold text-void disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {needsHoldToApprove && holdProgress > 0 ? (
+                    <span
+                      className="absolute inset-y-0 left-0 bg-white/20"
+                      style={{ width: `${holdProgress * 100}%` }}
+                    />
+                  ) : null}
+                  <span className="relative inline-flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5" />
+                    {decisionState.status === "submitting" && decisionState.action === "approve"
+                      ? "Approving..."
+                      : needsHoldToApprove
+                        ? holdProgress > 0
+                          ? "Keep holding..."
+                          : "Hold to approve"
+                        : "Approve"}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={!canAct || decisionState.status === "submitting"}
+                  onClick={() => setShowRejectSheet(true)}
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-2xl border border-danger bg-danger/10 px-4 py-3 text-sm font-semibold text-danger disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <CircleX className="mr-2 h-4 w-4" />
+                  Reject
                 </button>
               </div>
-            ) : null}
-
-            {updateBranchState.status === "updated" ? (
-              <div className="rounded-xl border border-[#10B981]/40 bg-[#10B981]/10 p-4">
-                <p className="text-sm font-semibold text-[#10B981]">{updateBranchState.message}</p>
-              </div>
-            ) : null}
-
-            {updateBranchState.status === "error" ? (
-              <div className="rounded-xl border border-[#EF4444]/40 bg-[#EF4444]/10 p-4">
-                <p className="text-sm font-semibold text-[#EF4444]">{updateBranchState.message}</p>
-              </div>
-            ) : null}
-          </motion.div>
-        ) : null}
-
-        {decisionState.status === "rejected" ? (
-          <motion.div
-            ref={resultRef}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            onAnimationComplete={() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
-            className="mt-5 rounded-xl border border-danger/50 bg-danger/15 p-4"
-          >
-            <p className="text-sm font-semibold text-danger">Request rejected and blocked.</p>
-          </motion.div>
-        ) : null}
-
-        {decisionState.status === "error" ? (
-          <motion.div
-            ref={resultRef}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            onAnimationComplete={() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
-            className="mt-5 rounded-xl border border-danger/50 bg-danger/15 p-4"
-          >
-            <p className="text-sm font-semibold text-danger">{decisionState.message}</p>
-          </motion.div>
-        ) : null}
-      </div>
+            )}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

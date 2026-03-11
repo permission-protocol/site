@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { AlertTriangle, CheckCircle2, Clock, GitPullRequest, Plus, ShieldCheck } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { timeAgo } from "@/lib/time";
 
 type RequestSummary = {
   id: string;
@@ -27,17 +28,6 @@ type ManualRequestState = {
 
 const inputClass =
   "mt-1 w-full rounded-lg border border-border bg-ash px-3 py-2 text-sm text-signal placeholder:text-secondary/70 focus:border-permit focus:outline-none focus:ring-2 focus:ring-permit/30";
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
 
 function waitLabel(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -209,8 +199,8 @@ export function ReviewDashboard() {
   ];
 
   return (
-    <section className="mx-auto max-w-3xl px-4 pt-24 pb-12">
-      <div className="mb-8 flex items-center gap-3">
+    <section className="mx-auto max-w-3xl px-4 pt-20 pb-12 sm:px-6">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center">
         <ShieldCheck className="h-8 w-8 text-permit" />
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-signal">Review Queue</h1>
@@ -227,7 +217,7 @@ export function ReviewDashboard() {
         <button
           type="button"
           onClick={() => setShowManualCreate((prev) => !prev)}
-          className="inline-flex items-center gap-2 rounded-lg border border-permit/40 bg-permit/10 px-3 py-2 text-sm font-semibold text-permit transition-colors hover:border-permit hover:bg-permit/15"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-permit/40 bg-permit/10 px-4 py-2 text-sm font-semibold text-permit transition-colors hover:border-permit hover:bg-permit/15"
         >
           <Plus className="h-4 w-4" />
           Create Request
@@ -316,7 +306,7 @@ export function ReviewDashboard() {
         </div>
       ) : (
         <div className="space-y-6">
-          <div className="grid gap-3 sm:grid-cols-4">
+          <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
             <div className="rounded-xl border border-border bg-card px-4 py-3">
               <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Pending</p>
               <p className={`mt-2 text-3xl font-bold ${pending.length > 0 ? "text-warning" : "text-signal"}`}>{pending.length}</p>
@@ -342,7 +332,7 @@ export function ReviewDashboard() {
                   key={chip.value}
                   type="button"
                   onClick={() => setStatusFilter(chip.value)}
-                  className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                  className={`min-h-11 rounded-full border px-4 py-2 text-xs transition-colors ${
                     statusFilter === chip.value
                       ? "border-permit bg-permit/15 text-permit"
                       : "border-border bg-card text-secondary hover:border-permit/40 hover:text-signal"
@@ -357,7 +347,7 @@ export function ReviewDashboard() {
                 <button
                   type="button"
                   onClick={() => setRepoFilter("all")}
-                  className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                  className={`min-h-11 rounded-full border px-4 py-2 text-xs transition-colors ${
                     repoFilter === "all"
                       ? "border-permit bg-permit/15 text-permit"
                       : "border-border bg-card text-secondary hover:border-permit/40 hover:text-signal"
@@ -370,7 +360,7 @@ export function ReviewDashboard() {
                     key={repo}
                     type="button"
                     onClick={() => setRepoFilter(repo)}
-                    className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                    className={`min-h-11 rounded-full border px-4 py-2 text-xs transition-colors ${
                       repoFilter === repo
                         ? "border-permit bg-permit/15 text-permit"
                         : "border-border bg-card text-secondary hover:border-permit/40 hover:text-signal"
