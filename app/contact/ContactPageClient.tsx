@@ -33,13 +33,53 @@ const defaultState: FormState = {
 const inputClass =
   "mt-2 w-full rounded-lg border border-border bg-ash px-3 py-2.5 text-signal placeholder:text-secondary focus:border-permit focus:outline-none focus:ring-2 focus:ring-permit/40";
 
+declare global {
+  interface Window {
+    posthog?: {
+      capture: (eventName: string, properties?: Record<string, string>) => void;
+    };
+  }
+}
+
 export function ContactPageClient() {
   const [form, setForm] = useState<FormState>(defaultState);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSubmitted(true);
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(data?.error || "Failed to send message");
+      }
+
+      setSubmitted(true);
+      window.posthog?.capture("pp_contact_form_submit", {
+        name: form.name,
+        email: form.email,
+        company: form.company,
+        useCase: form.useCase,
+        environment: form.environment,
+        message: form.message,
+      });
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error ? submitError.message : "Something went wrong. Please try again."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -59,6 +99,10 @@ export function ContactPageClient() {
               <CheckCircle2 className="h-5 w-5 text-[#10B981]" />
               <span>Thanks! We will be in touch within 24 hours.</span>
             </div>
+          ) : null}
+
+          {error ? (
+            <p className="mt-4 text-sm text-red-400">{error}</p>
           ) : null}
 
           <form className="mt-4 grid gap-4" onSubmit={handleSubmit}>
@@ -144,8 +188,12 @@ export function ContactPageClient() {
               />
             </label>
 
-            <button type="submit" className="mt-2 w-full rounded-xl bg-permit px-4 py-3 font-semibold text-void hover:brightness-110">
-              Send
+            <button
+              type="submit"
+              disabled={submitting}
+              className="mt-2 w-full rounded-xl bg-permit px-4 py-3 font-semibold text-void hover:brightness-110"
+            >
+              {submitting ? "Sending..." : "Send"}
             </button>
           </form>
         </motion.section>
