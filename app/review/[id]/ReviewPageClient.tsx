@@ -118,6 +118,7 @@ function normalizeErrorMessage(status: number, body: unknown): string {
 
 export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const [request, setRequest] = useState<ReviewRequest | null>(null);
+  const statusRef = useRef<string>("pending");
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [reason, setReason] = useState("");
@@ -144,6 +145,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
         }
 
         setRequest(body as ReviewRequest);
+        statusRef.current = (body as ReviewRequest).status ?? "pending";
       } catch (error) {
         if ((error as Error).name !== "AbortError" && !isPolling) {
           setFetchError("Network error while loading this request.");
@@ -157,9 +159,9 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
 
     void loadRequest();
 
-    // Poll every 15s while request is pending
+    // Poll every 15s only while request is pending (stop once decided)
     const interval = setInterval(() => {
-      if (!controller.signal.aborted) {
+      if (!controller.signal.aborted && statusRef.current === "pending") {
         void loadRequest(true);
       }
     }, 15000);

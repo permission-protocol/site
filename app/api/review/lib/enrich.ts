@@ -198,6 +198,11 @@ export type ReviewEnrichment = {
   ai_summary: string | null;
 };
 
+// Cache enrichment results to avoid regenerating AI summary on every poll.
+// Key: "owner/repo#prNumber", TTL: 10 minutes.
+const enrichmentCache = new Map<string, { data: ReviewEnrichment; expiresAt: number }>();
+const CACHE_TTL_MS = 10 * 60 * 1000;
+
 export async function enrichReviewRequest(
   repo: string,
   prNumber: number
@@ -207,13 +212,22 @@ export async function enrichReviewRequest(
     return { diff: null, risk_signals: [], ai_summary: null };
   }
 
+  const cacheKey = `${repo}#${prNumber}`;
+  const cached = enrichmentCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.data;
+  }
+
   const diff = await fetchPrDiff(owner, repoName, prNumber);
   const riskSignals = diff ? detectRiskSignals(diff.files) : [];
   const aiSummary = diff ? await generateAiSummary(diff) : null;
 
-  return {
+  const result: ReviewEnrichment = {
     diff,
     risk_signals: riskSignals,
     ai_summary: aiSummary,
   };
+
+  enrichmentCache.set(cacheKey, { data: result, expiresAt: Date.now() + CACHE_TTL_MS });
+  return result;
 }
