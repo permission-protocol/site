@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { enrichReviewRequest } from "../lib/enrich";
+import { enrichReviewRequest, fetchMergeReadiness } from "../lib/enrich";
 import { GH_API, ghHeaders, fetchRequestDetails } from "../lib/shared";
 
 type PrInfo = {
@@ -57,6 +57,7 @@ function mapToReviewRequest(raw: any, prInfo?: PrInfo | null) {
     timestamp: raw.createdAt || raw.created_at,
     created_at: raw.createdAt || raw.created_at,
     status: raw.status,
+    supersededByRequestId: raw.supersededByRequestId ?? null,
     approval_status: raw.approvalStatus,
     commit_sha: raw.commitSha,
     pr_merged: prInfo?.merged ?? false,
@@ -118,6 +119,16 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       ? await enrichReviewRequest(match.repo, match.prNumber)
       : null;
 
+    const [owner, repoName] = (match.repo ?? "").split("/");
+    const merge_readiness =
+      match.status === "approved" &&
+      !prInfo?.merged &&
+      typeof match.prNumber === "number" &&
+      owner &&
+      repoName
+        ? await fetchMergeReadiness(owner, repoName, match.prNumber)
+        : null;
+
     // Vercel preview URL (for permissionprotocol-site PRs)
     const preview_url = match.prNumber && match.repo
       ? await fetchVercelPreview(match.repo, match.prNumber)
@@ -126,6 +137,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
     return NextResponse.json({
       ...mapToReviewRequest(match, prInfo),
       enrichment,
+      merge_readiness,
       preview_url,
     });
   } catch (error) {

@@ -78,6 +78,19 @@ export type PrDiff = {
   head_branch: string;
 };
 
+export type MergeReadiness = {
+  mergeable: boolean | null;
+  mergeable_state: string | null;
+  checks: Array<{
+    name: string;
+    status: string;
+    conclusion: string | null;
+  }>;
+  checks_passing: number;
+  checks_total: number;
+  behind_by: number | null;
+};
+
 async function fetchPrDiff(owner: string, repo: string, prNumber: number): Promise<PrDiff | null> {
   const githubToken = process.env.GITHUB_TOKEN;
   if (!githubToken) return null;
@@ -198,6 +211,89 @@ export type ReviewEnrichment = {
   ai_summary: string | null;
 };
 
+// Cache enrichment results to avoid regenerating AI summary on every poll.
+// Key: "owner/repo#prNumber", TTL: 10 minutes.
+const enrichmentCache = new Map<string, { data: ReviewEnrichment; expiresAt: number }>();
+const CACHE_TTL_MS = 10 * 60 * 1000;
+const readinessCache = new Map<string, { data: MergeReadiness | null; expiresAt: number }>();
+const READINESS_CACHE_TTL_MS = 30 * 1000;
+
+export async function fetchMergeReadiness(
+  owner: string,
+  repo: string,
+  prNumber: number
+): Promise<MergeReadiness | null> {
+  const githubToken = process.env.GITHUB_TOKEN;
+  if (!githubToken) return null;
+
+  const cacheKey = `${owner}/${repo}#${prNumber}:readiness`;
+  const cached = readinessCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.data;
+  }
+
+  try {
+    const prRes = await fetch(`${GH_API}/repos/${owner}/${repo}/pulls/${prNumber}`, {
+      headers: ghHeaders(githubToken),
+    });
+    if (!prRes.ok) return null;
+
+    const prData = (await prRes.json()) as {
+      mergeable?: boolean | null;
+      mergeable_state?: string | null;
+      head?: { sha?: string };
+      base?: { sha?: string };
+    };
+
+    const headSha = prData.head?.sha;
+    const baseSha = prData.base?.sha;
+    if (!headSha || !baseSha) return null;
+
+    const [checksRes, compareRes] = await Promise.all([
+      fetch(`${GH_API}/repos/${owner}/${repo}/commits/${headSha}/check-runs`, {
+        headers: ghHeaders(githubToken),
+      }),
+      fetch(`${GH_API}/repos/${owner}/${repo}/compare/${baseSha}...${headSha}`, {
+        headers: ghHeaders(githubToken),
+      }),
+    ]);
+
+    if (!checksRes.ok || !compareRes.ok) return null;
+
+    const checksData = (await checksRes.json()) as {
+      check_runs?: Array<{
+        name?: string;
+        status?: string;
+        conclusion?: string | null;
+      }>;
+    };
+    const compareData = (await compareRes.json()) as { behind_by?: number };
+
+    const checks = (checksData.check_runs ?? []).map((check) => ({
+      name: check.name ?? "Unnamed check",
+      status: check.status ?? "queued",
+      conclusion: check.conclusion ?? null,
+    }));
+    const checksPassing = checks.filter(
+      (check) => check.status === "completed" && check.conclusion === "success"
+    ).length;
+
+    const result: MergeReadiness = {
+      mergeable: prData.mergeable ?? null,
+      mergeable_state: prData.mergeable_state ?? null,
+      checks,
+      checks_passing: checksPassing,
+      checks_total: checks.length,
+      behind_by: compareData.behind_by ?? null,
+    };
+
+    readinessCache.set(cacheKey, { data: result, expiresAt: Date.now() + READINESS_CACHE_TTL_MS });
+    return result;
+  } catch {
+    return null;
+  }
+}
+
 export async function enrichReviewRequest(
   repo: string,
   prNumber: number
@@ -207,13 +303,22 @@ export async function enrichReviewRequest(
     return { diff: null, risk_signals: [], ai_summary: null };
   }
 
+  const cacheKey = `${repo}#${prNumber}`;
+  const cached = enrichmentCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.data;
+  }
+
   const diff = await fetchPrDiff(owner, repoName, prNumber);
   const riskSignals = diff ? detectRiskSignals(diff.files) : [];
   const aiSummary = diff ? await generateAiSummary(diff) : null;
 
-  return {
+  const result: ReviewEnrichment = {
     diff,
     risk_signals: riskSignals,
     ai_summary: aiSummary,
   };
+
+  enrichmentCache.set(cacheKey, { data: result, expiresAt: Date.now() + CACHE_TTL_MS });
+  return result;
 }

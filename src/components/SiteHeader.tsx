@@ -115,6 +115,14 @@ export function SiteHeader() {
           <Link href="/developers/quickstart" className="btn-primary rounded-lg px-4 py-2">
             Get Started
           </Link>
+          {status === "unauthenticated" ? (
+            <a
+              href="https://app.permissionprotocol.com/auth/signin"
+              className="rounded-lg border border-border px-3 py-1.5 text-sm text-secondary hover:border-signal hover:text-signal"
+            >
+              Log in
+            </a>
+          ) : null}
           {status === "authenticated" ? (
             <div className="relative" ref={userMenuRef}>
               <button
@@ -206,6 +214,15 @@ export function SiteHeader() {
             >
               Get Started
             </Link>
+            {status === "unauthenticated" ? (
+              <a
+                href="https://app.permissionprotocol.com/auth/signin"
+                className="inline-flex w-fit rounded-lg border border-border px-4 py-2 text-secondary hover:border-signal hover:text-signal"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Log in
+              </a>
+            ) : null}
           </div>
         </nav>
       </div>
