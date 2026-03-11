@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { AlertTriangle, CheckCircle2, ChevronDown, CircleX, ExternalLink, FileCode2, GitPullRequest, ShieldCheck } from "lucide-react";
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useCallback, useMemo, useState, useEffect, useRef } from "react";
 
 type GithubPrMetadata = {
   owner?: string;
@@ -42,6 +42,19 @@ type Enrichment = {
   ai_summary?: string | null;
 };
 
+type MergeReadiness = {
+  mergeable: boolean | null;
+  mergeable_state: string | null;
+  checks: Array<{
+    name: string;
+    status: string;
+    conclusion: string | null;
+  }>;
+  checks_passing: number;
+  checks_total: number;
+  behind_by: number | null;
+};
+
 type ReviewRequest = {
   id?: string;
   action?: string;
@@ -59,6 +72,7 @@ type ReviewRequest = {
   pr_state?: string | null;
   github_pr?: GithubPrMetadata;
   enrichment?: Enrichment | null;
+  merge_readiness?: MergeReadiness | null;
   preview_url?: string | null;
 };
 
@@ -67,6 +81,12 @@ type MergeState =
   | { status: "merging" }
   | { status: "merged"; message?: string }
   | { status: "error"; message?: string };
+
+type UpdateBranchState =
+  | { status: "idle" }
+  | { status: "updating" }
+  | { status: "updated"; message: string }
+  | { status: "error"; message: string };
 
 type DecisionState =
   | { status: "idle" }
@@ -116,53 +136,88 @@ function normalizeErrorMessage(status: number, body: unknown): string {
   return "Unable to complete this request.";
 }
 
+function getGithubPrUrl(request: ReviewRequest | null): string | null {
+  const owner = request?.github_pr?.owner;
+  const repo = request?.github_pr?.repo;
+  const prNumber = request?.github_pr?.pr_number;
+  if (!owner || !repo || !prNumber) return null;
+  return `https://github.com/${owner}/${repo}/pull/${prNumber}`;
+}
+
+function allChecksPassing(readiness: MergeReadiness | null | undefined): boolean {
+  if (!readiness) return false;
+  return readiness.checks_passing === readiness.checks_total
+    && readiness.checks.every((check) => check.status === "completed" && check.conclusion === "success");
+}
+
+function getCheckSummary(readiness: MergeReadiness | null | undefined): string {
+  if (!readiness) return "Checking GitHub status...";
+  if (readiness.checks_total === 0) {
+    return "No check runs reported (0/0)";
+  }
+  if (allChecksPassing(readiness)) {
+    return `All checks passing (${readiness.checks_passing}/${readiness.checks_total})`;
+  }
+  return `${readiness.checks_total - readiness.checks_passing} check${readiness.checks_total - readiness.checks_passing === 1 ? "" : "s"} not passing`;
+}
+
 export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const [request, setRequest] = useState<ReviewRequest | null>(null);
-  const statusRef = useRef<string>("pending");
+  const requestStateRef = useRef<{ status: string; prMerged: boolean }>({ status: "pending", prMerged: false });
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [decisionState, setDecisionState] = useState<DecisionState>({ status: "idle" });
+  const [mergeState, setMergeState] = useState<MergeState>({ status: "idle" });
+  const [updateBranchState, setUpdateBranchState] = useState<UpdateBranchState>({ status: "idle" });
+  const [showChecks, setShowChecks] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
+
+  const loadRequest = useCallback(async (isPolling = false, signal?: AbortSignal) => {
+    if (!isPolling) {
+      setLoading(true);
+      setFetchError(null);
+    }
+
+    try {
+      const response = await fetch(`/api/review/${id}`, signal ? { signal } : undefined);
+      const body = (await response.json().catch(() => ({}))) as unknown;
+
+      if (!response.ok) {
+        if (!isPolling) setFetchError(normalizeErrorMessage(response.status, body));
+        return;
+      }
+
+      const nextRequest = body as ReviewRequest;
+      setRequest(nextRequest);
+      requestStateRef.current = {
+        status: nextRequest.status ?? "pending",
+        prMerged: nextRequest.pr_merged ?? false,
+      };
+    } catch (error) {
+      if ((error as Error).name !== "AbortError" && !isPolling) {
+        setFetchError("Network error while loading this request.");
+      }
+    } finally {
+      if (!(signal?.aborted) && !isPolling) {
+        setLoading(false);
+      }
+    }
+  }, [id]);
 
   // Initial load + real-time polling while pending
   useEffect(() => {
     const controller = new AbortController();
 
-    async function loadRequest(isPolling = false) {
-      if (!isPolling) {
-        setLoading(true);
-        setFetchError(null);
-      }
+    void loadRequest(false, controller.signal);
 
-      try {
-        const response = await fetch(`/api/review/${id}`, { signal: controller.signal });
-        const body = (await response.json().catch(() => ({}))) as unknown;
-
-        if (!response.ok) {
-          if (!isPolling) setFetchError(normalizeErrorMessage(response.status, body));
-          return;
-        }
-
-        setRequest(body as ReviewRequest);
-        statusRef.current = (body as ReviewRequest).status ?? "pending";
-      } catch (error) {
-        if ((error as Error).name !== "AbortError" && !isPolling) {
-          setFetchError("Network error while loading this request.");
-        }
-      } finally {
-        if (!controller.signal.aborted && !isPolling) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void loadRequest();
-
-    // Poll every 15s only while request is pending (stop once decided)
+    // Keep polling for pending requests and approved requests that still need merge readiness updates.
     const interval = setInterval(() => {
-      if (!controller.signal.aborted && statusRef.current === "pending") {
-        void loadRequest(true);
+      const shouldPoll =
+        requestStateRef.current.status === "pending"
+        || (requestStateRef.current.status === "approved" && !requestStateRef.current.prMerged);
+      if (!controller.signal.aborted && shouldPoll) {
+        void loadRequest(true, controller.signal);
       }
     }, 15000);
 
@@ -170,7 +225,13 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
       controller.abort();
       clearInterval(interval);
     };
-  }, [id]);
+  }, [id, loadRequest]);
+
+  useEffect(() => {
+    if (updateBranchState.status === "updated" && request?.merge_readiness?.mergeable_state === "clean") {
+      setUpdateBranchState({ status: "idle" });
+    }
+  }, [request?.merge_readiness?.mergeable_state, updateBranchState.status]);
 
   const statusBadge = useMemo(() => {
     const risk = request?.risk_tier?.toLowerCase();
@@ -214,6 +275,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
           receiptId: body.receipt_id ?? null,
           hasPr: (body as any).has_pr ?? false,
         });
+        void loadRequest(true);
         return;
       }
 
@@ -222,8 +284,6 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
       setDecisionState({ status: "error", message: "Network error while submitting decision." });
     }
   }
-
-  const [mergeState, setMergeState] = useState<MergeState>({ status: "idle" });
 
   async function submitMerge() {
     setMergeState({ status: "merging" });
@@ -249,6 +309,173 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
     } catch {
       setMergeState({ status: "error", message: "Network error while merging." });
     }
+  }
+
+  async function submitUpdateBranch() {
+    setUpdateBranchState({ status: "updating" });
+    try {
+      const response = await fetch(`/api/review/${id}/update-branch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const body = (await response.json().catch(() => ({}))) as {
+        success?: boolean;
+        message?: string;
+      };
+      if (!response.ok || !body.success) {
+        setUpdateBranchState({ status: "error", message: body.message ?? "Unable to update branch." });
+        return;
+      }
+      setUpdateBranchState({ status: "updated", message: "Branch updated — waiting for checks..." });
+      void loadRequest(true);
+    } catch {
+      setUpdateBranchState({ status: "error", message: "Network error while updating branch." });
+    }
+  }
+
+  const readiness = request?.merge_readiness ?? null;
+  const githubPrUrl = getGithubPrUrl(request);
+  const showChecklist = request?.status === "approved" && !request?.pr_merged;
+  const hasLinkedPr = Boolean(request?.github_pr?.owner && request?.github_pr?.repo && request?.github_pr?.pr_number);
+  const checksPassing = allChecksPassing(readiness);
+  const branchBehind = readiness?.mergeable_state === "behind" || (readiness?.behind_by ?? 0) > 0;
+  const hasConflict = readiness?.mergeable_state === "dirty" || readiness?.mergeable === false;
+  const canMergeNow = readiness?.mergeable_state === "clean" && checksPassing;
+  const checksBlocked = Boolean(readiness) && !checksPassing;
+  const mergeBlockedReason = !readiness
+    ? "Merge readiness is still being computed."
+    : checksBlocked
+    ? "Checks must pass before merging."
+    : branchBehind
+    ? "Update branch before merging."
+    : hasConflict
+    ? "Resolve merge conflicts on GitHub before merging."
+    : "Merge is not available yet.";
+
+  function renderPreMergeChecklist() {
+    if (!showChecklist) return null;
+
+    const checksSummaryTone = checksPassing ? "text-[#10B981]" : "text-[#EF4444]";
+    const checksSummaryIcon = checksPassing ? "✅" : "❌";
+    const branchTone = !readiness ? "text-[#888888]" : hasConflict ? "text-[#EF4444]" : branchBehind ? "text-[#F59E0B]" : "text-[#10B981]";
+    const branchIcon = !readiness ? "⚠️" : hasConflict ? "❌" : branchBehind ? "⚠️" : "✅";
+    const branchLabel = !readiness
+      ? "Waiting for GitHub mergeability status..."
+      : hasConflict
+      ? "Merge conflict"
+      : branchBehind
+      ? `Branch is ${readiness.behind_by ?? 0} commit${(readiness.behind_by ?? 0) === 1 ? "" : "s"} behind ${request?.enrichment?.diff?.base_branch ?? "base"}`
+      : `Branch up to date with ${request?.enrichment?.diff?.base_branch ?? "base"}`;
+
+    return (
+      <div className="rounded-xl border border-[#222222] bg-[#111111] p-4">
+        <p className="text-xs uppercase tracking-[0.12em] text-[#888888]">Pre-merge checks</p>
+        <div className="mt-3 space-y-2 text-sm text-[#c8c8c8]">
+          <div className="flex items-start justify-between gap-3">
+            <p className={`flex items-start gap-2 ${checksSummaryTone}`}>
+              <span className="mt-0.5">{checksSummaryIcon}</span>
+              <span>{getCheckSummary(readiness)}</span>
+            </p>
+            {readiness?.checks?.length ? (
+              <button
+                type="button"
+                onClick={() => setShowChecks((current) => !current)}
+                className="inline-flex items-center gap-1 text-xs text-[#888888] transition-colors hover:text-[#c8c8c8]"
+              >
+                {showChecks ? "Hide details" : "Show details"}
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showChecks ? "rotate-180" : ""}`} />
+              </button>
+            ) : null}
+          </div>
+
+          {showChecks && readiness?.checks?.length ? (
+            <div className="space-y-2 rounded-lg border border-[#222222] bg-[#0a0a0a] p-3">
+              {readiness.checks.map((check) => {
+                const passed = check.status === "completed" && check.conclusion === "success";
+                const pending = check.status !== "completed";
+                return (
+                  <div key={check.name} className="flex items-center justify-between gap-3 text-xs">
+                    <span className="text-[#c8c8c8]">{check.name}</span>
+                    <span className={passed ? "text-[#10B981]" : pending ? "text-[#F59E0B]" : "text-[#EF4444]"}>
+                      {pending ? "Pending" : passed ? "Passing" : check.conclusion ?? "Failed"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+
+          <p className={`flex items-start gap-2 ${branchTone}`}>
+            <span className="mt-0.5">{branchIcon}</span>
+            <span>{branchLabel}</span>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  function renderMergeAction() {
+    if (request?.pr_merged) {
+      return (
+        <div className="rounded-xl border border-[#10B981]/50 bg-[#10B981]/10 p-4">
+          <p className="text-sm font-semibold text-[#10B981]">✓ PR merged on GitHub</p>
+          {request.pr_merge_sha ? (
+            <p className="mt-1 font-mono text-xs text-secondary">{request.pr_merge_sha.slice(0, 7)}</p>
+          ) : null}
+        </div>
+      );
+    }
+
+    if (request?.status === "approved" && hasLinkedPr) {
+      if (branchBehind) {
+        return (
+          <button
+            type="button"
+            disabled={updateBranchState.status === "updating"}
+            onClick={() => void submitUpdateBranch()}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#F59E0B] bg-transparent px-5 py-4 text-lg font-bold text-[#F59E0B] transition-colors hover:bg-[#F59E0B]/10 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {updateBranchState.status === "updating" ? "Updating Branch..." : "Update Branch"}
+          </button>
+        );
+      }
+
+      if (hasConflict && githubPrUrl) {
+        return (
+          <a
+            href={githubPrUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#222222] bg-transparent px-5 py-4 text-lg font-bold text-[#c8c8c8] transition-colors hover:border-[#3B82F6] hover:text-white"
+          >
+            View on GitHub
+            <ExternalLink className="h-4 w-4" />
+          </a>
+        );
+      }
+
+      return (
+        <button
+          type="button"
+          title={!canMergeNow ? mergeBlockedReason : undefined}
+          disabled={!canMergeNow || mergeState.status === "merging"}
+          onClick={() => void submitMerge()}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#3B82F6] px-5 py-4 text-lg font-bold text-white shadow-lg shadow-[#3B82F6]/25 transition-all hover:bg-[#2563EB] hover:shadow-[#3B82F6]/40 disabled:cursor-not-allowed disabled:bg-[#3B82F6]/50 disabled:shadow-none"
+        >
+          {mergeState.status === "merging" ? "Merging..." : "Merge & Deploy"}
+        </button>
+      );
+    }
+
+    if (request?.status === "approved") {
+      return (
+        <div className="rounded-xl border border-[#10B981]/30 bg-[#10B981]/5 p-3 text-center">
+          <p className="text-xs text-secondary">No PR linked — merge manually on GitHub</p>
+        </div>
+      );
+    }
+
+    return null;
   }
 
   return (
@@ -297,25 +524,9 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
               )}
               </div>
 
-              {request?.pr_merged ? (
-                <div className="rounded-xl border border-[#10B981]/50 bg-[#10B981]/10 p-4">
-                  <p className="text-sm font-semibold text-[#10B981]">✓ PR merged on GitHub</p>
-                  {request.pr_merge_sha ? (
-                    <p className="mt-1 font-mono text-xs text-secondary">{request.pr_merge_sha.slice(0, 7)}</p>
-                  ) : null}
-                </div>
-              ) : request?.status === "approved" && request?.github_pr?.owner && request?.github_pr?.pr_number && mergeState.status === "idle" ? (
-                <button
-                  onClick={() => void submitMerge()}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#3B82F6] px-5 py-4 text-lg font-bold text-white shadow-lg shadow-[#3B82F6]/25 hover:bg-[#2563EB] hover:shadow-[#3B82F6]/40 transition-all"
-                >
-                  🚀 Merge &amp; Deploy
-                </button>
-              ) : request?.status === "approved" && mergeState.status === "idle" ? (
-                <div className="rounded-xl border border-[#10B981]/30 bg-[#10B981]/5 p-3 text-center">
-                  <p className="text-xs text-secondary">No PR linked — merge manually on GitHub</p>
-                </div>
-              ) : null}
+              {renderPreMergeChecklist()}
+
+              {mergeState.status === "idle" ? renderMergeAction() : null}
 
               {mergeState.status === "merging" ? (
                 <div className="rounded-xl border border-[#6366F1]/50 bg-[#6366F1]/10 p-4">
@@ -341,6 +552,18 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                   >
                     🔄 Retry Merge
                   </button>
+                </div>
+              ) : null}
+
+              {updateBranchState.status === "updated" ? (
+                <div className="rounded-xl border border-[#10B981]/40 bg-[#10B981]/10 p-4">
+                  <p className="text-sm font-semibold text-[#10B981]">{updateBranchState.message}</p>
+                </div>
+              ) : null}
+
+              {updateBranchState.status === "error" ? (
+                <div className="rounded-xl border border-[#EF4444]/40 bg-[#EF4444]/10 p-4">
+                  <p className="text-sm font-semibold text-[#EF4444]">{updateBranchState.message}</p>
                 </div>
               ) : null}
             </div>
@@ -649,14 +872,9 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
               )}
             </div>
 
-            {decisionState.hasPr && mergeState.status === "idle" ? (
-              <button
-                onClick={() => void submitMerge()}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#6366F1] px-4 py-3 font-semibold text-white hover:bg-[#5558E6] transition-colors"
-              >
-                🚀 Merge &amp; Deploy
-              </button>
-            ) : null}
+            {decisionState.hasPr && mergeState.status === "idle" ? renderPreMergeChecklist() : null}
+
+            {decisionState.hasPr && mergeState.status === "idle" ? renderMergeAction() : null}
 
             {mergeState.status === "merging" ? (
               <div className="rounded-xl border border-[#6366F1]/50 bg-[#6366F1]/10 p-4">
@@ -682,6 +900,18 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                 >
                   🔄 Retry Merge
                 </button>
+              </div>
+            ) : null}
+
+            {updateBranchState.status === "updated" ? (
+              <div className="rounded-xl border border-[#10B981]/40 bg-[#10B981]/10 p-4">
+                <p className="text-sm font-semibold text-[#10B981]">{updateBranchState.message}</p>
+              </div>
+            ) : null}
+
+            {updateBranchState.status === "error" ? (
+              <div className="rounded-xl border border-[#EF4444]/40 bg-[#EF4444]/10 p-4">
+                <p className="text-sm font-semibold text-[#EF4444]">{updateBranchState.message}</p>
               </div>
             ) : null}
           </motion.div>
