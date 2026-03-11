@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { AlertTriangle, CheckCircle2, Clock, GitPullRequest, Plus, ShieldCheck } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, TouchEvent, useEffect, useMemo, useState } from "react";
 
 type RequestSummary = {
   id: string;
@@ -18,12 +18,40 @@ type RequestSummary = {
   created_at: string;
 };
 
+type DetailRiskSignal = {
+  label: string;
+  severity: "critical" | "high" | "medium" | "low";
+  reason: string;
+};
+
+type DetailRequest = {
+  id?: string;
+  actor?: string;
+  requested_by?: string;
+  status?: string;
+  current_head_sha?: string | null;
+  summary_sha?: string | null;
+  enrichment?: {
+    ai_summary?: string | null;
+    risk_signals?: DetailRiskSignal[];
+  } | null;
+};
+
+type AuthorTrackRecord = {
+  username: string;
+  total_deploys: number;
+  clean_deploys: number;
+  streak: number;
+};
+
 type ManualRequestState = {
   repo: string;
   prNumber: string;
   commitSha: string;
   description: string;
 };
+
+type ViewMode = "list" | "stack";
 
 const inputClass =
   "mt-1 w-full rounded-lg border border-border bg-ash px-3 py-2 text-sm text-signal placeholder:text-secondary/70 focus:border-permit focus:outline-none focus:ring-2 focus:ring-permit/30";
@@ -83,6 +111,11 @@ function statusIcon(status: string) {
   return <AlertTriangle className="h-4 w-4 text-muted" />;
 }
 
+function clampIndex(index: number, length: number) {
+  if (length <= 0) return 0;
+  return Math.min(Math.max(index, 0), length - 1);
+}
+
 export function ReviewDashboard() {
   const [requests, setRequests] = useState<RequestSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,6 +132,10 @@ export function ReviewDashboard() {
   const [manualSubmitState, setManualSubmitState] = useState<{ status: "idle" | "submitting" | "success" | "error"; message?: string }>({
     status: "idle",
   });
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [stackIndex, setStackIndex] = useState(0);
+  const [didSetDefaultView, setDidSetDefaultView] = useState(false);
+  const [approveAllState, setApproveAllState] = useState<"idle" | "submitting" | "error">("idle");
 
   function upsertRequest(item: RequestSummary) {
     setRequests((prev) => {
@@ -108,6 +145,10 @@ export function ReviewDashboard() {
       }
       return [item, ...prev];
     });
+  }
+
+  function updateRequestStatus(id: string, status: string) {
+    setRequests((prev) => prev.map((request) => (request.id === id ? { ...request, status } : request)));
   }
 
   useEffect(() => {
@@ -207,9 +248,48 @@ export function ReviewDashboard() {
     { label: "Approved", value: "approved" },
     { label: "Denied", value: "denied" },
   ];
+  const canUseStackView = pending.length >= 2;
+  const showApproveAll = pending.length > 0 && pending.every((request) => request.risk_tier === "low" && request.env !== "production");
+
+  useEffect(() => {
+    if (!canUseStackView) {
+      setViewMode("list");
+      setStackIndex(0);
+      return;
+    }
+    if (!didSetDefaultView) {
+      setViewMode(window.innerWidth < 768 ? "stack" : "list");
+      setDidSetDefaultView(true);
+    }
+  }, [canUseStackView, didSetDefaultView]);
+
+  useEffect(() => {
+    setStackIndex((current) => clampIndex(current, pending.length));
+  }, [pending.length]);
+
+  async function approveAllLowRisk() {
+    setApproveAllState("submitting");
+    try {
+      for (const request of pending) {
+        const response = await fetch(`/api/review/${request.id}/approve`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        if (!response.ok) {
+          setApproveAllState("error");
+          return;
+        }
+        updateRequestStatus(request.id, "approved");
+      }
+      setApproveAllState("idle");
+    } catch {
+      setApproveAllState("error");
+    }
+  }
 
   return (
-    <section className="mx-auto max-w-3xl px-4 pt-24 pb-12">
+    <section className="mx-auto max-w-3xl px-4 pb-12 pt-24">
       <div className="mb-8 flex items-center gap-3">
         <ShieldCheck className="h-8 w-8 text-permit" />
         <div className="flex-1">
@@ -381,9 +461,57 @@ export function ReviewDashboard() {
                 ))}
               </div>
             ) : null}
+            {canUseStackView ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("stack")}
+                  className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                    viewMode === "stack"
+                      ? "border-permit bg-permit/15 text-permit"
+                      : "border-border bg-card text-secondary hover:border-permit/40 hover:text-signal"
+                  }`}
+                >
+                  Stack view
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("list")}
+                  className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                    viewMode === "list"
+                      ? "border-permit bg-permit/15 text-permit"
+                      : "border-border bg-card text-secondary hover:border-permit/40 hover:text-signal"
+                  }`}
+                >
+                  List view
+                </button>
+                {showApproveAll ? (
+                  <button
+                    type="button"
+                    onClick={() => void approveAllLowRisk()}
+                    disabled={approveAllState === "submitting"}
+                    className="rounded-full border border-permit/40 bg-permit/10 px-3 py-1.5 text-xs font-semibold text-permit transition-colors hover:bg-permit/15 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {approveAllState === "submitting" ? "Approving all..." : "Approve All"}
+                  </button>
+                ) : null}
+                {approveAllState === "error" ? (
+                  <span className="text-xs text-danger">Approve all stopped after a failed approval.</span>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
-          {pending.length > 0 ? (
+          {pending.length > 0 && viewMode === "stack" && canUseStackView ? (
+            <StackView
+              pending={pending}
+              activeIndex={stackIndex}
+              onIndexChange={setStackIndex}
+              onStatusChange={updateRequestStatus}
+            />
+          ) : null}
+
+          {(viewMode === "list" || !canUseStackView) && pending.length > 0 ? (
             <div>
               <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-warning">
                 <Clock className="h-3.5 w-3.5" />
@@ -397,7 +525,7 @@ export function ReviewDashboard() {
             </div>
           ) : null}
 
-          {approved.length > 0 ? (
+          {approved.length > 0 && (viewMode === "list" || !canUseStackView) ? (
             <div>
               <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#10B981]">
                 <CheckCircle2 className="h-3.5 w-3.5" />
@@ -411,7 +539,7 @@ export function ReviewDashboard() {
             </div>
           ) : null}
 
-          {denied.length > 0 ? (
+          {denied.length > 0 && (viewMode === "list" || !canUseStackView) ? (
             <div>
               <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-danger">
                 <AlertTriangle className="h-3.5 w-3.5" />
@@ -430,6 +558,273 @@ export function ReviewDashboard() {
   );
 }
 
+function StackView({
+  pending,
+  activeIndex,
+  onIndexChange,
+  onStatusChange,
+}: {
+  pending: RequestSummary[];
+  activeIndex: number;
+  onIndexChange: (index: number) => void;
+  onStatusChange: (id: string, status: string) => void;
+}) {
+  const activeRequest = pending[clampIndex(activeIndex, pending.length)];
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [translateX, setTranslateX] = useState(0);
+
+  function goNext() {
+    onIndexChange(clampIndex(activeIndex + 1, pending.length));
+  }
+
+  function goPrevious() {
+    onIndexChange(clampIndex(activeIndex - 1, pending.length));
+  }
+
+  function handleTouchStart(event: TouchEvent<HTMLDivElement>) {
+    setTouchStartX(event.touches[0]?.clientX ?? null);
+  }
+
+  function handleTouchMove(event: TouchEvent<HTMLDivElement>) {
+    if (touchStartX === null) return;
+    const currentX = event.touches[0]?.clientX ?? touchStartX;
+    setTranslateX(currentX - touchStartX);
+  }
+
+  function handleTouchEnd() {
+    if (translateX <= -100) {
+      goNext();
+    } else if (translateX >= 100) {
+      goPrevious();
+    }
+    setTouchStartX(null);
+    setTranslateX(0);
+  }
+
+  if (!activeRequest) return null;
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-[0.12em] text-warning">Stack view</p>
+          <p className="text-sm text-secondary">Swipe left for next and right for previous.</p>
+        </div>
+        <p className="text-xs text-secondary">
+          {activeIndex + 1} / {pending.length}
+        </p>
+      </div>
+
+      <motion.div
+        key={activeRequest.id}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0, x: translateX }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{ touchAction: "pan-y" }}
+      >
+        <StackReviewCard
+          request={activeRequest}
+          onApproved={() => {
+            onStatusChange(activeRequest.id, "approved");
+            onIndexChange(clampIndex(activeIndex, Math.max(pending.length - 1, 0)));
+          }}
+          onRejected={() => {
+            onStatusChange(activeRequest.id, "denied");
+            onIndexChange(clampIndex(activeIndex, Math.max(pending.length - 1, 0)));
+          }}
+        />
+      </motion.div>
+
+      <div className="mt-4 flex items-center justify-center gap-2">
+        {pending.map((request, index) => (
+          <button
+            key={request.id}
+            type="button"
+            onClick={() => onIndexChange(index)}
+            className={`h-2.5 rounded-full transition-all ${index === activeIndex ? "w-6 bg-permit" : "w-2.5 bg-border hover:bg-secondary"}`}
+            aria-label={`Go to request ${index + 1}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StackReviewCard({
+  request,
+  onApproved,
+  onRejected,
+}: {
+  request: RequestSummary;
+  onApproved: () => void;
+  onRejected: () => void;
+}) {
+  const [detail, setDetail] = useState<DetailRequest | null>(null);
+  const [authorTrackRecord, setAuthorTrackRecord] = useState<AuthorTrackRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [decisionState, setDecisionState] = useState<"idle" | "approving" | "rejecting" | "error">("idle");
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadDetail() {
+      setLoading(true);
+      setDetail(null);
+      setAuthorTrackRecord(null);
+      try {
+        const response = await fetch(`/api/review/${request.id}`, { signal: controller.signal });
+        if (!response.ok) return;
+        const body = (await response.json()) as DetailRequest;
+        setDetail(body);
+
+        const username = body.actor || body.requested_by;
+        if (username && username !== "CI") {
+          const authorResponse = await fetch(`/api/review/author/${encodeURIComponent(username)}`, {
+            signal: controller.signal,
+          });
+          if (authorResponse.ok) {
+            const authorBody = (await authorResponse.json()) as AuthorTrackRecord;
+            setAuthorTrackRecord(authorBody);
+          }
+        }
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          setDetail(null);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadDetail();
+
+    return () => controller.abort();
+  }, [request.id]);
+
+  const trustSummary = authorTrackRecord
+    ? authorTrackRecord.total_deploys > 0
+      ? `${authorTrackRecord.clean_deploys} clean deploys, streak ${authorTrackRecord.streak}`
+      : "New author"
+    : detail?.enrichment?.risk_signals?.length
+    ? `${detail.enrichment.risk_signals.length} flagged risk signals`
+    : "No extra trust signals";
+  const isSummaryStale = Boolean(detail?.summary_sha && detail?.current_head_sha && detail.summary_sha !== detail.current_head_sha);
+
+  async function submitDecision(action: "approve" | "reject") {
+    setDecisionState(action === "approve" ? "approving" : "rejecting");
+    try {
+      const response = await fetch(`/api/review/${request.id}/${action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (!response.ok) {
+        setDecisionState("error");
+        return;
+      }
+      if (action === "approve") {
+        onApproved();
+      } else {
+        onRejected();
+      }
+      setDecisionState("idle");
+    } catch {
+      setDecisionState("error");
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-border bg-ash p-5 shadow-[0_18px_50px_rgba(0,0,0,0.35)]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-base font-semibold text-signal">{request.pr_title ?? request.capability}</p>
+          <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-secondary">
+            <span className="inline-flex items-center gap-1">
+              <GitPullRequest className="h-3 w-3" />
+              {request.repo}
+              {request.pr_number ? ` #${request.pr_number}` : ""}
+            </span>
+            <span>·</span>
+            <span>{request.actor}</span>
+            <span>·</span>
+            <span>waiting {waitLabel(request.created_at)}</span>
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${riskBadge(request.risk_tier)}`}>
+            {request.risk_tier}
+          </span>
+          <span className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-medium ${
+            request.env === "production"
+              ? "border-danger/30 bg-danger/5 text-danger"
+              : "border-border bg-void/50 text-secondary"
+          }`}>
+            {request.env}
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-xl border border-border bg-card/70 p-4">
+        <p className="text-[10px] uppercase tracking-[0.12em] text-muted">AI summary</p>
+        {loading ? (
+          <div className="mt-3 h-10 w-full animate-pulse rounded bg-void/60" />
+        ) : (
+          <>
+            <p className="mt-2 line-clamp-2 text-sm leading-6 text-signal">
+              {detail?.enrichment?.ai_summary ?? "No AI summary available for this request."}
+            </p>
+            {isSummaryStale ? (
+              <p className="mt-2 text-xs text-warning">Summary is stale relative to the latest PR head.</p>
+            ) : null}
+          </>
+        )}
+      </div>
+
+      <div className="mt-3 rounded-xl border border-border bg-card/70 p-4">
+        <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Trust signals</p>
+        <p className="mt-2 text-sm text-signal">{trustSummary}</p>
+      </div>
+
+      <div className="mt-4 flex gap-2">
+        <button
+          type="button"
+          disabled={decisionState === "approving" || decisionState === "rejecting"}
+          onClick={() => void submitDecision("approve")}
+          className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#10B981] px-4 py-3 text-sm font-semibold text-void disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <CheckCircle2 className="h-4 w-4" />
+          {decisionState === "approving" ? "Approving..." : "Approve"}
+        </button>
+        <button
+          type="button"
+          disabled={decisionState === "approving" || decisionState === "rejecting"}
+          onClick={() => void submitDecision("reject")}
+          className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-danger bg-danger/10 px-4 py-3 text-sm font-semibold text-signal disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <AlertTriangle className="h-4 w-4" />
+          {decisionState === "rejecting" ? "Rejecting..." : "Reject"}
+        </button>
+      </div>
+
+      {decisionState === "error" ? (
+        <p className="mt-3 text-sm text-danger">Unable to update this request from stack view.</p>
+      ) : null}
+
+      <Link
+        href={`/review/${request.id}`}
+        className="mt-4 inline-flex text-sm font-medium text-permit transition-colors hover:text-[#6ac9b7]"
+      >
+        Open full review →
+      </Link>
+    </div>
+  );
+}
+
 function RequestCard({ request: r, index }: { request: RequestSummary; index: number }) {
   return (
     <motion.div
@@ -444,10 +839,10 @@ function RequestCard({ request: r, index }: { request: RequestSummary; index: nu
         }`}
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 min-w-0">
+          <div className="min-w-0 flex items-start gap-3">
             {statusIcon(r.status)}
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-signal group-hover:text-permit transition-colors">
+              <p className="truncate text-sm font-semibold text-signal transition-colors group-hover:text-permit">
                 {r.pr_title ?? r.capability}
               </p>
               <p className="mt-0.5 flex items-center gap-2 text-xs text-secondary">

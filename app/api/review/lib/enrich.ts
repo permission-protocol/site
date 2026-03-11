@@ -76,6 +76,7 @@ export type PrDiff = {
   total_files: number;
   base_branch: string;
   head_branch: string;
+  head_sha: string | null;
 };
 
 export type MergeReadiness = {
@@ -105,7 +106,7 @@ async function fetchPrDiff(owner: string, repo: string, prNumber: number): Promi
       title?: string;
       body?: string;
       base?: { ref?: string };
-      head?: { ref?: string };
+      head?: { ref?: string; sha?: string };
       additions?: number;
       deletions?: number;
       changed_files?: number;
@@ -139,6 +140,7 @@ async function fetchPrDiff(owner: string, repo: string, prNumber: number): Promi
       total_files: prData.changed_files ?? filesData.length,
       base_branch: prData.base?.ref ?? "main",
       head_branch: prData.head?.ref ?? "unknown",
+      head_sha: prData.head?.sha ?? null,
     };
   } catch {
     return null;
@@ -149,9 +151,24 @@ async function fetchPrDiff(owner: string, repo: string, prNumber: number): Promi
 // AI Summary (Gemini 3.1 Flash Lite)
 // ---------------------------------------------------------------------------
 
-async function generateAiSummary(diff: PrDiff): Promise<string | null> {
+type AiSummaryResult = {
+  summary: string | null;
+  blast_radius: string | null;
+};
+
+function buildLargeChangeFallback(diff: PrDiff): AiSummaryResult {
+  return {
+    summary: `Large change: ${diff.total_files} files, +${diff.total_additions}/-${diff.total_deletions} lines. Manual review recommended.`,
+    blast_radius: "Broad impact across many files. Review user-facing surface area manually before deploy.",
+  };
+}
+
+async function generateAiSummary(diff: PrDiff): Promise<AiSummaryResult> {
   const geminiKey = process.env.GEMINI_API_KEY;
-  if (!geminiKey) return null;
+  if (diff.total_files > 500 || diff.total_additions + diff.total_deletions > 10000) {
+    return buildLargeChangeFallback(diff);
+  }
+  if (!geminiKey) return { summary: null, blast_radius: null };
 
   // Build a compact prompt with file changes
   const fileList = diff.files
@@ -178,8 +195,15 @@ ${fileList}
 Key patches:
 ${patches}
 
-Write a concise summary (2-4 sentences) answering: "What does this change do and should it go live?"
-Focus on IMPACT, not implementation details. Be direct. No markdown.`;
+Return strict JSON with this shape:
+{"summary":"...","blast_radius":"...","dangerous_operations":["..."]}
+
+Requirements:
+- "summary": 2-4 sentences answering what changed and whether it is safe to deploy.
+- "blast_radius": identify which user-facing features, systems, or operator workflows could be affected.
+- "dangerous_operations": include only concrete detections from this list when applicable: DB migrations, env var changes, dependency upgrades, permission changes, API breaking changes.
+- Focus on impact, not implementation detail.
+- No markdown, no prose outside JSON.`;
 
   try {
     const res = await fetch(`${GEMINI_API}/models/${GEMINI_MODEL}:generateContent?key=${geminiKey}`, {
@@ -191,13 +215,27 @@ Focus on IMPACT, not implementation details. Be direct. No markdown.`;
       }),
     });
 
-    if (!res.ok) return null;
+    if (!res.ok) return { summary: null, blast_radius: null };
     const data = (await res.json()) as {
       candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
     };
-    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? null;
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+    const jsonText = rawText.match(/\{[\s\S]*\}/)?.[0] ?? rawText;
+    const parsed = JSON.parse(jsonText) as {
+      summary?: string;
+      blast_radius?: string;
+      dangerous_operations?: string[];
+    };
+    const dangerousOperations = Array.isArray(parsed.dangerous_operations) && parsed.dangerous_operations.length > 0
+      ? ` Dangerous operations: ${parsed.dangerous_operations.join(", ")}.`
+      : "";
+
+    return {
+      summary: parsed.summary ? `${parsed.summary.trim()}${dangerousOperations}` : null,
+      blast_radius: parsed.blast_radius?.trim() ?? null,
+    };
   } catch {
-    return null;
+    return { summary: null, blast_radius: null };
   }
 }
 
@@ -209,6 +247,9 @@ export type ReviewEnrichment = {
   diff: PrDiff | null;
   risk_signals: RiskSignal[];
   ai_summary: string | null;
+  blast_radius: string | null;
+  summary_sha: string | null;
+  summary_generated_at: string | null;
 };
 
 // Cache enrichment results to avoid regenerating AI summary on every poll.
@@ -217,6 +258,13 @@ const enrichmentCache = new Map<string, { data: ReviewEnrichment; expiresAt: num
 const CACHE_TTL_MS = 10 * 60 * 1000;
 const readinessCache = new Map<string, { data: MergeReadiness | null; expiresAt: number }>();
 const READINESS_CACHE_TTL_MS = 30 * 1000;
+
+export function clearEnrichmentCache(repo: string, prNumber: number, headSha?: string | null) {
+  enrichmentCache.delete(`${repo}#${prNumber}`);
+  if (headSha) {
+    enrichmentCache.delete(`${repo}#${prNumber}@${headSha}`);
+  }
+}
 
 export async function fetchMergeReadiness(
   owner: string,
@@ -296,29 +344,40 @@ export async function fetchMergeReadiness(
 
 export async function enrichReviewRequest(
   repo: string,
-  prNumber: number
+  prNumber: number,
+  options?: { force?: boolean; currentHeadSha?: string | null }
 ): Promise<ReviewEnrichment> {
   const [owner, repoName] = repo.split("/");
   if (!owner || !repoName) {
-    return { diff: null, risk_signals: [], ai_summary: null };
+    return { diff: null, risk_signals: [], ai_summary: null, blast_radius: null, summary_sha: null, summary_generated_at: null };
   }
 
-  const cacheKey = `${repo}#${prNumber}`;
-  const cached = enrichmentCache.get(cacheKey);
+  const provisionalCacheKey = options?.currentHeadSha ? `${repo}#${prNumber}@${options.currentHeadSha}` : `${repo}#${prNumber}`;
+  const cached = !options?.force ? enrichmentCache.get(provisionalCacheKey) : null;
   if (cached && cached.expiresAt > Date.now()) {
     return cached.data;
   }
 
   const diff = await fetchPrDiff(owner, repoName, prNumber);
+  const summarySha = diff?.head_sha ?? options?.currentHeadSha ?? null;
+  const cacheKey = summarySha ? `${repo}#${prNumber}@${summarySha}` : `${repo}#${prNumber}`;
+  const shaCached = !options?.force ? enrichmentCache.get(cacheKey) : null;
+  if (shaCached && shaCached.expiresAt > Date.now()) {
+    return shaCached.data;
+  }
   const riskSignals = diff ? detectRiskSignals(diff.files) : [];
-  const aiSummary = diff ? await generateAiSummary(diff) : null;
+  const aiSummary = diff ? await generateAiSummary(diff) : { summary: null, blast_radius: null };
 
   const result: ReviewEnrichment = {
     diff,
     risk_signals: riskSignals,
-    ai_summary: aiSummary,
+    ai_summary: aiSummary.summary,
+    blast_radius: aiSummary.blast_radius,
+    summary_sha: summarySha,
+    summary_generated_at: new Date().toISOString(),
   };
 
   enrichmentCache.set(cacheKey, { data: result, expiresAt: Date.now() + CACHE_TTL_MS });
+  enrichmentCache.set(`${repo}#${prNumber}`, { data: result, expiresAt: Date.now() + CACHE_TTL_MS });
   return result;
 }

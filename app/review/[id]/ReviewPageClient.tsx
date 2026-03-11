@@ -37,9 +37,22 @@ type Enrichment = {
     total_files: number;
     head_branch: string;
     base_branch: string;
+    head_sha?: string | null;
   } | null;
   risk_signals?: RiskSignal[];
   ai_summary?: string | null;
+  blast_radius?: string | null;
+  summary_sha?: string | null;
+  summary_generated_at?: string | null;
+};
+
+type AuthorTrackRecord = {
+  username: string;
+  total_deploys: number;
+  clean_deploys: number;
+  recent_deploys: number;
+  avg_approval_time_seconds: number | null;
+  streak: number;
 };
 
 type MergeReadiness = {
@@ -74,6 +87,9 @@ type ReviewRequest = {
   enrichment?: Enrichment | null;
   merge_readiness?: MergeReadiness | null;
   preview_url?: string | null;
+  summary_sha?: string | null;
+  current_head_sha?: string | null;
+  summary_generated_at?: string | null;
 };
 
 type MergeState =
@@ -171,6 +187,8 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const [mergeState, setMergeState] = useState<MergeState>({ status: "idle" });
   const [updateBranchState, setUpdateBranchState] = useState<UpdateBranchState>({ status: "idle" });
   const [showChecks, setShowChecks] = useState(false);
+  const [authorTrackRecord, setAuthorTrackRecord] = useState<AuthorTrackRecord | null>(null);
+  const [regenerateState, setRegenerateState] = useState<"idle" | "loading" | "error">("idle");
   const resultRef = useRef<HTMLDivElement>(null);
 
   const loadRequest = useCallback(async (isPolling = false, signal?: AbortSignal) => {
@@ -232,6 +250,39 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
       setUpdateBranchState({ status: "idle" });
     }
   }, [request?.merge_readiness?.mergeable_state, updateBranchState.status]);
+
+  useEffect(() => {
+    const username = request?.actor || request?.requested_by;
+    if (!username || username === "CI") {
+      setAuthorTrackRecord(null);
+      return;
+    }
+    const resolvedUsername = username;
+
+    const controller = new AbortController();
+
+    async function loadAuthorTrackRecord() {
+      try {
+        const response = await fetch(`/api/review/author/${encodeURIComponent(resolvedUsername)}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          setAuthorTrackRecord(null);
+          return;
+        }
+        const body = (await response.json()) as AuthorTrackRecord;
+        setAuthorTrackRecord(body);
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          setAuthorTrackRecord(null);
+        }
+      }
+    }
+
+    void loadAuthorTrackRecord();
+
+    return () => controller.abort();
+  }, [request?.actor, request?.requested_by]);
 
   const statusBadge = useMemo(() => {
     const risk = request?.risk_tier?.toLowerCase();
@@ -333,6 +384,31 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
     }
   }
 
+  async function regenerateSummary() {
+    setRegenerateState("loading");
+    try {
+      const response = await fetch(`/api/review/${id}/summary`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const body = (await response.json().catch(() => ({}))) as Enrichment;
+      if (!response.ok) {
+        setRegenerateState("error");
+        return;
+      }
+
+      setRequest((current) => current ? ({
+        ...current,
+        enrichment: body,
+        summary_sha: body.summary_sha ?? current.summary_sha ?? null,
+        summary_generated_at: body.summary_generated_at ?? current.summary_generated_at ?? null,
+      }) : current);
+      setRegenerateState("idle");
+    } catch {
+      setRegenerateState("error");
+    }
+  }
+
   const readiness = request?.merge_readiness ?? null;
   const githubPrUrl = getGithubPrUrl(request);
   const showChecklist = request?.status === "approved" && !request?.pr_merged;
@@ -341,6 +417,12 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const branchBehind = readiness?.mergeable_state === "behind" || (readiness?.behind_by ?? 0) > 0;
   const hasConflict = readiness?.mergeable_state === "dirty" || readiness?.mergeable === false;
   const canMergeNow = readiness?.mergeable_state === "clean" && checksPassing;
+  const authorLabel = request?.actor || request?.requested_by || "Author";
+  const isSummaryStale = Boolean(
+    request?.summary_sha &&
+    request?.current_head_sha &&
+    request.summary_sha !== request.current_head_sha
+  );
   const checksBlocked = Boolean(readiness) && !checksPassing;
   const mergeBlockedReason = !readiness
     ? "Merge readiness is still being computed."
@@ -703,9 +785,42 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                   <ShieldCheck className="h-3.5 w-3.5" />
                   AI Assessment
                 </p>
+                {isSummaryStale ? (
+                  <div className="mt-3 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning">
+                    <span>⚠️ Code updated after this summary was generated. Summary may be outdated.</span>
+                    <button
+                      type="button"
+                      onClick={() => void regenerateSummary()}
+                      disabled={regenerateState === "loading"}
+                      className="ml-2 inline-flex items-center gap-2 font-semibold underline underline-offset-2 disabled:no-underline disabled:opacity-70"
+                    >
+                      {regenerateState === "loading" ? (
+                        <>
+                          <span className="h-3 w-3 animate-spin rounded-full border border-warning border-t-transparent" />
+                          Regenerating
+                        </>
+                      ) : (
+                        "Regenerate"
+                      )}
+                    </button>
+                  </div>
+                ) : null}
                 <p className="mt-3 text-base leading-relaxed text-signal">
                   {request.enrichment?.ai_summary ?? "No AI assessment provided for this request."}
                 </p>
+
+                {request.enrichment?.blast_radius ? (
+                  <div className="mt-3 rounded-lg border border-border bg-void/40 px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Blast radius</p>
+                    <p className="mt-1 text-sm text-secondary">{request.enrichment.blast_radius}</p>
+                  </div>
+                ) : null}
+
+                {request.summary_generated_at || request.enrichment?.summary_generated_at ? (
+                  <p className="mt-3 text-xs text-muted">
+                    Summary generated {formatTimestamp(request.summary_generated_at ?? request.enrichment?.summary_generated_at ?? undefined)}
+                  </p>
+                ) : null}
 
                 {request.enrichment?.risk_signals && request.enrichment.risk_signals.length > 0 ? (
                   <div className="mt-4 flex flex-wrap gap-2">
@@ -727,6 +842,22 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                   </div>
                 ) : null}
               </div>
+
+              {authorTrackRecord ? (
+                <div className="mt-4 rounded-xl border border-permit/30 bg-card p-4">
+                  <p className="text-xs uppercase tracking-[0.12em] text-muted">Trust signal</p>
+                  <p className="mt-2 text-sm font-semibold text-signal">
+                    {authorTrackRecord.total_deploys > 0
+                      ? `✅ ${authorLabel}: ${authorTrackRecord.clean_deploys} clean deploys (streak: ${authorTrackRecord.streak})`
+                      : "⚠️ New author: first deploy"}
+                  </p>
+                  {authorTrackRecord.total_deploys > 0 && authorTrackRecord.avg_approval_time_seconds !== null ? (
+                    <p className="mt-1 text-xs text-secondary">
+                      {authorTrackRecord.recent_deploys} approved in the last 30 days · avg approval time {Math.round(authorTrackRecord.avg_approval_time_seconds / 60)}m
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
 
               <div className="mt-6 overflow-x-auto rounded-xl border border-border bg-card">
                 <div className="flex min-w-max items-center divide-x divide-border">
