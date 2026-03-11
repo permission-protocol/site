@@ -17,6 +17,13 @@ type RiskSignal = {
   reason: string;
 };
 
+export type PeerReviews = {
+  total: number;
+  approved: number;
+  changes_requested: number;
+  commented: number;
+};
+
 const RISK_PATTERNS: Array<{
   pattern: RegExp;
   label: string;
@@ -53,6 +60,31 @@ function detectRiskSignals(files: Array<{ filename: string }>): RiskSignal[] {
   const order = { critical: 0, high: 1, medium: 2, low: 3 };
   signals.sort((a, b) => order[a.severity] - order[b.severity]);
   return signals;
+}
+
+const BLAST_RADIUS_RULES: Array<{ pattern: RegExp; label: string }> = [
+  { pattern: /(auth|session|login)/i, label: "Authentication" },
+  { pattern: /(^|\/)api\//i, label: "API endpoints" },
+  { pattern: /(^|\/)components\//i, label: "UI components" },
+  { pattern: /middleware/i, label: "Request pipeline" },
+  { pattern: /(prisma|migrations)/i, label: "Database" },
+  { pattern: /(styles|css|theme)/i, label: "Visual styling" },
+  { pattern: /(config|env)/i, label: "Configuration" },
+  { pattern: /test/i, label: "Test suite" },
+];
+
+function detectBlastRadius(files: Array<{ filename: string }>): string[] {
+  const labels = new Set<string>();
+
+  for (const file of files) {
+    for (const rule of BLAST_RADIUS_RULES) {
+      if (rule.pattern.test(file.filename)) {
+        labels.add(rule.label);
+      }
+    }
+  }
+
+  return Array.from(labels);
 }
 
 // ---------------------------------------------------------------------------
@@ -145,6 +177,48 @@ async function fetchPrDiff(owner: string, repo: string, prNumber: number): Promi
   }
 }
 
+async function fetchPeerReviews(owner: string, repo: string, prNumber: number): Promise<PeerReviews | null> {
+  const githubToken = process.env.GITHUB_TOKEN;
+  if (!githubToken) return null;
+
+  try {
+    const res = await fetch(`${GH_API}/repos/${owner}/${repo}/pulls/${prNumber}/reviews?per_page=100`, {
+      headers: ghHeaders(githubToken),
+    });
+    if (!res.ok) return null;
+
+    const reviews = (await res.json()) as Array<{ state?: string; user?: { login?: string } }>;
+    const latestByUser = new Map<string, string>();
+
+    for (const review of reviews) {
+      const user = review.user?.login;
+      if (!user) continue;
+      latestByUser.set(user, review.state ?? "COMMENTED");
+    }
+
+    const totals = {
+      total: latestByUser.size,
+      approved: 0,
+      changes_requested: 0,
+      commented: 0,
+    };
+
+    for (const state of latestByUser.values()) {
+      if (state === "APPROVED") {
+        totals.approved += 1;
+      } else if (state === "CHANGES_REQUESTED") {
+        totals.changes_requested += 1;
+      } else {
+        totals.commented += 1;
+      }
+    }
+
+    return totals;
+  } catch {
+    return null;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // AI Summary (Gemini 3.1 Flash Lite)
 // ---------------------------------------------------------------------------
@@ -209,6 +283,8 @@ export type ReviewEnrichment = {
   diff: PrDiff | null;
   risk_signals: RiskSignal[];
   ai_summary: string | null;
+  blast_radius: string[];
+  peer_reviews: PeerReviews | null;
 };
 
 // Cache enrichment results to avoid regenerating AI summary on every poll.
@@ -300,7 +376,7 @@ export async function enrichReviewRequest(
 ): Promise<ReviewEnrichment> {
   const [owner, repoName] = repo.split("/");
   if (!owner || !repoName) {
-    return { diff: null, risk_signals: [], ai_summary: null };
+    return { diff: null, risk_signals: [], ai_summary: null, blast_radius: [], peer_reviews: null };
   }
 
   const cacheKey = `${repo}#${prNumber}`;
@@ -309,14 +385,20 @@ export async function enrichReviewRequest(
     return cached.data;
   }
 
-  const diff = await fetchPrDiff(owner, repoName, prNumber);
+  const [diff, peerReviews] = await Promise.all([
+    fetchPrDiff(owner, repoName, prNumber),
+    fetchPeerReviews(owner, repoName, prNumber),
+  ]);
   const riskSignals = diff ? detectRiskSignals(diff.files) : [];
+  const blastRadius = diff ? detectBlastRadius(diff.files) : [];
   const aiSummary = diff ? await generateAiSummary(diff) : null;
 
   const result: ReviewEnrichment = {
     diff,
     risk_signals: riskSignals,
     ai_summary: aiSummary,
+    blast_radius: blastRadius,
+    peer_reviews: peerReviews,
   };
 
   enrichmentCache.set(cacheKey, { data: result, expiresAt: Date.now() + CACHE_TTL_MS });
