@@ -111,6 +111,7 @@ export function PricingPageClient() {
 
               <Link
                 href={tier.ctaHref}
+                data-track={tier.highlight ? "pp_pricing_cta_click" : "pp_pricing_secondary_click"}
                 className={`mt-8 inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${tier.ctaClass}`}
               >
                 {tier.cta}
@@ -125,7 +126,11 @@ export function PricingPageClient() {
             Every plan starts the same way: install the SDK, add @require_approval, get your first receipt.
             Enforcement grows from there.
           </p>
-          <Link href="/developers/quickstart" className="mt-5 inline-flex font-semibold text-permit hover:text-[#6ac9b7]">
+          <Link
+            href="/developers/quickstart"
+            data-track="pp_pricing_secondary_click"
+            className="mt-5 inline-flex font-semibold text-permit hover:text-[#6ac9b7]"
+          >
             Read the Quickstart -&gt;
           </Link>
         </motion.section>

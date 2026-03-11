@@ -58,7 +58,11 @@ export default function HowItWorksPage() {
         subheadline="Python decorator flow with enforced approval and signed receipts."
       >
         <CodeBlock tabs={[{ label: "Python", code: pythonDecoratorSnippet }]} />
-        <Link href="/developers/quickstart" className="mt-6 inline-flex items-center font-semibold text-permit">
+        <Link
+          href="/developers/quickstart"
+          data-track="pp_how_it_works_cta_click"
+          className="mt-6 inline-flex items-center font-semibold text-permit"
+        >
           Open Quickstart <ArrowRight className="ml-2 h-4 w-4" />
         </Link>
       </SectionBlock>
