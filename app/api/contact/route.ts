@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          thread_name: "📬 Inbound Leads",
           embeds: [{
             title: "🔥 New Contact Form Submission",
             color: 0xFF6B35,
