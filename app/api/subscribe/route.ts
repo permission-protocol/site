@@ -2,16 +2,42 @@ import { NextRequest, NextResponse } from "next/server";
 
 const DISCORD_WEBHOOK_URL = process.env.DISCORD_SUBSCRIBE_WEBHOOK;
 
+type SubscribePayload = {
+  email?: string;
+  utm?: {
+    utm_source?: string;
+    utm_medium?: string;
+    utm_campaign?: string;
+    utm_content?: string;
+    utm_term?: string;
+  };
+};
+
+const getAttributionSource = (referer: string | null) =>
+  referer?.includes("/blog") ? "blog" : "footer";
+
+const getUtmSourceValue = (utm?: SubscribePayload["utm"]) => {
+  const source = utm?.utm_source?.trim() ?? "";
+  const campaign = utm?.utm_campaign?.trim() ?? "";
+
+  if (!source && !campaign) {
+    return null;
+  }
+
+  return campaign ? `${source || "unknown"} / ${campaign}` : source;
+};
+
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const body = (await req.json()) as SubscribePayload;
     const email = body?.email?.trim()?.toLowerCase();
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: "Invalid email" }, { status: 400 });
     }
 
-    const source = req.headers.get("referer")?.includes("/blog") ? "blog" : "footer";
+    const source = getAttributionSource(req.headers.get("referer"));
+    const utmSource = getUtmSourceValue(body?.utm);
     const ts = new Date().toISOString();
 
     console.log(`[subscribe] ${email} via ${source} at ${ts}`);
@@ -28,6 +54,7 @@ export async function POST(req: NextRequest) {
             fields: [
               { name: "Email", value: email, inline: true },
               { name: "Source", value: source, inline: true },
+              ...(utmSource ? [{ name: "Campaign", value: utmSource, inline: true }] : []),
             ],
             timestamp: ts,
           }],

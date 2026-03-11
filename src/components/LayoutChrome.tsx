@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CheckCircle2, Github, Package, Star, Twitter } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { FormEvent, useCallback, useState } from "react";
+import { getUtmParams } from "@/lib/utm";
 import { SiteHeader } from "@/src/components/SiteHeader";
 
 export function LayoutChrome({ children }: { children: React.ReactNode }) {
@@ -15,10 +16,11 @@ export function LayoutChrome({ children }: { children: React.ReactNode }) {
     e.preventDefault();
     setSubState("sending");
     try {
+      const utm = getUtmParams();
       const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: subEmail }),
+        body: JSON.stringify({ email: subEmail, utm }),
       });
       if (!res.ok) throw new Error();
       setSubState("done");

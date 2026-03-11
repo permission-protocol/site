@@ -9,11 +9,28 @@ type ContactPayload = {
   useCase?: string;
   environment?: string;
   message?: string;
+  utm?: {
+    utm_source?: string;
+    utm_medium?: string;
+    utm_campaign?: string;
+    utm_content?: string;
+    utm_term?: string;
+  };
 };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const toFieldValue = (value: string) => value || "N/A";
+const getSourceValue = (utm?: ContactPayload["utm"]) => {
+  const source = utm?.utm_source?.trim() ?? "";
+  const campaign = utm?.utm_campaign?.trim() ?? "";
+
+  if (!source && !campaign) {
+    return null;
+  }
+
+  return campaign ? `${source || "unknown"} / ${campaign}` : source;
+};
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,6 +41,7 @@ export async function POST(req: NextRequest) {
     const useCase = body?.useCase?.trim() ?? "";
     const environment = body?.environment?.trim() ?? "";
     const message = body?.message?.trim() ?? "";
+    const sourceValue = getSourceValue(body?.utm);
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -51,6 +69,7 @@ export async function POST(req: NextRequest) {
               { name: "Company", value: toFieldValue(company), inline: true },
               { name: "Use Case", value: toFieldValue(useCase), inline: true },
               { name: "Environment", value: toFieldValue(environment), inline: true },
+              ...(sourceValue ? [{ name: "Source", value: sourceValue, inline: true }] : []),
               { name: "Message", value: toFieldValue(message) },
             ],
             timestamp: ts,
