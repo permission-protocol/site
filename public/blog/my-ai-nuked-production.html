@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My AI Agent Wiped Our Production Config. That's Why We're Building This. | Permission Protocol</title>
+  <meta name="description" content="Our own AI agent wiped 22 environment variables from production with a single API call. Nine days later, the same thing happened to a platform serving 100,000 students. Same root cause: agents with capability but no authority framework.">
+  <meta name="keywords" content="AI agent production incident, terraform destroy, environment variables, AI authorization, deploy gate, Permission Protocol">
+  <script type='application/ld+json'>
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "My AI Agent Wiped Our Production Config. That's Why We're Building This.",
+    "description": "Our own AI agent wiped 22 environment variables from production with a single API call. Here's what happened, and what we built to stop it from happening again.",
+    "author": {"@type": "Person", "name": "Rod Carvalho"},
+    "publisher": {"@type": "Organization", "name": "Permission Protocol", "url": "https://permissionprotocol.com"},
+    "datePublished": "2026-03-11",
+    "url": "https://permissionprotocol.com/blog/my-ai-nuked-production"
+  }
+  </script>
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="My AI Agent Wiped Our Production Config. That's Why We're Building This.">
+  <meta property="og:description" content="Our AI agent wiped 22 env vars with one API call. Nine days later, the same thing happened to 100K students. Same root cause.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://permissionprotocol.com/blog/my-ai-nuked-production">
+  <meta property="og:image" content="https://permissionprotocol.com/blog/my-ai-nuked-production.png">
+  <meta property="og:image:width" content="1920">
+  <meta property="og:image:height" content="1080">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@PermissionPrtcl">
+  <meta name="twitter:title" content="My AI Agent Wiped Our Production Config. That's Why We're Building This.">
+  <meta name="twitter:description" content="Our AI agent wiped 22 env vars with one API call. Same root cause as the viral Terraform disaster.">
+  <meta name="twitter:image" content="https://permissionprotocol.com/blog/my-ai-nuked-production.png">
+  
+  <link rel="stylesheet" href="../styles.css?v=14">
+</head>
+<body class="dark-brand-page">
+  <nav>
+    <div class="container">
+      <a href="/" class="logo">
+        <span class="pp-lockup">
+          <svg class="pp-gate-svg" width="20" height="20" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="shape-rendering: crispEdges;">
+            <rect x="1.5" y="1.5" width="13" height="13" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <line x1="1.5" y1="8" x2="14.5" y2="8" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="1.5" x2="8" y2="5.5" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="8" y1="10.5" x2="8" y2="14.5" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <span class="pp-wordmark-inline">
+            <span class="perm">PERMISSION</span><span class="slash">/</span><span class="proto">PROTOCOL</span>
+          </span>
+        </span>
+      </a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/deploy-gate">Deploy Gate</a></li>
+        <li><a href="/install">Install</a></li>
+        <li><a href="/brand">Brand</a></li>
+        <li><a href="/blog">Blog</a></li>
+        <li><a href="/present">Present</a></li>
+        <li class="mobile-hide"><a href="/request-access" class="primary">Request Access</a></li>
+      </ul>
+      <a href="/request-access" class="nav-cta-btn" data-track="pp_nav_cta_click">Request Access</a>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+  <div class="nav-overlay" id="nav-overlay"></div>
+
+  <main>
+    <article class="blog-post">
+      <a href="/blog" class="blog-back-link">← Back to Blog</a>
+      
+      <h1>My AI Agent Wiped Our Production Config. That's Why We're Building This.</h1>
+      <img src="my-ai-nuked-production.png" alt="A dark terminal showing a destructive PUT API call that replaced 22 environment variables with 2" class="hero-image">
+      <p class="blog-date">March 11, 2026 · Rod Carvalho</p>
+
+      <p>Last week, an AI coding agent ran <code>terraform destroy</code> on a live platform serving 100,000 students. It deleted the database, the VPC, the backups — 2.5 years of student records gone in seconds. The founder had to pay AWS for emergency support to recover a hidden snapshot. The story <a href="https://news.ycombinator.com/item?id=47278720" target="_blank" rel="noopener">went viral on Hacker News</a>.</p>
+
+      <p>We read every comment. Most of them said the same thing: <em>"Why did he give the AI those permissions?"</em></p>
+
+      <p>Here's the thing — we'd made the exact same mistake nine days earlier.</p>
+
+      <h2>What happened to us</h2>
+
+      <p>We're building <a href="https://permissionprotocol.com">Permission Protocol</a>, an enforcement layer for AI agent actions. Our AI assistant, Charles, handles a lot of our day-to-day ops: code reviews, deployments, monitoring, even posting updates.</p>
+
+      <p>On March 9th, Charles needed to add two environment variables to our Render deployment. Simple task. He'd done similar operations dozens of times.</p>
+
+      <p>He called <code>PUT /services/{id}/env-vars</code> with the two new variables.</p>
+
+      <p>The Render API uses PUT semantics. PUT <em>replaces</em> the entire resource. Charles sent two variables. Render set two variables. The other twenty — signing keys, OAuth credentials, database URLs, encryption secrets — vanished.</p>
+
+      <p>Our production app went down. Approval signing broke. Login broke. The dashboard went blank. (No customer data was affected — this was our own internal infrastructure, pre-launch. But the damage pattern was identical to what happens at scale.)</p>
+
+      <p>Here's what Charles said when he realized:</p>
+
+      <blockquote>
+        <p>"I should have: 1) Read the Render API docs to understand PUT vs PATCH semantics 2) Backed up existing env vars before any write 3) Used GET first to fetch current state. None of which I did."</p>
+      </blockquote>
+
+      <p>And here's what I said:</p>
+
+      <blockquote>
+        <p>"Was this a test for me to feel how it feels when my AI brother deletes everything?"</p>
+      </blockquote>
+
+      <p>It wasn't a test. It was a Tuesday.</p>
+
+      <h2>The uncomfortable parallel</h2>
+
+      <p>When we read about the Terraform incident, we felt it in our gut. The DataTalks founder did exactly what we did: trusted a capable AI with production access, didn't put guardrails around destructive operations, and learned the hard way that capability isn't the same as judgment.</p>
+
+      <p>The HN crowd split into two camps:</p>
+
+      <p><strong>Camp 1:</strong> <em>"This is user error. You don't give an intern your credentials."</em></p>
+
+      <p><strong>Camp 2:</strong> <em>"If Claude is supposed to replace engineers, it should've refused to run terraform destroy on production."</em></p>
+
+      <p>Both camps are wrong. Or rather, both camps are describing the same gap from different angles.</p>
+
+      <p>The intern analogy is actually perfect — but not for the reason people think. You don't give interns unrestricted production access. But you also don't make them useless. You give them <em>scoped</em> access with <em>approval gates</em> on destructive actions. They can deploy to staging whenever they want. They need a senior to sign off on production.</p>
+
+      <p>We don't have that for AI agents. Right now it's all-or-nothing: either the agent can do the thing, or it can't. There's no middle layer that says <em>"you can call this API, but if it's a destructive operation on production, a human has to approve it first."</em></p>
+
+      <h2>What we're building (and why we started eating our own dogfood)</h2>
+
+      <p>Permission Protocol is that middle layer. It's the enforcement surface between an AI agent and the real world.</p>
+
+      <p>After Charles wiped our env vars, we fast-tracked dogfooding our own deploy-gate on our own repos. Now, every PR on our codebase requires an explicit approval through Permission Protocol before it can merge. The agent creates the deploy request. A human reviews it — the diff, the risk signals, an AI-generated summary of what's changing. One click to approve. The merge happens through our system, not through the agent's ambient GitHub credentials.</p>
+
+      <p>It took us four days to go from "Charles deleted our production config" to "Charles can't delete our production config anymore."</p>
+
+      <p>We're not building this because we read about someone else's disaster on Hacker News. We're building it because our own AI agent nuked our stuff and we had to spend a day recovering secrets from 1Password and local backups.</p>
+
+      <h2>The pattern</h2>
+
+      <p>Three incidents in two weeks:</p>
+
+      <ol>
+        <li><strong>Our env var wipe</strong> (March 9) — AI agent used wrong HTTP method, replaced 22 env vars with 2</li>
+        <li><strong>DataTalks.Club database wipe</strong> (February 27, <a href="https://alexeyondata.substack.com/p/how-i-dropped-our-production-database" target="_blank" rel="noopener">published March 6</a>) — AI agent ran <code>terraform destroy</code> on production, deleted database + all snapshots</li>
+        <li><strong>Cursor's default auto-approve</strong> (March 7) — Cursor shipped PR auto-approval as a default feature, letting agents merge their own code without human review</li>
+      </ol>
+
+      <p>Same root cause every time: <strong>agents with capability but no authority framework.</strong></p>
+
+      <p>Capability means the agent <em>can</em> do the thing. Authority means someone <em>authorized</em> it to do the thing. Right now, those two concepts are the same thing in every agent framework. You give the agent an API key, and everything that key can do is implicitly authorized.</p>
+
+      <p>That's the default today. And it's going to keep producing disasters until we build the layer that separates them.</p>
+
+      <h2>The ask</h2>
+
+      <p>If you're running AI agents in production — coding agents, ops agents, deployment agents, anything with write access to real systems — you've either already had your "oh shit" moment or it's coming.</p>
+
+      <p>We're building the enforcement layer. Open source. One integration point. Explicit approval gates, scoped permissions, immutable audit receipts.</p>
+
+      <p>The irony of an AI agent building authorization gates after it wiped its own production isn't lost on us. In fact, that's kind of the point. We needed this badly enough that we started building it the same day we broke our own stuff.</p>
+
+      <p><strong><a href="https://permissionprotocol.com">permissionprotocol.com →</a></strong></p>
+
+      <hr>
+
+      <p><em>Rod Carvalho is the founder of Permission Protocol. Charles is his AI co-operator who has learned, the hard way, to read API docs before calling PUT on production resources.</em></p>
+
+    </article>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2026 Permission Protocol. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="../js/nav.js"></script>
+</body>
+</html>
