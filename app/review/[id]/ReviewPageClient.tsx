@@ -53,6 +53,7 @@ type ReviewRequest = {
   timestamp?: string;
   created_at?: string;
   status?: string;
+  supersededByRequestId?: string | null;
   pr_merged?: boolean;
   pr_merge_sha?: string | null;
   pr_state?: string | null;
@@ -273,6 +274,19 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                   <CircleX className="h-5 w-5" />
                   Denied
                 </p>
+              ) : request?.status === "superseded" && request?.supersededByRequestId ? (
+                <div className="flex flex-col gap-2">
+                  <p className="inline-flex items-center gap-2 text-base font-semibold text-muted">
+                    <AlertTriangle className="h-5 w-5" />
+                    Superseded by newer version
+                  </p>
+                  <Link
+                    href={`/review/${request.supersededByRequestId}`}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#3B82F6] px-4 py-2 text-sm font-medium text-white hover:bg-[#2563EB]"
+                  >
+                    View latest request →
+                  </Link>
+                </div>
               ) : (
                 <p className="inline-flex items-center gap-2 text-base font-semibold text-muted">
                   <AlertTriangle className="h-5 w-5" />

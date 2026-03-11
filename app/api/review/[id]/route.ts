@@ -57,6 +57,7 @@ function mapToReviewRequest(raw: any, prInfo?: PrInfo | null) {
     timestamp: raw.createdAt || raw.created_at,
     created_at: raw.createdAt || raw.created_at,
     status: raw.status,
+    supersededByRequestId: raw.supersededByRequestId ?? null,
     approval_status: raw.approvalStatus,
     commit_sha: raw.commitSha,
     pr_merged: prInfo?.merged ?? false,
