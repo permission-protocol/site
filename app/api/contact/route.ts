@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const DISCORD_WEBHOOK_URL = process.env.DISCORD_CONTACT_WEBHOOK;
+const DISCORD_THREAD_ID = process.env.DISCORD_CONTACT_THREAD_ID;
 
 type ContactPayload = {
   name?: string;
@@ -56,11 +57,13 @@ export async function POST(req: NextRequest) {
     console.log(`[contact] ${name} <${email}> at ${ts}`);
 
     if (DISCORD_WEBHOOK_URL) {
-      await fetch(DISCORD_WEBHOOK_URL, {
+      const webhookUrl = DISCORD_THREAD_ID
+        ? `${DISCORD_WEBHOOK_URL}?thread_id=${DISCORD_THREAD_ID}`
+        : DISCORD_WEBHOOK_URL;
+      await fetch(webhookUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          thread_name: "📬 Inbound Leads",
           embeds: [{
             title: "🔥 New Contact Form Submission",
             color: 0xFF6B35,
