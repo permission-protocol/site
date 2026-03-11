@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle2 } from "lucide-react";
+import { getUtmParams } from "@/lib/utm";
 
 const reveal = {
   initial: { opacity: 0, y: 14 },
@@ -37,6 +38,7 @@ declare global {
   interface Window {
     posthog?: {
       capture: (eventName: string, properties?: Record<string, string>) => void;
+      register: (properties: Record<string, string>) => void;
     };
   }
 }
@@ -53,10 +55,11 @@ export function ContactPageClient() {
     setError(null);
 
     try {
+      const utm = getUtmParams();
       const response = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, utm }),
       });
 
       if (!response.ok) {
@@ -72,6 +75,7 @@ export function ContactPageClient() {
         useCase: form.useCase,
         environment: form.environment,
         message: form.message,
+        ...utm,
       });
     } catch (submitError) {
       setError(
