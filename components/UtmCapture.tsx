@@ -6,7 +6,7 @@ import { captureUtm, getUtmParams, hasUtm } from "@/lib/utm";
 declare global {
   interface Window {
     posthog?: {
-      capture: (eventName: string, properties?: Record<string, string>) => void;
+      capture: (eventName: string, properties?: Record<string, unknown>) => void;
       register: (properties: Record<string, string>) => void;
     };
   }
