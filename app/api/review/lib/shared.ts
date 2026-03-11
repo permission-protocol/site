@@ -10,6 +10,7 @@ export const GH_API = "https://api.github.com";
 export const GH_GQL = "https://api.github.com/graphql";
 
 const STATUSES = ["pending", "approved", "denied", "expired", "superseded", "cancelled"];
+export type DeployRequestRecord = Record<string, any>;
 
 export function ghHeaders(token: string) {
   return {
@@ -20,32 +21,54 @@ export function ghHeaders(token: string) {
   };
 }
 
+function collectRequests(data: DeployRequestRecord): DeployRequestRecord[] {
+  const requests = Array.isArray(data.requests) ? [...data.requests] : [];
+  if (Array.isArray(data.groups)) {
+    for (const group of data.groups) {
+      if (group.latestPending) requests.push(group.latestPending);
+      if (Array.isArray(group.requests)) requests.push(...group.requests);
+      if (Array.isArray(group.items)) requests.push(...group.items);
+      if (Array.isArray(group.history)) requests.push(...group.history);
+    }
+  }
+  return requests;
+}
+
+export async function fetchDeployRequestsByStatuses(
+  statuses: string[],
+  limit = 100
+): Promise<DeployRequestRecord[]> {
+  const authHeaders = await getPPAuthHeaders();
+  const results = await Promise.all(
+    statuses.map(async (status) => {
+      const response = await fetch(
+        `${PP_BASE_URL}/deploy-requests?status=${status}&limit=${limit}`,
+        { method: "GET", headers: { Accept: "application/json", ...authHeaders }, cache: "no-store" }
+      );
+      if (!response.ok) return [];
+      const data = (await response.json().catch(() => null)) as DeployRequestRecord | null;
+      if (!data) return [];
+      return collectRequests(data);
+    })
+  );
+
+  const seen = new Set<string>();
+  return results.flat().filter((request) => {
+    const id = typeof request?.id === "string" ? request.id : "";
+    if (!id || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+}
+
 /**
  * Fetch a deploy request by ID from PP API.
  * Queries across all statuses since individual-request endpoint uses different auth.
  */
 export async function fetchRequestDetails(id: string) {
-  const authHeaders = await getPPAuthHeaders();
-  for (const status of STATUSES) {
-    const response = await fetch(
-      `${PP_BASE_URL}/deploy-requests?status=${status}&limit=100`,
-      { method: "GET", headers: { Accept: "application/json", ...authHeaders }, cache: "no-store" }
-    );
-    if (!response.ok) continue;
-    const data = await response.json().catch(() => null);
-    if (!data) continue;
-
-    const requests = data.requests || [];
-    if (data.groups) {
-      for (const group of data.groups) {
-        if (group.latestPending) requests.push(group.latestPending);
-        if (group.requests) requests.push(...group.requests);
-        if (group.items) requests.push(...group.items);
-        if (group.history) requests.push(...group.history);
-      }
-    }
-    const match = requests.find((r: any) => r.id === id);
-    if (match) return match;
+  const requests = await fetchDeployRequestsByStatuses(STATUSES);
+  for (const request of requests) {
+    if (request.id === id) return request;
   }
   return null;
 }
