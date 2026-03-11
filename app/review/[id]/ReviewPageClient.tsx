@@ -10,6 +10,7 @@ import {
   ExternalLink,
   FileCode2,
   GitPullRequest,
+  RefreshCw,
   ShieldCheck,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -54,11 +55,23 @@ type Enrichment = {
     total_files: number;
     head_branch: string;
     base_branch: string;
+    head_sha?: string | null;
   } | null;
   risk_signals?: RiskSignal[];
   ai_summary?: string | null;
-  blast_radius?: string[];
+  blast_radius?: string | null;
+  summary_sha?: string | null;
+  summary_generated_at?: string | null;
   peer_reviews?: PeerReviews | null;
+};
+
+type AuthorTrackRecord = {
+  username: string;
+  total_deploys: number;
+  clean_deploys: number;
+  recent_deploys: number;
+  avg_approval_time_seconds: number | null;
+  streak: number;
 };
 
 type MergeReadiness = {
@@ -91,6 +104,9 @@ type ReviewRequest = {
   pr_state?: string | null;
   github_pr?: GithubPrMetadata;
   enrichment?: Enrichment | null;
+  summary_sha?: string | null;
+  current_head_sha?: string | null;
+  summary_generated_at?: string | null;
   merge_readiness?: MergeReadiness | null;
   preview_url?: string | null;
 };
@@ -117,6 +133,12 @@ type DecisionState =
 type ReviewPageClientProps = {
   id: string;
 };
+
+type RegenerateState =
+  | { status: "idle" }
+  | { status: "submitting" }
+  | { status: "success"; message: string }
+  | { status: "error"; message: string };
 
 type TrustSignal = {
   id: string;
@@ -265,6 +287,7 @@ function statusCopy(status?: string) {
 
 export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const [request, setRequest] = useState<ReviewRequest | null>(null);
+  const [authorTrackRecord, setAuthorTrackRecord] = useState<AuthorTrackRecord | null>(null);
   const requestStateRef = useRef<{ status: string; prMerged: boolean }>({ status: "pending", prMerged: false });
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -273,6 +296,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const [mergeState, setMergeState] = useState<MergeState>({ status: "idle" });
   const [updateBranchState, setUpdateBranchState] = useState<UpdateBranchState>({ status: "idle" });
   const [showRejectSheet, setShowRejectSheet] = useState(false);
+  const [regenerateState, setRegenerateState] = useState<RegenerateState>({ status: "idle" });
   const [holdProgress, setHoldProgress] = useState(0);
   const [undoExpiresAt, setUndoExpiresAt] = useState<number | null>(null);
   const [undoCountdown, setUndoCountdown] = useState(0);
@@ -378,6 +402,37 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   }, [request?.merge_readiness?.mergeable_state, updateBranchState.status]);
 
   useEffect(() => {
+    const username = request?.actor ?? request?.requested_by;
+    if (typeof username !== "string" || !username) {
+      setAuthorTrackRecord(null);
+      return;
+    }
+    const authorUsername = username;
+
+    const controller = new AbortController();
+
+    async function loadAuthorTrackRecord() {
+      try {
+        const response = await fetch(`/api/review/author/${encodeURIComponent(authorUsername)}`, { signal: controller.signal });
+        if (!response.ok) {
+          setAuthorTrackRecord(null);
+          return;
+        }
+
+        const body = (await response.json()) as AuthorTrackRecord;
+        setAuthorTrackRecord(body);
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          setAuthorTrackRecord(null);
+        }
+      }
+    }
+
+    void loadAuthorTrackRecord();
+    return () => controller.abort();
+  }, [request?.actor, request?.requested_by]);
+
+  useEffect(() => {
     if (!undoExpiresAt) return;
 
     const tick = () => {
@@ -445,11 +500,18 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const relativeTimestamp = timeAgo(request?.timestamp ?? request?.created_at);
   const createdAt = formatTimestamp(request?.timestamp ?? request?.created_at, { includeSeconds: false });
   const blastRadius = request?.enrichment?.blast_radius?.length
-    ? request.enrichment.blast_radius.join(", ")
+    ? request.enrichment.blast_radius
     : "Limited scope";
   const summary = summaryCopy(request);
+  const summarySha = request?.summary_sha ?? request?.enrichment?.summary_sha ?? null;
+  const currentHeadSha = request?.current_head_sha ?? request?.enrichment?.diff?.head_sha ?? null;
+  const summaryGeneratedAt = request?.summary_generated_at ?? request?.enrichment?.summary_generated_at ?? null;
+  const isSummaryStale = Boolean(summarySha && currentHeadSha && summarySha !== currentHeadSha);
   const stateMeta = statusCopy(request?.status);
   const StateIcon = stateMeta.icon;
+  const authorTrustCopy = authorTrackRecord && authorTrackRecord.clean_deploys > 0
+    ? `✅ Author: ${authorTrackRecord.clean_deploys} clean deploy${authorTrackRecord.clean_deploys === 1 ? "" : "s"} (streak: ${authorTrackRecord.streak})`
+    : "⚠️ New author: first deploy";
 
   const trustSignals = useMemo<TrustSignal[]>(() => {
     const items: TrustSignal[] = [];
@@ -565,6 +627,24 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   function undoApproval() {
     setUndoExpiresAt(null);
     setUndoCountdown(0);
+  }
+
+  async function regenerateSummary() {
+    setRegenerateState({ status: "submitting" });
+    try {
+      const response = await fetch(`/api/review/${id}/summary`, { method: "POST" });
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+
+      if (!response.ok) {
+        setRegenerateState({ status: "error", message: body.error ?? "Unable to regenerate summary." });
+        return;
+      }
+
+      setRegenerateState({ status: "success", message: "Summary refreshed." });
+      await loadRequest(true);
+    } catch {
+      setRegenerateState({ status: "error", message: "Network error while regenerating summary." });
+    }
   }
 
   async function submitMerge() {
@@ -827,7 +907,38 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                   ) : null}
                 </div>
 
+                {isSummaryStale ? (
+                  <div className="mt-4 rounded-2xl border border-warning/40 bg-warning/10 p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-warning">Summary is stale</p>
+                        <p className="mt-1 text-sm text-secondary">
+                          The PR head SHA changed after this assessment was generated.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={regenerateState.status === "submitting"}
+                        onClick={() => void regenerateSummary()}
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-warning px-4 text-sm font-semibold text-warning disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${regenerateState.status === "submitting" ? "animate-spin" : ""}`} />
+                        {regenerateState.status === "submitting" ? "Regenerating..." : "Regenerate"}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
                 <p className="mt-4 text-base leading-7 text-signal sm:text-lg">{summary}</p>
+                {summaryGeneratedAt ? (
+                  <p className="mt-2 text-xs text-muted">Generated {formatTimestamp(summaryGeneratedAt, { includeSeconds: false })}</p>
+                ) : null}
+                {regenerateState.status === "error" ? (
+                  <p className="mt-2 text-sm text-danger">{regenerateState.message}</p>
+                ) : null}
+                {regenerateState.status === "success" && !isSummaryStale ? (
+                  <p className="mt-2 text-sm text-permit">{regenerateState.message}</p>
+                ) : null}
 
                 <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                   <div className={`rounded-2xl border px-4 py-3 ${riskMeta.chip}`}>
@@ -841,6 +952,37 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                     <p className="mt-1 text-sm text-secondary">Affected surfaces inferred from changed paths.</p>
                   </div>
                 </div>
+              </section>
+
+              <section className="rounded-3xl border border-border bg-card p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Author track record</p>
+                <p className="mt-2 text-base font-semibold text-signal">{authorTrustCopy}</p>
+                {authorTrackRecord ? (
+                  <div className="mt-4 grid gap-3 sm:grid-cols-4">
+                    <div className="rounded-2xl border border-border bg-void/40 px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Recent deploys</p>
+                      <p className="mt-1 text-sm font-medium text-signal">{authorTrackRecord.recent_deploys}</p>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-void/40 px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Total deploys</p>
+                      <p className="mt-1 text-sm font-medium text-signal">{authorTrackRecord.total_deploys}</p>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-void/40 px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Approval speed</p>
+                      <p className="mt-1 text-sm font-medium text-signal">
+                        {authorTrackRecord.avg_approval_time_seconds != null
+                          ? `${Math.round(authorTrackRecord.avg_approval_time_seconds / 60)}m avg`
+                          : "N/A"}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-void/40 px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Current streak</p>
+                      <p className="mt-1 text-sm font-medium text-signal">{authorTrackRecord.streak}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm text-secondary">Author history is not available yet.</p>
+                )}
               </section>
 
               <section className="rounded-3xl border border-border bg-card p-4">

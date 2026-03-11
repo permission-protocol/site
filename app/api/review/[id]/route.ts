@@ -6,6 +6,7 @@ type PrInfo = {
   author: string | null;
   merged: boolean;
   merge_commit_sha: string | null;
+  head_sha: string | null;
   state: string; // "open" | "closed"
   title: string | null;
 };
@@ -25,6 +26,7 @@ async function fetchPrInfo(repo: string, prNumber: number): Promise<PrInfo | nul
       user?: { login?: string };
       merged?: boolean;
       merge_commit_sha?: string;
+      head?: { sha?: string };
       state?: string;
       title?: string;
     };
@@ -32,6 +34,7 @@ async function fetchPrInfo(repo: string, prNumber: number): Promise<PrInfo | nul
       author: data.user?.login ?? null,
       merged: data.merged ?? false,
       merge_commit_sha: data.merge_commit_sha ?? null,
+      head_sha: data.head?.sha ?? null,
       state: data.state ?? "unknown",
       title: data.title ?? null,
     };
@@ -116,7 +119,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 
     // Phase 2: Enrich with diff, risk signals, and AI summary
     const enrichment = match.prNumber && match.repo
-      ? await enrichReviewRequest(match.repo, match.prNumber)
+      ? await enrichReviewRequest(match.repo, match.prNumber, { currentHeadSha: prInfo?.head_sha })
       : null;
 
     const [owner, repoName] = (match.repo ?? "").split("/");
@@ -137,6 +140,9 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
     return NextResponse.json({
       ...mapToReviewRequest(match, prInfo),
       enrichment,
+      summary_sha: enrichment?.summary_sha ?? null,
+      summary_generated_at: enrichment?.summary_generated_at ?? null,
+      current_head_sha: prInfo?.head_sha ?? null,
       merge_readiness,
       preview_url,
     });

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { AlertTriangle, CheckCircle2, Clock, GitPullRequest, Plus, ShieldCheck } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, TouchEvent, useEffect, useMemo, useState } from "react";
 import { timeAgo } from "@/lib/time";
 
 type RequestSummary = {
@@ -24,6 +24,34 @@ type ManualRequestState = {
   prNumber: string;
   commitSha: string;
   description: string;
+};
+
+type ViewMode = "list" | "stack";
+
+type AuthorTrackRecord = {
+  username: string;
+  total_deploys: number;
+  clean_deploys: number;
+  recent_deploys: number;
+  avg_approval_time_seconds: number | null;
+  streak: number;
+};
+
+type StackRequestDetail = {
+  id?: string;
+  actor?: string;
+  requested_by?: string;
+  risk_tier?: string;
+  status?: string;
+  current_head_sha?: string | null;
+  summary_sha?: string | null;
+  github_pr?: {
+    title?: string;
+    pr_number?: number;
+  };
+  enrichment?: {
+    ai_summary?: string | null;
+  } | null;
 };
 
 const inputClass =
@@ -79,6 +107,11 @@ export function ReviewDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [repoFilter, setRepoFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [stackIndex, setStackIndex] = useState(0);
+  const [approveAllState, setApproveAllState] = useState<{ status: "idle" | "submitting" | "error"; message?: string }>({
+    status: "idle",
+  });
   const [showManualCreate, setShowManualCreate] = useState(false);
   const [manualRequest, setManualRequest] = useState<ManualRequestState>({
     repo: "",
@@ -117,6 +150,14 @@ export function ReviewDashboard() {
       }
     }
     void load();
+  }, []);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)");
+    const applyMode = () => setViewMode(media.matches ? "stack" : "list");
+    applyMode();
+    media.addEventListener("change", applyMode);
+    return () => media.removeEventListener("change", applyMode);
   }, []);
 
   useEffect(() => {
@@ -188,6 +229,7 @@ export function ReviewDashboard() {
   const pending = filtered.filter((r) => r.status === "pending");
   const approved = filtered.filter((r) => r.status === "approved");
   const denied = filtered.filter((r) => r.status === "denied");
+  const canApproveAll = pending.length > 0 && pending.every((r) => r.risk_tier === "low" && r.env !== "production");
   const lastApprovedAt = approved
     .slice()
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at;
@@ -197,6 +239,38 @@ export function ReviewDashboard() {
     { label: "Approved", value: "approved" },
     { label: "Denied", value: "denied" },
   ];
+
+  useEffect(() => {
+    if (stackIndex > Math.max(0, pending.length - 1)) {
+      setStackIndex(0);
+    }
+  }, [pending.length, stackIndex]);
+
+  async function approveAllPending() {
+    setApproveAllState({ status: "submitting" });
+
+    try {
+      for (const request of pending) {
+        const response = await fetch(`/api/review/${request.id}/approve`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason: "Approved from dashboard bulk action" }),
+        });
+        if (!response.ok) {
+          const body = (await response.json().catch(() => ({}))) as { error?: string };
+          setApproveAllState({ status: "error", message: body.error ?? `Unable to approve ${request.id}.` });
+          return;
+        }
+      }
+
+      const response = await fetch("/api/reviews", { cache: "no-store" });
+      const data = (await response.json()) as { requests: RequestSummary[] };
+      setRequests(data.requests);
+      setApproveAllState({ status: "idle" });
+    } catch {
+      setApproveAllState({ status: "error", message: "Network error while approving pending requests." });
+    }
+  }
 
   return (
     <section className="mx-auto max-w-3xl px-4 pt-20 pb-12 sm:px-6">
@@ -373,17 +447,75 @@ export function ReviewDashboard() {
             ) : null}
           </div>
 
+          {pending.length >= 2 ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("stack")}
+                  className={`min-h-11 rounded-full border px-4 py-2 text-xs transition-colors ${
+                    viewMode === "stack"
+                      ? "border-permit bg-permit/15 text-permit"
+                      : "border-border bg-void/50 text-secondary hover:border-permit/40 hover:text-signal"
+                  }`}
+                >
+                  Stack
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("list")}
+                  className={`min-h-11 rounded-full border px-4 py-2 text-xs transition-colors ${
+                    viewMode === "list"
+                      ? "border-permit bg-permit/15 text-permit"
+                      : "border-border bg-void/50 text-secondary hover:border-permit/40 hover:text-signal"
+                  }`}
+                >
+                  List
+                </button>
+              </div>
+              {canApproveAll ? (
+                <button
+                  type="button"
+                  disabled={approveAllState.status === "submitting"}
+                  onClick={() => void approveAllPending()}
+                  className="inline-flex min-h-11 items-center justify-center rounded-full border border-permit bg-permit/10 px-4 py-2 text-xs font-semibold text-permit disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {approveAllState.status === "submitting" ? "Approving..." : "Approve All"}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+          {approveAllState.status === "error" ? (
+            <p className="text-sm text-danger">{approveAllState.message}</p>
+          ) : null}
+
           {pending.length > 0 ? (
             <div>
               <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-warning">
                 <Clock className="h-3.5 w-3.5" />
                 Pending Approval ({pending.length})
               </h2>
-              <div className="space-y-2">
-                {pending.map((r, i) => (
-                  <RequestCard key={r.id} request={r} index={i} />
-                ))}
-              </div>
+              {viewMode === "stack" && pending.length >= 2 ? (
+                <StackReviewCard
+                  request={pending[stackIndex]}
+                  index={stackIndex}
+                  total={pending.length}
+                  onAdvance={() => setStackIndex((current) => (current + 1) % pending.length)}
+                  onSelect={(nextIndex) => setStackIndex(nextIndex)}
+                  onRefresh={async () => {
+                    const response = await fetch("/api/reviews", { cache: "no-store" });
+                    if (!response.ok) return;
+                    const data = (await response.json()) as { requests: RequestSummary[] };
+                    setRequests(data.requests);
+                  }}
+                />
+              ) : (
+                <div className="space-y-2">
+                  {pending.map((r, i) => (
+                    <RequestCard key={r.id} request={r} index={i} />
+                  ))}
+                </div>
+              )}
             </div>
           ) : null}
 
@@ -417,6 +549,215 @@ export function ReviewDashboard() {
         </div>
       )}
     </section>
+  );
+}
+
+function StackReviewCard({
+  request,
+  index,
+  total,
+  onAdvance,
+  onSelect,
+  onRefresh,
+}: {
+  request: RequestSummary;
+  index: number;
+  total: number;
+  onAdvance: () => void;
+  onSelect: (index: number) => void;
+  onRefresh: () => Promise<void>;
+}) {
+  const [detail, setDetail] = useState<StackRequestDetail | null>(null);
+  const [authorTrackRecord, setAuthorTrackRecord] = useState<AuthorTrackRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [translateX, setTranslateX] = useState(0);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [actionState, setActionState] = useState<{ status: "idle" | "submitting" | "error"; message?: string }>({
+    status: "idle",
+  });
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function load() {
+      setLoading(true);
+      setActionState({ status: "idle" });
+
+      try {
+        const response = await fetch(`/api/review/${request.id}`, { signal: controller.signal });
+        if (!response.ok) {
+          setDetail(null);
+          setAuthorTrackRecord(null);
+          return;
+        }
+
+        const body = (await response.json()) as StackRequestDetail;
+        setDetail(body);
+
+        const username = body.actor ?? body.requested_by;
+        if (typeof username !== "string" || !username) {
+          setAuthorTrackRecord(null);
+          return;
+        }
+        const authorUsername = username;
+
+        const authorResponse = await fetch(`/api/review/author/${encodeURIComponent(authorUsername)}`, { signal: controller.signal });
+        if (!authorResponse.ok) {
+          setAuthorTrackRecord(null);
+          return;
+        }
+
+        const authorBody = (await authorResponse.json()) as AuthorTrackRecord;
+        setAuthorTrackRecord(authorBody);
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          setDetail(null);
+          setAuthorTrackRecord(null);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void load();
+    return () => controller.abort();
+  }, [request.id]);
+
+  const isSummaryStale = Boolean(detail?.summary_sha && detail?.current_head_sha && detail.summary_sha !== detail.current_head_sha);
+  const authorTrustCopy = authorTrackRecord && authorTrackRecord.clean_deploys > 0
+    ? `✅ Author: ${authorTrackRecord.clean_deploys} clean deploys (streak: ${authorTrackRecord.streak})`
+    : "⚠️ New author: first deploy";
+
+  function handleTouchStart(event: TouchEvent<HTMLDivElement>) {
+    setTouchStartX(event.touches[0]?.clientX ?? null);
+    setTranslateX(0);
+  }
+
+  function handleTouchMove(event: TouchEvent<HTMLDivElement>) {
+    if (touchStartX == null) return;
+    const deltaX = (event.touches[0]?.clientX ?? touchStartX) - touchStartX;
+    setTranslateX(deltaX);
+  }
+
+  function handleTouchEnd() {
+    if (Math.abs(translateX) > 100) {
+      onAdvance();
+    }
+    setTouchStartX(null);
+    setTranslateX(0);
+  }
+
+  async function submitDecision(action: "approve" | "reject") {
+    setActionState({ status: "submitting" });
+    try {
+      const response = await fetch(`/api/review/${request.id}/${action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: `Dashboard ${action}` }),
+      });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { error?: string };
+        setActionState({ status: "error", message: body.error ?? `Unable to ${action} request.` });
+        return;
+      }
+
+      await onRefresh();
+      onAdvance();
+    } catch {
+      setActionState({ status: "error", message: `Network error while attempting to ${action} request.` });
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <motion.div
+        key={request.id}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0, x: translateX }}
+        transition={{ duration: 0.2 }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className="rounded-2xl border border-border bg-card p-5 shadow-[0_16px_36px_rgba(0,0,0,0.35)]"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">{request.repo}</p>
+            <p className="mt-2 text-lg font-semibold text-signal">{request.pr_title ?? request.capability}</p>
+            <p className="mt-1 text-sm text-secondary">
+              {request.actor}
+              {request.pr_number ? ` • PR #${request.pr_number}` : ""}
+              {` • waiting ${waitLabel(request.created_at)}`}
+            </p>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${riskBadge(request.risk_tier)}`}>
+              {request.risk_tier}
+            </span>
+            <span className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-medium ${
+              request.env === "production"
+                ? "border-danger/30 bg-danger/5 text-danger"
+                : "border-border bg-void/50 text-secondary"
+            }`}>
+              {request.env}
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-border bg-void/40 p-4">
+          {loading ? (
+            <p className="text-sm text-secondary">Loading assessment…</p>
+          ) : (
+            <>
+              <p className="text-sm text-signal">{detail?.enrichment?.ai_summary ?? "No AI summary available."}</p>
+              <div className="mt-3 space-y-2 text-sm text-secondary">
+                <p>{authorTrustCopy}</p>
+                {isSummaryStale ? <p className="text-warning">Summary is stale relative to the current PR head.</p> : null}
+              </div>
+            </>
+          )}
+        </div>
+
+        {actionState.status === "error" ? (
+          <p className="mt-3 text-sm text-danger">{actionState.message}</p>
+        ) : null}
+
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            disabled={actionState.status === "submitting"}
+            onClick={() => void submitDecision("approve")}
+            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#10B981] px-4 py-3 text-sm font-semibold text-void disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {actionState.status === "submitting" ? "Working..." : "Approve"}
+          </button>
+          <button
+            type="button"
+            disabled={actionState.status === "submitting"}
+            onClick={() => void submitDecision("reject")}
+            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-danger bg-danger/10 px-4 py-3 text-sm font-semibold text-danger disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Reject
+          </button>
+        </div>
+      </motion.div>
+
+      <div className="flex items-center justify-center gap-2">
+        {Array.from({ length: total }).map((_, dotIndex) => (
+          <button
+            key={dotIndex}
+            type="button"
+            onClick={() => onSelect(dotIndex)}
+            className={`h-2.5 w-2.5 rounded-full transition-colors ${
+              dotIndex === index ? "bg-permit" : "bg-border"
+            }`}
+            aria-label={`Go to request ${dotIndex + 1}`}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
