@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useSession } from "next-auth/react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -288,6 +289,7 @@ function statusCopy(status?: string) {
 }
 
 export function ReviewPageClient({ id }: ReviewPageClientProps) {
+  const { data: session, status: sessionStatus } = useSession();
   const [request, setRequest] = useState<ReviewRequest | null>(null);
   const [authorTrackRecord, setAuthorTrackRecord] = useState<AuthorTrackRecord | null>(null);
   const requestStateRef = useRef<{ status: string; prMerged: boolean }>({ status: "pending", prMerged: false });
@@ -471,7 +473,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const showAuditTrailLink = Boolean(
     request?.id && (request.status === "approved" || request.status === "denied" || request.status === "expired")
   );
-  const canAct =
+  const canReview =
     !loading &&
     !fetchError &&
     !!request &&
@@ -479,6 +481,9 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
     decisionState.status !== "approved" &&
     decisionState.status !== "rejected" &&
     !undoExpiresAt;
+  const isAuthenticated = sessionStatus === "authenticated";
+  const approverUsername = session?.user?.name?.trim() ?? session?.login ?? session?.user?.login ?? null;
+  const approverAvatar = session?.user?.image ?? null;
   const showChecklist = request?.status === "approved" && !request?.pr_merged;
   const hasLinkedPr = Boolean(request?.github_pr?.owner && request?.github_pr?.repo && request?.github_pr?.pr_number);
   const checksPassing = allChecksPassing(readiness);
@@ -602,7 +607,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   }
 
   function startHold() {
-    if (!canAct || decisionState.status === "submitting") return;
+    if (!canReview || !isAuthenticated || decisionState.status === "submitting") return;
     if (!needsHoldToApprove) {
       queueApproval();
       return;
@@ -631,6 +636,10 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   function undoApproval() {
     setUndoExpiresAt(null);
     setUndoCountdown(0);
+  }
+
+  function redirectToLogin() {
+    window.location.href = `/login?callbackUrl=${encodeURIComponent(`/review/${id}`)}`;
   }
 
   async function regenerateSummary() {
@@ -1257,8 +1266,14 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
 
             <button
               type="button"
-              disabled={!canAct || decisionState.status === "submitting"}
-              onClick={() => void submitDecision("reject")}
+              disabled={!canReview || decisionState.status === "submitting"}
+              onClick={() => {
+                if (!isAuthenticated) {
+                  redirectToLogin();
+                  return;
+                }
+                void submitDecision("reject");
+              }}
               className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-2xl border border-danger bg-danger/10 px-4 py-3 text-sm font-semibold text-danger disabled:cursor-not-allowed disabled:opacity-60"
             >
               {decisionState.status === "submitting" && decisionState.action === "reject" ? "Rejecting..." : "Confirm reject"}
@@ -1267,7 +1282,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
         </div>
       ) : null}
 
-      {canAct ? (
+      {canReview ? (
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur">
           <div className="mx-auto max-w-3xl px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3 sm:px-6">
             {undoExpiresAt ? (
@@ -1288,38 +1303,73 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
               </div>
             ) : (
               <div className="space-y-3">
-                <button
-                  type="button"
-                  disabled={!canAct || decisionState.status === "submitting"}
-                  onClick={needsHoldToApprove ? undefined : () => queueApproval()}
-                  onPointerDown={needsHoldToApprove ? startHold : undefined}
-                  onPointerUp={needsHoldToApprove ? cancelHold : undefined}
-                  onPointerLeave={needsHoldToApprove ? cancelHold : undefined}
-                  onPointerCancel={needsHoldToApprove ? cancelHold : undefined}
-                  className="relative inline-flex min-h-11 w-full touch-none items-center justify-center overflow-hidden rounded-2xl bg-[#10B981] px-4 py-4 text-base font-semibold text-void disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {needsHoldToApprove && holdProgress > 0 ? (
-                    <span
-                      className="absolute inset-y-0 left-0 bg-white/20"
-                      style={{ width: `${holdProgress * 100}%` }}
-                    />
-                  ) : null}
-                  <span className="relative inline-flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5" />
-                    {decisionState.status === "submitting" && decisionState.action === "approve"
-                      ? "Approving..."
-                      : needsHoldToApprove
-                        ? holdProgress > 0
-                          ? "Keep holding..."
-                          : "Hold to approve"
-                        : "Approve"}
-                  </span>
-                </button>
+                {isAuthenticated ? (
+                  <>
+                    <div className="flex items-center gap-3 rounded-2xl border border-border bg-void/40 px-4 py-3">
+                      {approverAvatar ? (
+                        <span
+                          aria-hidden="true"
+                          className="h-9 w-9 rounded-full border border-border bg-cover bg-center"
+                          style={{ backgroundImage: `url(${approverAvatar})` }}
+                        />
+                      ) : (
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-sm font-semibold text-signal">
+                          {(approverUsername ?? "?").slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
+                      <p className="text-sm font-medium text-signal">
+                        Approving as <span className="text-permit">@{approverUsername ?? "unknown"}</span>
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={!canReview || decisionState.status === "submitting"}
+                      onClick={needsHoldToApprove ? undefined : () => queueApproval()}
+                      onPointerDown={needsHoldToApprove ? startHold : undefined}
+                      onPointerUp={needsHoldToApprove ? cancelHold : undefined}
+                      onPointerLeave={needsHoldToApprove ? cancelHold : undefined}
+                      onPointerCancel={needsHoldToApprove ? cancelHold : undefined}
+                      className="relative inline-flex min-h-11 w-full touch-none items-center justify-center overflow-hidden rounded-2xl bg-[#10B981] px-4 py-4 text-base font-semibold text-void disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {needsHoldToApprove && holdProgress > 0 ? (
+                        <span
+                          className="absolute inset-y-0 left-0 bg-white/20"
+                          style={{ width: `${holdProgress * 100}%` }}
+                        />
+                      ) : null}
+                      <span className="relative inline-flex items-center gap-2">
+                        <CheckCircle2 className="h-5 w-5" />
+                        {decisionState.status === "submitting" && decisionState.action === "approve"
+                          ? "Approving..."
+                          : needsHoldToApprove
+                            ? holdProgress > 0
+                              ? "Keep holding..."
+                              : "Hold to approve"
+                            : "Approve"}
+                      </span>
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={redirectToLogin}
+                    className="inline-flex min-h-11 w-full items-center justify-center rounded-2xl border border-permit bg-permit/10 px-4 py-4 text-base font-semibold text-permit"
+                  >
+                    Sign in with GitHub to approve
+                  </button>
+                )}
 
                 <button
                   type="button"
-                  disabled={!canAct || decisionState.status === "submitting"}
-                  onClick={() => setShowRejectSheet(true)}
+                  disabled={!canReview || decisionState.status === "submitting"}
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      redirectToLogin();
+                      return;
+                    }
+                    setShowRejectSheet(true);
+                  }}
                   className="inline-flex min-h-11 w-full items-center justify-center rounded-2xl border border-danger bg-danger/10 px-4 py-3 text-sm font-semibold text-danger disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <CircleX className="mr-2 h-4 w-4" />

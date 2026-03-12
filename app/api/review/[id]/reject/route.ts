@@ -1,9 +1,17 @@
+import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
+import { authOptions } from "@/src/lib/auth";
 import { getPPAuthHeaders } from "../../auth";
 import { PP_BASE_URL, GH_API, ghHeaders, fetchRequestDetails } from "../../lib/shared";
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
+    const session = await getServerSession(authOptions);
+    const username = session?.user?.name?.trim();
+    if (!session || !username) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
     const authHeaders = await getPPAuthHeaders();
     const body = (await request.json().catch(() => ({}))) as { reason?: string };
     const requestDetails = await fetchRequestDetails(params.id);
@@ -16,7 +24,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
         ...authHeaders,
       },
       body: JSON.stringify({
-        rejected_by: "reviewer",
+        rejected_by: username,
         reason: body.reason
       })
     });

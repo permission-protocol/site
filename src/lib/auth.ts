@@ -67,6 +67,7 @@ export const authOptions: NextAuthOptions = {
         : [];
 
       if (session.user) {
+        session.user.name = session.login ?? session.user.name;
         session.user.login = session.login;
         session.user.orgs = session.orgs;
       }
