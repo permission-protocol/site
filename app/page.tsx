@@ -183,7 +183,7 @@ export default function HomePage() {
 
       <SectionBlock
         headline="The gate is always closed."
-        subheadline="Free for individual developers. Enterprise plans for teams that need enforcement at scale."
+        subheadline="Open source for individual repos. Enterprise plans for organizations that need enforcement at scale."
       >
         <CTABanner />
       </SectionBlock>

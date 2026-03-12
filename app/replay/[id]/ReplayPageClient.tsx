@@ -99,7 +99,7 @@ export function ReplayPageClient({ id }: ReplayPageClientProps) {
         <footer className="mt-8 text-center">
           <p className="text-sm text-secondary">Protected by Permission Protocol</p>
           <Link href="/developers/quickstart" className="mt-1 inline-block text-sm font-semibold text-permit hover:text-[#6ac9b7]">
-            Get Started Free →
+            Add to your pipeline →
           </Link>
         </footer>
       </motion.div>
