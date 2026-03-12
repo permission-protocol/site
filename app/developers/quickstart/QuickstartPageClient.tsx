@@ -258,7 +258,7 @@ export function QuickstartPageClient() {
             <a href="#" className="rounded-lg border border-border bg-ash p-4 hover:border-permit/60 hover:bg-permit/10">
               <p className="text-sm font-semibold text-signal">Verify receipts in CI/CD</p>
               <span className="mt-2 inline-flex rounded-full border border-permit/50 bg-permit/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-permit">
-                Coming soon
+                Private Beta
               </span>
             </a>
             <div className="rounded-lg border border-border bg-ash p-4">
@@ -285,7 +285,7 @@ export function QuickstartPageClient() {
             <a href="#" className="rounded-lg border border-border bg-ash p-4 hover:border-permit/60 hover:bg-permit/10">
               <p className="text-sm font-semibold text-signal">Join the community</p>
               <span className="mt-2 inline-flex rounded-full border border-permit/50 bg-permit/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-permit">
-                Coming soon
+                Private Beta
               </span>
             </a>
           </div>

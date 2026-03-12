@@ -31,7 +31,7 @@ const tiers = [
   },
   {
     name: "Team",
-    price: "Coming Soon",
+    price: "Private Beta",
     suffix: "",
     subtitle: "For teams shipping with agents",
     features: [
@@ -42,7 +42,7 @@ const tiers = [
       "Audit log & export",
       "Priority support"
     ],
-    cta: "Join Waitlist",
+    cta: "Request Access",
     ctaHref: "/contact",
     ctaClass: "bg-permit text-void hover:brightness-110",
     highlight: true
@@ -89,7 +89,7 @@ export function PricingPageClient() {
             >
               {tier.highlight ? (
                 <span className="absolute -top-3 left-6 inline-flex rounded-full border border-permit/70 bg-permit px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-void">
-                  Most Popular
+                  Recommended for Teams
                 </span>
               ) : null}
 
