@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { AlertCircle, Lock, ShieldCheck } from "lucide-react";
+import { AlertCircle, AlertTriangle, Clock, Lock, ShieldAlert, ShieldCheck, ShieldX } from "lucide-react";
 import { ReceiptShareButtons } from "@/src/components/ReceiptShareButtons";
 
 type ReceiptPageClientProps = {
@@ -22,6 +22,7 @@ type ReceiptViewData = {
   approved_by: string | null;
   approved_by_url: string | null;
   actor: string | null;
+  actor_type: string | null;
   policy: string | null;
   timestamp: string | null;
   created_at: string | null;
@@ -31,9 +32,149 @@ type ReceiptViewData = {
   signature_verified: boolean | null;
   signature_status: "verified" | "not_verified" | "unknown";
   status: string | null;
+  approval_status: string | null;
+  verification_status: string | null;
+  verification_failure_code: string | null;
+  has_receipt: boolean;
   request_id: string | null;
   technical_json: Record<string, unknown>;
 };
+
+/* ── Status derivation ─────────────────────────────────────────── */
+
+type ResolvedStatus = {
+  label: string;
+  glyph: string;
+  badgeClass: string;
+  icon?: React.ReactNode;
+};
+
+function resolveStatus(receipt: ReceiptViewData): ResolvedStatus {
+  const status = receipt.status?.toLowerCase();
+  const approval = receipt.approval_status?.toUpperCase();
+
+  // Denied
+  if (status === "denied" || approval === "DENIED") {
+    return {
+      label: "ACTION DENIED",
+      glyph: "✕",
+      badgeClass: "bg-red-500/20 text-red-400 border-red-500/40",
+    };
+  }
+
+  // Expired
+  if (status === "expired") {
+    return {
+      label: "EXPIRED",
+      glyph: "⏰",
+      badgeClass: "bg-zinc-500/20 text-zinc-400 border-zinc-500/40",
+      icon: <Clock className="mr-1 inline h-4 w-4" />,
+    };
+  }
+
+  // Superseded / Cancelled
+  if (status === "superseded" || status === "cancelled") {
+    return {
+      label: status.toUpperCase(),
+      glyph: "—",
+      badgeClass: "bg-zinc-500/20 text-zinc-400 border-zinc-500/40",
+    };
+  }
+
+  // Actually approved with receipt
+  if (
+    (status === "approved" || approval === "APPROVED") &&
+    receipt.has_receipt &&
+    receipt.signature_status === "verified"
+  ) {
+    return {
+      label: "ACTION AUTHORIZED",
+      glyph: "✓",
+      badgeClass: "bg-[#10B981]/20 text-[#10B981] border-[#10B981]/40",
+    };
+  }
+
+  // Approved but no verified signature
+  if (status === "approved" || approval === "APPROVED") {
+    return {
+      label: "APPROVED",
+      glyph: "✓",
+      badgeClass: "bg-[#10B981]/20 text-[#10B981] border-[#10B981]/40",
+    };
+  }
+
+  // Pending
+  if (status === "pending" || approval === "PENDING") {
+    return {
+      label: "PENDING APPROVAL",
+      glyph: "⏳",
+      badgeClass: "bg-amber-500/20 text-amber-400 border-amber-500/40",
+      icon: <Clock className="mr-1 inline h-4 w-4" />,
+    };
+  }
+
+  // Fallback
+  return {
+    label: status?.toUpperCase() || "UNKNOWN",
+    glyph: "?",
+    badgeClass: "bg-zinc-500/20 text-zinc-400 border-zinc-500/40",
+  };
+}
+
+/* ── Signature display ─────────────────────────────────────────── */
+
+type SignatureDisplay = {
+  label: string;
+  colorClass: string;
+  icon: React.ReactNode;
+};
+
+function resolveSignatureDisplay(receipt: ReceiptViewData): SignatureDisplay {
+  if (receipt.signature_status === "verified") {
+    return {
+      label: "Verified",
+      colorClass: "text-[#10B981]",
+      icon: <ShieldCheck className="h-4 w-4" />,
+    };
+  }
+
+  if (receipt.signature_status === "not_verified" || receipt.verification_status === "FAILED") {
+    return {
+      label: "Verification Failed",
+      colorClass: "text-red-400",
+      icon: <ShieldX className="h-4 w-4" />,
+    };
+  }
+
+  // No signature at all
+  return {
+    label: "No Signature",
+    colorClass: "text-zinc-500",
+    icon: <ShieldAlert className="h-4 w-4" />,
+  };
+}
+
+function humanizeVerificationFailure(code: string | null): string | null {
+  if (!code) return null;
+  const map: Record<string, string> = {
+    RECEIPT_NOT_FOUND: "No cryptographic receipt was issued for this request.",
+    SIGNATURE_INVALID: "The receipt signature could not be verified.",
+    KEY_MISMATCH: "Signing key does not match the expected authority.",
+    EXPIRED: "The receipt has expired.",
+  };
+  return map[code] ?? `Verification failed: ${code}`;
+}
+
+/* ── Actor display ─────────────────────────────────────────────── */
+
+function formatActor(actor: string | null, actorType: string | null): string | null {
+  if (!actor) return null;
+  if (actorType === "api_key") return "CI/CD Pipeline";
+  if (actorType === "system") return "System";
+  return actor;
+}
+
+/* ── Helpers ────────────────────────────────────────────────────── */
 
 function formatTimestamp(value: string | null) {
   if (!value) return null;
@@ -137,6 +278,58 @@ function TimelineRow({
   );
 }
 
+/* ── Loading skeleton ──────────────────────────────────────────── */
+
+function LoadingSkeleton() {
+  return (
+    <section className="min-h-screen bg-void px-4 py-10 sm:px-6 md:py-14">
+      <div className="mx-auto flex w-full max-w-[520px] flex-col items-center">
+        <motion.article
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="w-full rounded-[28px] border border-[#222] bg-ash p-8 shadow-[0_20px_60px_rgba(0,0,0,0.5)] md:p-10"
+        >
+          <div className="inline-flex items-center rounded-full border border-border px-4 py-2 text-base font-bold text-secondary">
+            Loading receipt...
+          </div>
+          <div className="mt-7 h-8 w-3/4 rounded-full bg-[#151515]" />
+          <div className="mt-6 space-y-3">
+            <div className="h-12 rounded-2xl bg-[#111]" />
+            <div className="h-12 rounded-2xl bg-[#111]" />
+            <div className="h-12 rounded-2xl bg-[#111]" />
+          </div>
+        </motion.article>
+      </div>
+    </section>
+  );
+}
+
+/* ── Error states ──────────────────────────────────────────────── */
+
+function ErrorState({ title, message }: { title: string; message: string }) {
+  return (
+    <section className="min-h-screen bg-void px-4 py-10 sm:px-6 md:py-14">
+      <div className="mx-auto flex w-full max-w-[520px] flex-col items-center">
+        <motion.article
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="w-full rounded-[28px] border border-[#222] bg-ash p-8 shadow-[0_20px_60px_rgba(0,0,0,0.5)] md:p-10"
+        >
+          <div className="inline-flex items-center gap-2 rounded-full border border-red-500/40 bg-red-500/20 px-4 py-2 text-base font-bold text-red-400">
+            <AlertCircle className="h-4 w-4" /> {title}
+          </div>
+          <h1 className="mt-7 text-2xl font-bold text-signal">{title}</h1>
+          <p className="mt-3 text-sm text-secondary">{message}</p>
+        </motion.article>
+      </div>
+    </section>
+  );
+}
+
+/* ── Main component ────────────────────────────────────────────── */
+
 export function ReceiptPageClient({ id }: ReceiptPageClientProps) {
   const [receipt, setReceipt] = useState<ReceiptViewData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -188,89 +381,31 @@ export function ReceiptPageClient({ id }: ReceiptPageClientProps) {
     };
   }, [id]);
 
-  if (loading) {
-    return (
-      <section className="min-h-screen bg-void px-4 py-10 sm:px-6 md:py-14">
-        <div className="mx-auto flex w-full max-w-[520px] flex-col items-center">
-          <motion.article
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            className="w-full rounded-[28px] border border-[#222] bg-ash p-8 shadow-[0_20px_60px_rgba(0,0,0,0.5)] md:p-10"
-          >
-            <div className="inline-flex items-center rounded-full border border-border px-4 py-2 text-base font-bold text-secondary">
-              Loading receipt...
-            </div>
-            <div className="mt-7 h-8 w-3/4 rounded-full bg-[#151515]" />
-            <div className="mt-6 space-y-3">
-              <div className="h-12 rounded-2xl bg-[#111]" />
-              <div className="h-12 rounded-2xl bg-[#111]" />
-              <div className="h-12 rounded-2xl bg-[#111]" />
-            </div>
-          </motion.article>
-        </div>
-      </section>
-    );
+  /* Loading */
+  if (loading) return <LoadingSkeleton />;
+
+  /* Not found */
+  if (notFound) {
+    return <ErrorState title="Receipt not found" message={`No receipt or deploy request found for ID: ${id}`} />;
   }
 
-  if (notFound || !receipt) {
-    if (error && !notFound) {
-      return (
-        <section className="min-h-screen bg-void px-4 py-10 sm:px-6 md:py-14">
-          <div className="mx-auto flex w-full max-w-[520px] flex-col items-center">
-            <motion.article
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="w-full rounded-[28px] border border-[#222] bg-ash p-8 shadow-[0_20px_60px_rgba(0,0,0,0.5)] md:p-10"
-            >
-              <div className="inline-flex items-center gap-2 rounded-full border border-danger/40 bg-danger/20 px-4 py-2 text-base font-bold text-danger">
-                <AlertCircle className="h-4 w-4" /> Unable to load receipt
-              </div>
-              <h1 className="mt-7 text-2xl font-bold text-signal">Receipt lookup failed</h1>
-              <p className="mt-3 text-sm text-secondary">{error}</p>
-            </motion.article>
-          </div>
-        </section>
-      );
-    }
-
-    return (
-      <section className="min-h-screen bg-void px-4 py-10 sm:px-6 md:py-14">
-        <div className="mx-auto flex w-full max-w-[520px] flex-col items-center">
-          <motion.article
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            className="w-full rounded-[28px] border border-[#222] bg-ash p-8 shadow-[0_20px_60px_rgba(0,0,0,0.5)] md:p-10"
-          >
-            <div className="inline-flex items-center gap-2 rounded-full border border-danger/40 bg-danger/20 px-4 py-2 text-base font-bold text-danger">
-              <AlertCircle className="h-4 w-4" /> Receipt not found
-            </div>
-            <h1 className="mt-7 text-2xl font-bold text-signal">No receipt found for {id}</h1>
-            <p className="mt-3 text-sm text-secondary">
-              The PP API did not return a receipt or matching deploy request for this ID.
-            </p>
-          </motion.article>
-        </div>
-      </section>
-    );
+  /* Error */
+  if (error && !receipt) {
+    return <ErrorState title="Unable to load receipt" message={error} />;
   }
 
-  const isAuthorized = receipt.signature_verified !== false && receipt.status !== "denied";
-  const state = isAuthorized ? "ACTION AUTHORIZED" : "SIGNATURE NOT VERIFIED";
+  /* No data */
+  if (!receipt) {
+    return <ErrorState title="Receipt not found" message={`No receipt or deploy request found for ID: ${id}`} />;
+  }
+
+  /* Render receipt */
+  const resolvedStatus = resolveStatus(receipt);
+  const sigDisplay = resolveSignatureDisplay(receipt);
+  const verificationFailureMessage = humanizeVerificationFailure(receipt.verification_failure_code);
   const technicalJson = JSON.stringify(receipt.technical_json, null, 2);
-  const statusClass = isAuthorized
-    ? "bg-[#10B981]/20 text-[#10B981] border-[#10B981]/40"
-    : "bg-danger/20 text-danger border-danger/40";
-  const statusGlyph = isAuthorized ? "✓" : "✕";
   const actionLabel = receipt.action_label ?? receipt.action ?? receipt.repo ?? `Receipt ${receipt.id}`;
-  const signatureLabel =
-    receipt.signature_status === "verified"
-      ? "Verified"
-      : receipt.signature_status === "not_verified"
-        ? "Not verified"
-        : "Unknown";
+  const displayActor = formatActor(receipt.actor, receipt.actor_type);
 
   return (
     <section className="min-h-screen bg-void px-4 py-10 sm:px-6 md:py-14">
@@ -281,14 +416,18 @@ export function ReceiptPageClient({ id }: ReceiptPageClientProps) {
           transition={{ duration: 0.3, ease: "easeOut" }}
           className="w-full rounded-[28px] border border-[#222] bg-ash p-8 shadow-[0_20px_60px_rgba(0,0,0,0.5)] md:p-10"
         >
-          <div className={`inline-flex items-center rounded-full border px-4 py-2 text-base font-bold ${statusClass}`}>
-            {statusGlyph} {state}
+          {/* Status badge */}
+          <div className={`inline-flex items-center rounded-full border px-4 py-2 text-base font-bold ${resolvedStatus.badgeClass}`}>
+            {resolvedStatus.icon}
+            {resolvedStatus.glyph} {resolvedStatus.label}
           </div>
 
+          {/* Action heading */}
           <div className="mt-7 border-b border-border pb-6">
             <h1 className="text-2xl font-bold text-signal">{actionLabel}</h1>
           </div>
 
+          {/* Detail rows */}
           <dl className="mt-4 divide-y divide-border/70">
             <DetailRow label="Action" value={receipt.action_label ?? receipt.action} />
             <DetailRow label="Repo" value={receipt.repo} href={receipt.repo ? `https://github.com/${receipt.repo}` : null} />
@@ -303,21 +442,29 @@ export function ReceiptPageClient({ id }: ReceiptPageClientProps) {
               href={receipt.commit_url}
             />
             <DetailRow label="Approved by" value={receipt.approved_by} href={receipt.approved_by_url} />
-            <DetailRow label="Requested by" value={receipt.actor} />
+            <DetailRow label="Requested by" value={displayActor} />
             <DetailRow label="Policy" value={receipt.policy} />
             <DetailRow label="Timestamp" value={formatTimestamp(receipt.timestamp)} />
           </dl>
 
+          {/* Signature / Verification */}
           <div className="mt-6 border-t border-border pt-5">
             <div className="flex items-center justify-between">
-              <p className="inline-flex items-center gap-2 text-base font-semibold text-[#10B981]">
-                <ShieldCheck className="h-4 w-4" /> Signature: {signatureLabel}
+              <p className={`inline-flex items-center gap-2 text-base font-semibold ${sigDisplay.colorClass}`}>
+                {sigDisplay.icon} Signature: {sigDisplay.label}
               </p>
-              <Lock className="h-4 w-4 text-[#10B981]/70" />
+              <Lock className={`h-4 w-4 ${sigDisplay.colorClass} opacity-70`} />
             </div>
             <p className="mt-2 text-sm text-permit">Issuer: Permission Protocol</p>
+            {verificationFailureMessage && (
+              <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                <p className="text-sm text-amber-300">{verificationFailureMessage}</p>
+              </div>
+            )}
           </div>
 
+          {/* Action Timeline */}
           <div className="mt-6 rounded-2xl border border-border bg-[#0f0f0f] p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-secondary">Action Timeline</p>
             <div className="mt-3 space-y-3">
@@ -334,6 +481,7 @@ export function ReceiptPageClient({ id }: ReceiptPageClientProps) {
             </div>
           </div>
 
+          {/* Technical Details */}
           <details className="mt-6 rounded-xl border border-border bg-[#111] px-4 py-3">
             <summary className="cursor-pointer list-none text-sm font-semibold text-signal">
               Technical Details ▾
@@ -341,6 +489,7 @@ export function ReceiptPageClient({ id }: ReceiptPageClientProps) {
             <div className="mt-3 space-y-1.5 text-sm text-secondary">
               <p>Receipt ID: {receipt.id}</p>
               {receipt.request_id ? <p>Deploy Request ID: {receipt.request_id}</p> : null}
+              {receipt.verification_status ? <p>Verification: {receipt.verification_status}</p> : null}
               {receipt.signature ? <p>Signature: {receipt.signature.slice(0, 20)}...</p> : null}
             </div>
             <JsonCodeBlock value={technicalJson} />
@@ -353,9 +502,8 @@ export function ReceiptPageClient({ id }: ReceiptPageClientProps) {
           <p className="text-xs uppercase tracking-[0.16em] text-secondary">Permission Protocol</p>
           <p className="mt-1 text-sm text-secondary">Powered by Permission Protocol</p>
           <Link href="/developers/quickstart" className="mt-2 inline-block text-sm font-semibold text-permit hover:text-[#6ac9b7]">
-            Add to your pipeline →
+            Get Started Free →
           </Link>
-          {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
         </footer>
       </div>
     </section>
