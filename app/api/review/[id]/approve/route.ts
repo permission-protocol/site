@@ -1,4 +1,6 @@
+import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
+import { authOptions } from "@/src/lib/auth";
 import { getPPAuthHeaders } from "../../auth";
 import { PP_BASE_URL, GH_API, ghHeaders, fetchRequestDetails } from "../../lib/shared";
 
@@ -145,6 +147,12 @@ async function triggerGitHubRerun(params: {
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
+    const session = await getServerSession(authOptions);
+    const username = session?.user?.name?.trim();
+    if (!session || !username) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
     const authHeaders = await getPPAuthHeaders();
     const body = (await request.json().catch(() => ({}))) as { reason?: string };
     const requestDetails = await fetchRequestDetails(params.id);
@@ -158,7 +166,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
         ...authHeaders,
       },
       body: JSON.stringify({
-        approved_by: "reviewer",
+        approved_by: username,
         reason: body.reason,
         productionConfirmed: true,
         // Required when verification failed (no prior receipt)
@@ -250,7 +258,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
       if (githubToken) {
         const reviewUrl = `https://www.permissionprotocol.com/review/${params.id}`;
         const reasonText = body.reason ? `\n\n**Reason:** ${body.reason}` : "";
-        const commentBody = `✅ **Permission Protocol** — Approved${reasonText}\n\nReceipt: \`${receiptId?.slice(0, 24) ?? "—"}\`\n🔗 [View on Permission Protocol](${reviewUrl})`;
+        const commentBody = `✅ **Permission Protocol** — Approved by @${username}${reasonText}\n\nReceipt: \`${receiptId?.slice(0, 24) ?? "—"}\`\n🔗 [View on Permission Protocol](${reviewUrl})`;
         await fetch(`${GH_API}/repos/${owner}/${repoName}/issues/${prNumber}/comments`, {
           method: "POST",
           headers: ghHeaders(githubToken!),
