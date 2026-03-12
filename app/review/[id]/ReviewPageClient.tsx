@@ -123,10 +123,12 @@ type UpdateBranchState =
   | { status: "updated"; message: string }
   | { status: "error"; message: string };
 
+type RerunResult = { ok: boolean; strategy?: string; error?: string } | null;
+
 type DecisionState =
   | { status: "idle" }
   | { status: "submitting"; action: "approve" | "reject" }
-  | { status: "approved"; receiptId: string | null; hasPr: boolean }
+  | { status: "approved"; receiptId: string | null; hasPr: boolean; rerunResult: RerunResult }
   | { status: "rejected" }
   | { status: "error"; message: string };
 
@@ -352,6 +354,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
         receipt_id?: string;
         error?: string;
         has_pr?: boolean;
+        rerun_result?: RerunResult;
       };
       if (!response.ok) {
         setDecisionState({ status: "error", message: normalizeErrorMessage(response.status, body) });
@@ -363,6 +366,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
           status: "approved",
           receiptId: body.receipt_id ?? null,
           hasPr: body.has_pr ?? false,
+          rerunResult: body.rerun_result ?? null,
         });
         void loadRequest(true);
         return;
@@ -1022,6 +1026,11 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                   ) : (
                     <p className="mt-1 text-sm text-secondary">Receipt generated.</p>
                   )}
+                  {decisionState.rerunResult?.ok ? (
+                    <p className="mt-2 text-sm text-permit">✅ Deploy Gate re-triggered ({decisionState.rerunResult.strategy === "check_run" ? "check re-run" : "workflow re-run"})</p>
+                  ) : decisionState.rerunResult && !decisionState.rerunResult.ok ? (
+                    <p className="mt-2 text-sm text-warning">⚠️ Could not auto-rerun Deploy Gate: {decisionState.rerunResult.error ?? "unknown error"}. You may need to re-run it manually on GitHub.</p>
+                  ) : null}
                 </div>
               ) : null}
 
