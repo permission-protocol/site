@@ -121,7 +121,7 @@ export function ReceiptPageClient({ id }: ReceiptPageClientProps) {
           <p className="text-xs uppercase tracking-[0.16em] text-secondary">Permission Protocol</p>
           <p className="mt-1 text-sm text-secondary">Powered by Permission Protocol</p>
           <Link href="/developers/quickstart" className="mt-2 inline-block text-sm font-semibold text-permit hover:text-[#6ac9b7]">
-            Get Started Free →
+            Add to your pipeline →
           </Link>
         </footer>
       </div>

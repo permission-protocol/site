@@ -13,7 +13,7 @@ const reveal = {
 
 const tiers = [
   {
-    name: "Free",
+    name: "Open Source",
     price: "$0",
     suffix: "/month",
     subtitle: "For individual developers",
@@ -24,7 +24,7 @@ const tiers = [
       "Receipt proof pages",
       "Community support"
     ],
-    cta: "Get Started",
+    cta: "Install Deploy Gate",
     ctaHref: "/developers/quickstart",
     ctaClass: "border border-permit text-permit hover:bg-permit/10",
     highlight: false
@@ -35,7 +35,7 @@ const tiers = [
     suffix: "",
     subtitle: "For teams shipping with agents",
     features: [
-      "Everything in Free",
+      "Everything in Open Source",
       "Unlimited receipts",
       "Team approval workflows",
       "Shared policies",
@@ -73,7 +73,7 @@ export function PricingPageClient() {
       <div className="section-shell mx-auto w-full max-w-[900px]">
         <motion.header {...reveal}>
           <p className="text-xs uppercase tracking-[0.22em] text-permit">Pricing</p>
-          <h1 className="mt-4 text-4xl font-bold tracking-tight text-signal">Start free. Scale with authority.</h1>
+          <h1 className="mt-4 text-4xl font-bold tracking-tight text-signal">Start with one repo. Scale to every agent.</h1>
           <p className="mt-4 text-lg text-secondary">
             Every plan includes the core primitive: signed authority receipts.
           </p>
