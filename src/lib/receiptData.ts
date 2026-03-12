@@ -17,6 +17,7 @@ export type ReceiptViewData = {
   approved_by: string | null;
   approved_by_url: string | null;
   actor: string | null;
+  actor_type: string | null;
   policy: string | null;
   timestamp: string | null;
   created_at: string | null;
@@ -26,12 +27,12 @@ export type ReceiptViewData = {
   signature_verified: boolean | null;
   signature_status: "verified" | "not_verified" | "unknown";
   status: string | null;
+  approval_status: string | null;
+  verification_status: string | null;
+  verification_failure_code: string | null;
+  has_receipt: boolean;
   request_id: string | null;
   technical_json: Record<string, unknown>;
-  raw: {
-    request: AnyRecord | null;
-    receipt: AnyRecord | null;
-  };
 };
 
 function asRecord(value: unknown): AnyRecord | null {
@@ -209,16 +210,29 @@ export async function fetchReceiptViewData(receiptId: string): Promise<ReceiptVi
   const signatureStatus =
     signatureVerified === true ? "verified" : signatureVerified === false ? "not_verified" : "unknown";
   const createdAt = firstString(request?.createdAt, request?.created_at, receiptRecord?.createdAt, receiptRecord?.created_at);
-  const approvedAt = firstString(
-    request?.approvedAt,
-    request?.approved_at,
-    request?.decidedAt,
-    request?.decided_at,
-    receiptRecord?.approvedAt,
-    receiptRecord?.approved_at,
-    request?.updatedAt,
-    request?.updated_at
-  );
+  // Do NOT fall through to updatedAt — that conflates "last touched" with "approved"
+  const approvalStatus = firstString(request?.approvalStatus, request?.approval_status);
+  const isActuallyApproved = approvalStatus?.toUpperCase() === "APPROVED" ||
+    firstString(request?.status)?.toLowerCase() === "approved";
+  const approvedAt = isActuallyApproved
+    ? firstString(
+        request?.approvedAt,
+        request?.approved_at,
+        request?.decidedAt,
+        request?.decided_at,
+        receiptRecord?.approvedAt,
+        receiptRecord?.approved_at,
+        request?.updatedAt,
+        request?.updated_at
+      )
+    : firstString(
+        request?.approvedAt,
+        request?.approved_at,
+        request?.decidedAt,
+        request?.decided_at,
+        receiptRecord?.approvedAt,
+        receiptRecord?.approved_at
+      );
   const mergeUnblockedAt = firstString(
     request?.mergeUnblockedAt,
     request?.merge_unblocked_at,
@@ -244,6 +258,12 @@ export async function fetchReceiptViewData(receiptId: string): Promise<ReceiptVi
     id
   ) ?? id;
 
+  const actorType = firstString(request?.createdByType);
+  const verificationStatus = firstString(request?.verificationStatus, receiptRecord?.verificationStatus);
+  const verificationFailureCode = firstString(request?.verificationFailureCode, receiptRecord?.verificationFailureCode);
+  const requestId = firstString(request?.id, receiptRecord?.requestId, receiptRecord?.request_id);
+  const requestStatus = firstString(request?.status, receiptRecord?.status);
+
   return {
     id: resolvedId,
     action,
@@ -256,6 +276,7 @@ export async function fetchReceiptViewData(receiptId: string): Promise<ReceiptVi
     approved_by: approvedBy,
     approved_by_url: approvedBy ? `https://github.com/${approvedBy}` : null,
     actor: firstString(request?.createdByRef, request?.actor, request?.requested_by, receiptRecord?.actor),
+    actor_type: actorType,
     policy: firstString(request?.policy, request?.policyName, request?.capability, receiptRecord?.policy),
     timestamp,
     created_at: createdAt,
@@ -264,29 +285,33 @@ export async function fetchReceiptViewData(receiptId: string): Promise<ReceiptVi
     signature: firstString(receiptRecord?.signature, receiptRecord?.sig, receiptRecord?.proof),
     signature_verified: signatureVerified,
     signature_status: signatureStatus,
-    status: firstString(request?.status, receiptRecord?.status),
-    request_id: firstString(request?.id, receiptRecord?.requestId, receiptRecord?.request_id),
+    status: requestStatus,
+    approval_status: approvalStatus,
+    verification_status: verificationStatus,
+    verification_failure_code: verificationFailureCode,
+    has_receipt: receiptRecord !== null,
+    request_id: requestId,
     technical_json: {
       receipt_id: resolvedId,
-      request_id: firstString(request?.id, receiptRecord?.requestId, receiptRecord?.request_id),
+      request_id: requestId,
       action,
       repo,
       pr_number: prNumber,
       commit_sha: commitSha,
       approved_by: approvedBy,
+      actor: firstString(request?.createdByRef, request?.actor, request?.requested_by, receiptRecord?.actor),
+      actor_type: actorType,
+      policy: firstString(request?.policy, request?.policyName, request?.capability, receiptRecord?.policy),
       created_at: createdAt,
       approved_at: approvedAt,
       merge_unblocked_at: mergeUnblockedAt,
       timestamp,
+      status: requestStatus,
+      approval_status: approvalStatus,
+      verification_status: verificationStatus,
+      verification_failure_code: verificationFailureCode,
       signature_status: signatureStatus,
-      raw: {
-        request,
-        receipt: receiptRecord,
-      },
-    },
-    raw: {
-      request,
-      receipt: receiptRecord,
+      has_receipt: receiptRecord !== null,
     },
   };
 }
