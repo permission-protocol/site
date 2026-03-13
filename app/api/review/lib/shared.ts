@@ -8,9 +8,17 @@ import { getPPAuthHeaders } from "../auth";
 export const PP_BASE_URL = process.env.PP_API_URL || "https://app.permissionprotocol.com/api/v1";
 export const GH_API = "https://api.github.com";
 export const GH_GQL = "https://api.github.com/graphql";
+const GITHUB_PR_STATUS_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const STATUSES = ["pending", "approved", "denied", "expired", "superseded", "cancelled"];
 export type DeployRequestRecord = Record<string, any>;
+type GithubPrStatus = {
+  state: string;
+  merged: boolean;
+  checkedAt: string;
+};
+
+const githubPrStatusCache = new Map<string, { expiresAt: number; value: GithubPrStatus }>();
 
 export function ghHeaders(token: string) {
   return {
@@ -19,6 +27,51 @@ export function ghHeaders(token: string) {
     "X-GitHub-Api-Version": "2022-11-28",
     "Content-Type": "application/json",
   };
+}
+
+export function parseRepoParts(repo?: string | null): { owner: string | null; repoName: string | null } {
+  const [owner, repoName] = (repo ?? "").split("/");
+  return {
+    owner: owner || null,
+    repoName: repoName || null,
+  };
+}
+
+export async function fetchGithubPrStatus(
+  repo: string,
+  prNumber: number,
+  options?: { force?: boolean }
+): Promise<GithubPrStatus | null> {
+  const githubToken = process.env.GITHUB_TOKEN;
+  if (!githubToken) return null;
+
+  const { owner, repoName } = parseRepoParts(repo);
+  if (!owner || !repoName || !Number.isInteger(prNumber) || prNumber <= 0) return null;
+
+  const cacheKey = `${owner}/${repoName}#${prNumber}`;
+  const now = Date.now();
+  const cached = githubPrStatusCache.get(cacheKey);
+  if (!options?.force && cached && cached.expiresAt > now) {
+    return cached.value;
+  }
+
+  try {
+    const response = await fetch(`${GH_API}/repos/${owner}/${repoName}/pulls/${prNumber}`, {
+      headers: ghHeaders(githubToken),
+      cache: "no-store",
+    });
+    if (!response.ok) return null;
+    const data = (await response.json()) as { merged?: boolean; state?: string };
+    const value = {
+      state: data.state ?? "unknown",
+      merged: data.merged ?? false,
+      checkedAt: new Date(now).toISOString(),
+    };
+    githubPrStatusCache.set(cacheKey, { value, expiresAt: now + GITHUB_PR_STATUS_CACHE_TTL_MS });
+    return value;
+  } catch {
+    return null;
+  }
 }
 
 function collectRequests(data: DeployRequestRecord): DeployRequestRecord[] {

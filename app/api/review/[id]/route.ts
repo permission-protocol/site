@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { enrichReviewRequest, fetchMergeReadiness } from "../lib/enrich";
-import { GH_API, ghHeaders, fetchRequestDetails } from "../lib/shared";
+import { GH_API, fetchGithubPrStatus, fetchRequestDetails, ghHeaders, parseRepoParts } from "../lib/shared";
 
 type PrInfo = {
   author: string | null;
@@ -11,31 +11,30 @@ type PrInfo = {
   title: string | null;
 };
 
-/**
- * Fetch PR info from GitHub (author, merge status, title).
- */
 async function fetchPrInfo(repo: string, prNumber: number): Promise<PrInfo | null> {
   const githubToken = process.env.GITHUB_TOKEN;
   if (!githubToken) return null;
+
   try {
-    const res = await fetch(`${GH_API}/repos/${repo}/pulls/${prNumber}`, {
+    const response = await fetch(`${GH_API}/repos/${repo}/pulls/${prNumber}`, {
       headers: ghHeaders(githubToken),
+      cache: "no-store",
     });
-    if (!res.ok) return null;
-    const data = (await res.json()) as {
+    if (!response.ok) return null;
+    const data = (await response.json()) as {
       user?: { login?: string };
-      merged?: boolean;
       merge_commit_sha?: string;
       head?: { sha?: string };
-      state?: string;
       title?: string;
     };
+    const cachedStatus = await fetchGithubPrStatus(repo, prNumber);
+
     return {
       author: data.user?.login ?? null,
-      merged: data.merged ?? false,
+      merged: cachedStatus?.merged ?? false,
       merge_commit_sha: data.merge_commit_sha ?? null,
       head_sha: data.head?.sha ?? null,
-      state: data.state ?? "unknown",
+      state: cachedStatus?.state ?? "unknown",
       title: data.title ?? null,
     };
   } catch {
@@ -47,8 +46,7 @@ async function fetchPrInfo(repo: string, prNumber: number): Promise<PrInfo | nul
  * Map PP API deploy-request fields to the frontend ReviewRequest shape.
  */
 function mapToReviewRequest(raw: any, prInfo?: PrInfo | null) {
-  const owner = raw.repo?.split("/")[0];
-  const repoName = raw.repo?.split("/")[1];
+  const { owner, repoName } = parseRepoParts(raw.repo);
   return {
     id: raw.id,
     action: raw.capability || raw.action || "Unknown",
@@ -59,6 +57,7 @@ function mapToReviewRequest(raw: any, prInfo?: PrInfo | null) {
     scope: raw.env ? `${raw.env} — ${raw.ref || ""}`.trim() : raw.scope,
     timestamp: raw.createdAt || raw.created_at,
     created_at: raw.createdAt || raw.created_at,
+    decided_at: raw.decidedAt || raw.decided_at || null,
     status: raw.status,
     supersededByRequestId: raw.supersededByRequestId ?? null,
     approval_status: raw.approvalStatus,
@@ -112,9 +111,8 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       return NextResponse.json({ error: "Request not found." }, { status: 404 });
     }
 
-    // Fetch PR info from GitHub (author + merge status)
     const prInfo = match.prNumber && match.repo
-      ? await fetchPrInfo(match.repo, match.prNumber)
+      ? await fetchPrInfo(match.repo, Number(match.prNumber))
       : null;
 
     // Phase 2: Enrich with diff, risk signals, and AI summary
@@ -122,7 +120,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
       ? await enrichReviewRequest(match.repo, match.prNumber, { currentHeadSha: prInfo?.head_sha })
       : null;
 
-    const [owner, repoName] = (match.repo ?? "").split("/");
+    const { owner, repoName } = parseRepoParts(match.repo);
     const merge_readiness =
       match.status === "approved" &&
       !prInfo?.merged &&

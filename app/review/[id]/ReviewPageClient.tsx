@@ -98,6 +98,7 @@ type ReviewRequest = {
   scope?: string | string[];
   timestamp?: string;
   created_at?: string;
+  decided_at?: string;
   status?: string;
   supersededByRequestId?: string | null;
   pr_merged?: boolean;
@@ -149,6 +150,17 @@ type TrustSignal = {
   summary: string;
   tone: "failure" | "warning" | "success" | "neutral";
   details: string[];
+};
+
+type TimelineTone = "neutral" | "success" | "danger" | "warning" | "muted";
+
+type TimelineItem = {
+  id: string;
+  label: string;
+  timestamp?: string | null;
+  tone: TimelineTone;
+  description?: string;
+  isFuture?: boolean;
 };
 
 const reasonPresets = ["Reviewed", "LGTM", "Routine deploy"] as const;
@@ -288,6 +300,97 @@ function statusCopy(status?: string) {
   return { label: "Review required", tone: "text-warning", icon: ShieldCheck };
 }
 
+function timelineToneClasses(tone: TimelineTone, isFuture: boolean) {
+  if (isFuture) {
+    return {
+      dot: "border-border bg-transparent",
+      line: "border-l border-dashed border-border",
+      title: "text-muted",
+    };
+  }
+
+  if (tone === "success") {
+    return {
+      dot: "border-[#10B981] bg-[#10B981]",
+      line: "bg-[#10B981]/40",
+      title: "text-permit",
+    };
+  }
+
+  if (tone === "danger") {
+    return {
+      dot: "border-danger bg-danger",
+      line: "bg-danger/40",
+      title: "text-danger",
+    };
+  }
+
+  if (tone === "warning") {
+    return {
+      dot: "border-warning bg-warning",
+      line: "bg-warning/40",
+      title: "text-warning",
+    };
+  }
+
+  if (tone === "muted") {
+    return {
+      dot: "border-muted bg-muted",
+      line: "bg-border",
+      title: "text-secondary",
+    };
+  }
+
+  return {
+    dot: "border-secondary bg-secondary",
+    line: "bg-border",
+    title: "text-signal",
+  };
+}
+
+function RequestTimeline({ items, defaultOpen }: { items: TimelineItem[]; defaultOpen: boolean }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  useEffect(() => {
+    setIsOpen(defaultOpen);
+  }, [defaultOpen]);
+
+  return (
+    <details className="rounded-3xl border border-border bg-card p-4" open={isOpen} onToggle={(event) => setIsOpen((event.currentTarget as HTMLDetailsElement).open)}>
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-signal">
+        <span>Request timeline</span>
+        <ChevronDown className="h-4 w-4 text-muted" />
+      </summary>
+      <div className="mt-4 space-y-0">
+        {items.map((item, index) => {
+          const styles = timelineToneClasses(item.tone, Boolean(item.isFuture));
+          const isLast = index === items.length - 1;
+
+          return (
+            <div key={item.id} className="flex gap-3">
+              <div className="flex w-5 flex-col items-center">
+                <span className={`mt-1 h-3 w-3 rounded-full border-2 ${styles.dot}`} />
+                {!isLast ? (
+                  <span
+                    className={`mt-1 block min-h-8 ${item.isFuture ? styles.line : `w-px ${styles.line}`}`}
+                  />
+                ) : null}
+              </div>
+              <div className={`pb-5 ${isLast ? "pb-0" : ""}`}>
+                <p className={`text-sm font-semibold ${styles.title}`}>{item.label}</p>
+                <p className="mt-1 text-xs text-secondary">
+                  {item.timestamp ? formatTimestamp(item.timestamp, { includeSeconds: false }) : "Pending"}
+                </p>
+                {item.description ? <p className="mt-1 text-sm text-secondary">{item.description}</p> : null}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </details>
+  );
+}
+
 export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const { data: session, status: sessionStatus } = useSession();
   const [request, setRequest] = useState<ReviewRequest | null>(null);
@@ -301,6 +404,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const [updateBranchState, setUpdateBranchState] = useState<UpdateBranchState>({ status: "idle" });
   const [showRejectSheet, setShowRejectSheet] = useState(false);
   const [regenerateState, setRegenerateState] = useState<RegenerateState>({ status: "idle" });
+  const [timelineExpanded, setTimelineExpanded] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0);
   const [undoExpiresAt, setUndoExpiresAt] = useState<number | null>(null);
   const [undoCountdown, setUndoCountdown] = useState(0);
@@ -327,7 +431,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
         setRequest(nextRequest);
         requestStateRef.current = {
           status: nextRequest.status ?? "pending",
-          prMerged: nextRequest.pr_merged ?? false,
+          prMerged: nextRequest.pr_merged ?? nextRequest.pr_state === "closed",
         };
       } catch (error) {
         if ((error as Error).name !== "AbortError" && !isPolling) {
@@ -461,9 +565,22 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
     };
   }, []);
 
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 768px)");
+    const sync = () => setTimelineExpanded(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
   const readiness = request?.merge_readiness ?? null;
   const githubPrUrl = getGithubPrUrl(request);
   const isPending = request?.status === "pending";
+  const isStaleRequest = Boolean(
+    isPending &&
+    request?.github_pr?.pr_number &&
+    (request.pr_merged || request.pr_state === "closed")
+  );
   const isAlreadyDecided =
     request?.status === "approved" ||
     request?.status === "denied" ||
@@ -478,9 +595,17 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
     !fetchError &&
     !!request &&
     isPending &&
+    !isStaleRequest &&
     decisionState.status !== "approved" &&
     decisionState.status !== "rejected" &&
     !undoExpiresAt;
+  const showReviewActions =
+    !loading &&
+    !fetchError &&
+    !!request &&
+    isPending &&
+    decisionState.status !== "approved" &&
+    decisionState.status !== "rejected";
   const isAuthenticated = sessionStatus === "authenticated";
   const approverUsername = session?.user?.name?.trim() ?? session?.login ?? session?.user?.login ?? null;
   const approverAvatar = session?.user?.image ?? null;
@@ -516,6 +641,93 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const currentHeadSha = request?.current_head_sha ?? request?.enrichment?.diff?.head_sha ?? null;
   const summaryGeneratedAt = request?.summary_generated_at ?? request?.enrichment?.summary_generated_at ?? null;
   const isSummaryStale = Boolean(summarySha && currentHeadSha && summarySha !== currentHeadSha);
+  const timelineItems = useMemo<TimelineItem[]>(() => {
+    const items: TimelineItem[] = [
+      {
+        id: "created",
+        label: "Created",
+        timestamp: request?.created_at ?? request?.timestamp,
+        tone: "neutral",
+      },
+    ];
+
+    if (request?.status === "approved" || decisionState.status === "approved") {
+      items.push({
+        id: "approved",
+        label: "Approved",
+        timestamp: request?.decided_at ?? request?.created_at ?? request?.timestamp,
+        tone: "success",
+      });
+
+      if (decisionState.status === "approved" && decisionState.rerunResult) {
+        items.push({
+          id: "rerun",
+          label: "Deploy Gate re-triggered",
+          timestamp: request?.decided_at ?? new Date().toISOString(),
+          tone: decisionState.rerunResult.ok ? "success" : "warning",
+          description: decisionState.rerunResult.ok
+            ? decisionState.rerunResult.strategy === "check_run"
+              ? "Check run re-requested."
+              : "Workflow re-run requested."
+            : decisionState.rerunResult.error ?? "Automatic re-run did not complete.",
+        });
+      }
+    } else if (request?.status === "denied" || decisionState.status === "rejected") {
+      items.push({
+        id: "denied",
+        label: "Denied",
+        timestamp: request?.decided_at ?? request?.created_at ?? request?.timestamp,
+        tone: "danger",
+      });
+    } else if (request?.status === "superseded") {
+      items.push({
+        id: "superseded",
+        label: "Superseded",
+        timestamp: request?.decided_at ?? request?.created_at ?? request?.timestamp,
+        tone: "warning",
+      });
+    } else if (request?.status === "expired") {
+      items.push({
+        id: "expired",
+        label: "Expired",
+        timestamp: request?.decided_at ?? request?.created_at ?? request?.timestamp,
+        tone: "muted",
+      });
+    } else {
+      items.push({
+        id: "approved-future",
+        label: "Approved",
+        tone: "success",
+        isFuture: true,
+      });
+    }
+
+    if (request?.pr_merged || mergeState.status === "merged") {
+      items.push({
+        id: "merged",
+        label: "PR Merged",
+        timestamp: request?.decided_at ?? new Date().toISOString(),
+        tone: "success",
+      });
+    } else if (request?.status === "approved" || decisionState.status === "approved") {
+      items.push({
+        id: "merged-future",
+        label: "PR Merged",
+        tone: "success",
+        isFuture: true,
+      });
+    }
+
+    return items;
+  }, [
+    decisionState,
+    mergeState.status,
+    request?.created_at,
+    request?.decided_at,
+    request?.pr_merged,
+    request?.status,
+    request?.timestamp,
+  ]);
   const stateMeta = statusCopy(request?.status);
   const StateIcon = stateMeta.icon;
   const authorTrustCopy = authorTrackRecord && authorTrackRecord.clean_deploys > 0
@@ -1025,6 +1237,15 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                 </div>
               </section>
 
+              {isStaleRequest ? (
+                <div className="rounded-3xl border border-warning/50 bg-warning/10 p-4">
+                  <p className="text-sm font-semibold text-warning">This review request is stale</p>
+                  <p className="mt-1 text-sm text-secondary">
+                    The linked PR was already {request?.pr_merged ? "merged" : "closed"} on GitHub, so approve and reject actions are disabled.
+                  </p>
+                </div>
+              ) : null}
+
               {decisionState.status === "approved" ? (
                 <div className="rounded-3xl border border-permit/50 bg-permit/10 p-4">
                   <p className="text-sm font-semibold text-permit">Request approved</p>
@@ -1121,6 +1342,8 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                   className="mt-3 w-full rounded-2xl border border-border bg-void/50 px-4 py-3 text-sm text-signal placeholder:text-secondary/70 focus:border-permit focus:outline-none"
                 />
               </section>
+
+              <RequestTimeline items={timelineItems} defaultOpen={timelineExpanded} />
 
               <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {metadataItems(request).map((item) => (
@@ -1282,7 +1505,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
         </div>
       ) : null}
 
-      {canReview ? (
+      {showReviewActions ? (
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur">
           <div className="mx-auto max-w-3xl px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3 sm:px-6">
             {undoExpiresAt ? (
@@ -1303,7 +1526,20 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
               </div>
             ) : (
               <div className="space-y-3">
-                {isAuthenticated ? (
+                {isStaleRequest ? (
+                  <div className="rounded-2xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning">
+                    Review actions are disabled because the linked PR is no longer open.
+                  </div>
+                ) : null}
+                {isStaleRequest ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex min-h-11 w-full items-center justify-center rounded-2xl bg-[#10B981] px-4 py-4 text-base font-semibold text-void opacity-50"
+                  >
+                    Approve
+                  </button>
+                ) : isAuthenticated ? (
                   <>
                     <div className="flex items-center gap-3 rounded-2xl border border-border bg-void/40 px-4 py-3">
                       {approverAvatar ? (

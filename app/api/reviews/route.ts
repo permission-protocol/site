@@ -49,7 +49,7 @@ function buildRequestSummary(raw: any, prMeta?: PrMeta | null) {
 export async function GET() {
   try {
     const authHeaders = await getPPAuthHeaders();
-    const statuses = ["pending", "approved"];
+    const statuses = ["pending", "approved", "denied"];
     const allRequests: any[] = [];
 
     for (const status of statuses) {
