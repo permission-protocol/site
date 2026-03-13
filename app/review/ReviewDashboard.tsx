@@ -9,6 +9,7 @@ import { timeAgo } from "@/lib/time";
 type RequestSummary = {
   id: string;
   status: string;
+  supersededByRequestId?: string | null;
   repo: string;
   env: string;
   pr_number: number | null;
@@ -226,7 +227,7 @@ export function ReviewDashboard() {
     });
   }, [requests, repoFilter, statusFilter]);
 
-  const pending = filtered.filter((r) => r.status === "pending");
+  const pending = filtered.filter((r) => r.status === "pending" && !r.supersededByRequestId);
   const approved = filtered.filter((r) => r.status === "approved");
   const denied = filtered.filter((r) => r.status === "denied");
   const canApproveAll = pending.length > 0 && pending.every((r) => r.risk_tier === "low" && r.env !== "production");

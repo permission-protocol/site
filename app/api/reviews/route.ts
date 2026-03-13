@@ -35,6 +35,7 @@ function buildRequestSummary(raw: any, prMeta?: PrMeta | null) {
   return {
     id: raw.id,
     status: raw.status,
+    supersededByRequestId: raw.supersededByRequestId ?? null,
     repo: raw.repo,
     env: raw.env,
     pr_number: raw.prNumber ?? null,
