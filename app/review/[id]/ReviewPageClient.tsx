@@ -127,6 +127,13 @@ type UpdateBranchState =
 
 type RerunResult = { ok: boolean; strategy?: string; error?: string } | null;
 
+type ManualRerunState = {
+  status: "idle" | "submitting" | "success" | "error" | "rate_limited";
+  result: RerunResult;
+  failedAttempts: number;
+  message?: string;
+};
+
 type DecisionState =
   | { status: "idle" }
   | { status: "submitting"; action: "approve" | "reject" }
@@ -405,6 +412,11 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const [showRejectSheet, setShowRejectSheet] = useState(false);
   const [regenerateState, setRegenerateState] = useState<RegenerateState>({ status: "idle" });
   const [timelineExpanded, setTimelineExpanded] = useState(false);
+  const [manualRerunState, setManualRerunState] = useState<ManualRerunState>({
+    status: "idle",
+    result: null,
+    failedAttempts: 0,
+  });
   const [holdProgress, setHoldProgress] = useState(0);
   const [undoExpiresAt, setUndoExpiresAt] = useState<number | null>(null);
   const [undoCountdown, setUndoCountdown] = useState(0);
@@ -468,11 +480,22 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
       }
 
       if (action === "approve") {
+        const rerunResult = body.rerun_result ?? null;
         setDecisionState({
           status: "approved",
           receiptId: body.receipt_id ?? null,
           hasPr: body.has_pr ?? false,
-          rerunResult: body.rerun_result ?? null,
+          rerunResult,
+        });
+        setManualRerunState({
+          status: rerunResult?.ok ? "success" : rerunResult ? "error" : "idle",
+          result: rerunResult,
+          failedAttempts: 0,
+          message: rerunResult?.ok
+            ? "Deploy Gate re-triggered."
+            : rerunResult?.error
+              ? `Could not auto-rerun Deploy Gate: ${rerunResult.error}`
+              : undefined,
         });
         void loadRequest(true);
         return;
@@ -484,6 +507,10 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
       setDecisionState({ status: "error", message: "Network error while submitting decision." });
     }
   }, [id, loadRequest, reason]);
+
+  useEffect(() => {
+    setManualRerunState({ status: "idle", result: null, failedAttempts: 0 });
+  }, [id]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -581,6 +608,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
     request?.github_pr?.pr_number &&
     (request.pr_merged || request.pr_state === "closed")
   );
+  const isSupersededByNewerRequest = Boolean(request?.supersededByRequestId);
   const isAlreadyDecided =
     request?.status === "approved" ||
     request?.status === "denied" ||
@@ -611,6 +639,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const approverAvatar = session?.user?.image ?? null;
   const showChecklist = request?.status === "approved" && !request?.pr_merged;
   const hasLinkedPr = Boolean(request?.github_pr?.owner && request?.github_pr?.repo && request?.github_pr?.pr_number);
+  const isApproved = request?.status === "approved" || decisionState.status === "approved";
   const checksPassing = allChecksPassing(readiness);
   const branchBehind = readiness?.mergeable_state === "behind" || (readiness?.behind_by ?? 0) > 0;
   const hasConflict = readiness?.mergeable_state === "dirty" || readiness?.mergeable === false;
@@ -730,6 +759,10 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   ]);
   const stateMeta = statusCopy(request?.status);
   const StateIcon = stateMeta.icon;
+  const effectiveRerunResult =
+    manualRerunState.result ?? (decisionState.status === "approved" ? decisionState.rerunResult : null);
+  const canTriggerManualRerun = isApproved && hasLinkedPr && !effectiveRerunResult?.ok;
+  const rerunRetryDisabled = manualRerunState.status === "rate_limited" || manualRerunState.failedAttempts >= 5;
   const authorTrustCopy = authorTrackRecord && authorTrackRecord.clean_deploys > 0
     ? `✅ Author: ${authorTrackRecord.clean_deploys} clean deploy${authorTrackRecord.clean_deploys === 1 ? "" : "s"} (streak: ${authorTrackRecord.streak})`
     : "⚠️ New author: first deploy";
@@ -812,6 +845,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   }
 
   function queueApproval() {
+    if (isSupersededByNewerRequest) return;
     navigator.vibrate?.(50);
     setDecisionState((current) => (current.status === "error" ? { status: "idle" } : current));
     setUndoExpiresAt(Date.now() + UNDO_DURATION_MS);
@@ -819,7 +853,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   }
 
   function startHold() {
-    if (!canReview || !isAuthenticated || decisionState.status === "submitting") return;
+    if (!canReview || !isAuthenticated || decisionState.status === "submitting" || isSupersededByNewerRequest) return;
     if (!needsHoldToApprove) {
       queueApproval();
       return;
@@ -852,6 +886,73 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
 
   function redirectToLogin() {
     window.location.href = `/login?callbackUrl=${encodeURIComponent(`/review/${id}`)}`;
+  }
+
+  async function submitManualRerun() {
+    if (!isAuthenticated) {
+      redirectToLogin();
+      return;
+    }
+
+    setManualRerunState((current) => ({
+      status: "submitting",
+      result: current.result,
+      failedAttempts: current.failedAttempts,
+      message: undefined,
+    }));
+
+    try {
+      const response = await fetch(`/api/review/${id}/rerun`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const body = (await response.json().catch(() => ({}))) as {
+        ok?: boolean;
+        strategy?: string;
+        error?: string;
+      };
+
+      if (response.status === 429) {
+        setManualRerunState({
+          status: "rate_limited",
+          result: body.ok === false ? { ok: false, strategy: body.strategy, error: body.error } : null,
+          failedAttempts: 5,
+          message: body.error ?? "Too many retries. Try again in a few minutes.",
+        });
+        return;
+      }
+
+      if (!response.ok || !body.ok) {
+        setManualRerunState((current) => {
+          const failedAttempts = Math.min(current.failedAttempts + 1, 5);
+          return {
+            status: failedAttempts >= 5 ? "rate_limited" : "error",
+            result: { ok: false, strategy: body.strategy, error: body.error ?? "Unable to rerun Deploy Gate." },
+            failedAttempts,
+            message: failedAttempts >= 5 ? "Too many retries" : body.error ?? "Unable to rerun Deploy Gate.",
+          };
+        });
+        return;
+      }
+
+      setManualRerunState({
+        status: "success",
+        result: { ok: true, strategy: body.strategy },
+        failedAttempts: 0,
+        message: "Deploy Gate re-triggered.",
+      });
+      void loadRequest(true);
+    } catch {
+      setManualRerunState((current) => {
+        const failedAttempts = Math.min(current.failedAttempts + 1, 5);
+        return {
+          status: failedAttempts >= 5 ? "rate_limited" : "error",
+          result: { ok: false, error: "Network error while re-running Deploy Gate." },
+          failedAttempts,
+          message: failedAttempts >= 5 ? "Too many retries" : "Network error while re-running Deploy Gate.",
+        };
+      });
+    }
   }
 
   async function regenerateSummary() {
@@ -1026,6 +1127,46 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
     return null;
   }
 
+  function renderRequestBanner() {
+    if (!request) return null;
+
+    if (request.supersededByRequestId) {
+      return (
+        <div className="rounded-3xl border border-warning/40 bg-warning/10 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm font-semibold text-warning">
+              ⚠️ This request has been superseded by a newer deploy request.
+            </p>
+            <Link
+              href={`/review/${request.supersededByRequestId}`}
+              className="inline-flex min-h-11 items-center rounded-2xl border border-warning px-4 text-sm font-semibold text-warning"
+            >
+              View Latest →
+            </Link>
+          </div>
+        </div>
+      );
+    }
+
+    if (request.status === "superseded") {
+      return (
+        <div className="rounded-3xl border border-warning/40 bg-warning/10 p-4 text-sm font-semibold text-warning">
+          ⚠️ This request was superseded by a newer deploy request.
+        </div>
+      );
+    }
+
+    if (request.status === "expired") {
+      return (
+        <div className="rounded-3xl border border-warning/40 bg-warning/10 p-4 text-sm font-semibold text-warning">
+          ⚠️ This request expired before it was approved.
+        </div>
+      );
+    }
+
+    return null;
+  }
+
   return (
     <section className="min-h-screen bg-void px-4 pb-40 pt-4 sm:px-6 sm:pb-32">
       <div className="mx-auto max-w-3xl">
@@ -1111,6 +1252,8 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
 
           {!loading && !fetchError && request ? (
             <>
+              {renderRequestBanner()}
+
               <section className="rounded-3xl border border-border bg-card p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -1256,10 +1399,51 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                   ) : (
                     <p className="mt-1 text-sm text-secondary">Receipt generated.</p>
                   )}
-                  {decisionState.rerunResult?.ok ? (
-                    <p className="mt-2 text-sm text-permit">✅ Deploy Gate re-triggered ({decisionState.rerunResult.strategy === "check_run" ? "check re-run" : "workflow re-run"})</p>
-                  ) : decisionState.rerunResult && !decisionState.rerunResult.ok ? (
-                    <p className="mt-2 text-sm text-warning">⚠️ Could not auto-rerun Deploy Gate: {decisionState.rerunResult.error ?? "unknown error"}. You may need to re-run it manually on GitHub.</p>
+                  {effectiveRerunResult?.ok ? (
+                    <p className="mt-2 text-sm text-permit">✅ Deploy Gate re-triggered ({effectiveRerunResult.strategy === "check_run" ? "check re-run" : "workflow re-run"})</p>
+                  ) : effectiveRerunResult && !effectiveRerunResult.ok ? (
+                    <p className="mt-2 text-sm text-warning">⚠️ Could not auto-rerun Deploy Gate: {effectiveRerunResult.error ?? "unknown error"}. You may need to re-run it manually on GitHub.</p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {canTriggerManualRerun ? (
+                <div className="rounded-3xl border border-border bg-card p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-signal">Deploy Gate</p>
+                      {effectiveRerunResult?.ok ? (
+                        <p className="mt-1 text-sm text-permit">
+                          Deploy Gate re-triggered ({effectiveRerunResult.strategy === "check_run" ? "check re-run" : "workflow re-run"})
+                        </p>
+                      ) : effectiveRerunResult ? (
+                        <p className="mt-1 text-sm text-warning">
+                          Could not auto-rerun Deploy Gate: {effectiveRerunResult.error ?? "unknown error"}.
+                        </p>
+                      ) : (
+                        <p className="mt-1 text-sm text-secondary">Deploy Gate has not been re-triggered from this surface yet.</p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={manualRerunState.status === "submitting" || rerunRetryDisabled}
+                      onClick={() => void submitManualRerun()}
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-warning bg-warning/10 px-4 py-3 text-sm font-semibold text-warning disabled:cursor-not-allowed disabled:border-border disabled:bg-void/50 disabled:text-muted"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${manualRerunState.status === "submitting" ? "animate-spin" : ""}`} />
+                      {manualRerunState.status === "submitting"
+                        ? "Re-running..."
+                        : rerunRetryDisabled
+                          ? "Too many retries"
+                          : effectiveRerunResult && !effectiveRerunResult.ok
+                            ? "Retry Deploy Gate"
+                            : "Trigger Deploy Gate Re-run"}
+                    </button>
+                  </div>
+                  {manualRerunState.message ? (
+                    <p className={`mt-3 text-sm ${manualRerunState.status === "success" ? "text-permit" : "text-warning"}`}>
+                      {manualRerunState.message}
+                    </p>
                   ) : null}
                 </div>
               ) : null}
@@ -1425,17 +1609,6 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                 </details>
               ) : null}
 
-              {request.status === "superseded" && request.supersededByRequestId ? (
-                <div className="rounded-3xl border border-warning/40 bg-warning/10 p-4">
-                  <p className="text-sm font-semibold text-warning">This request was superseded by a newer version.</p>
-                  <Link
-                    href={`/review/${request.supersededByRequestId}`}
-                    className="mt-3 inline-flex min-h-11 items-center rounded-2xl border border-warning px-4 text-sm font-semibold text-warning"
-                  >
-                    View latest request
-                  </Link>
-                </div>
-              ) : null}
             </>
           ) : null}
         </motion.article>
@@ -1560,13 +1733,13 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
 
                     <button
                       type="button"
-                      disabled={!canReview || decisionState.status === "submitting"}
+                      disabled={!canReview || decisionState.status === "submitting" || isSupersededByNewerRequest}
                       onClick={needsHoldToApprove ? undefined : () => queueApproval()}
                       onPointerDown={needsHoldToApprove ? startHold : undefined}
                       onPointerUp={needsHoldToApprove ? cancelHold : undefined}
                       onPointerLeave={needsHoldToApprove ? cancelHold : undefined}
                       onPointerCancel={needsHoldToApprove ? cancelHold : undefined}
-                      className="relative inline-flex min-h-11 w-full touch-none items-center justify-center overflow-hidden rounded-2xl bg-[#10B981] px-4 py-4 text-base font-semibold text-void disabled:cursor-not-allowed disabled:opacity-60"
+                      className="relative inline-flex min-h-11 w-full touch-none items-center justify-center overflow-hidden rounded-2xl bg-[#10B981] px-4 py-4 text-base font-semibold text-void disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-200 disabled:opacity-100"
                     >
                       {needsHoldToApprove && holdProgress > 0 ? (
                         <span
@@ -1578,6 +1751,8 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                         <CheckCircle2 className="h-5 w-5" />
                         {decisionState.status === "submitting" && decisionState.action === "approve"
                           ? "Approving..."
+                          : isSupersededByNewerRequest
+                            ? "Approval disabled"
                           : needsHoldToApprove
                             ? holdProgress > 0
                               ? "Keep holding..."

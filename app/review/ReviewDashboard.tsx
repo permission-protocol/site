@@ -278,7 +278,8 @@ export function ReviewDashboard() {
     });
   }, [requests, repoFilter, statusFilter]);
 
-  const pending = filtered.filter((r) => r.status === "pending");
+  const pendingSectionHiddenStatuses = new Set(["superseded", "expired"]);
+  const pending = filtered.filter((r) => r.status === "pending" && !pendingSectionHiddenStatuses.has(r.status));
   const staleIdSet = useMemo(() => new Set(staleIds), [staleIds]);
   const activePending = pending.filter((r) => !staleIdSet.has(r.id));
   const stalePending = pending.filter((r) => staleIdSet.has(r.id));
