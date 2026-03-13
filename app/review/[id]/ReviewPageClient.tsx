@@ -125,20 +125,25 @@ type UpdateBranchState =
   | { status: "error"; message: string };
 
 type RerunResult = { ok: boolean; strategy?: string; error?: string } | null;
-
-type ManualRerunState =
-  | { status: "idle"; attemptsRemaining: number | null }
-  | { status: "submitting"; attemptsRemaining: number | null }
-  | { status: "success"; message: string; attemptsRemaining: number | null }
-  | { status: "error"; message: string; attemptsRemaining: number | null }
-  | { status: "limited"; message: string; attemptsRemaining: 0 };
+type RerunRateLimit = {
+  attempts: number;
+  remaining: number;
+  limited: boolean;
+  retryAfterMs: number;
+} | null;
 
 type DecisionState =
   | { status: "idle" }
   | { status: "submitting"; action: "approve" | "reject" }
-  | { status: "approved"; receiptId: string | null; hasPr: boolean; rerunResult: RerunResult }
+  | { status: "approved"; receiptId: string | null; hasPr: boolean; rerunResult: RerunResult; rateLimit: RerunRateLimit }
   | { status: "rejected" }
   | { status: "error"; message: string };
+
+type ManualRerunState =
+  | { status: "idle" }
+  | { status: "submitting" }
+  | { status: "success"; result: RerunResult; rateLimit: RerunRateLimit }
+  | { status: "error"; message: string; rateLimit: RerunRateLimit };
 
 type ReviewPageClientProps = {
   id: string;
@@ -308,7 +313,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const [updateBranchState, setUpdateBranchState] = useState<UpdateBranchState>({ status: "idle" });
   const [showRejectSheet, setShowRejectSheet] = useState(false);
   const [regenerateState, setRegenerateState] = useState<RegenerateState>({ status: "idle" });
-  const [manualRerunState, setManualRerunState] = useState<ManualRerunState>({ status: "idle", attemptsRemaining: null });
+  const [manualRerunState, setManualRerunState] = useState<ManualRerunState>({ status: "idle" });
   const [holdProgress, setHoldProgress] = useState(0);
   const [undoExpiresAt, setUndoExpiresAt] = useState<number | null>(null);
   const [undoCountdown, setUndoCountdown] = useState(0);
@@ -334,7 +339,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
         const nextRequest = body as ReviewRequest;
         setRequest(nextRequest);
         if (nextRequest.status !== "approved") {
-          setManualRerunState({ status: "idle", attemptsRemaining: null });
+          setManualRerunState({ status: "idle" });
         }
         requestStateRef.current = {
           status: nextRequest.status ?? "pending",
@@ -368,6 +373,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
         error?: string;
         has_pr?: boolean;
         rerun_result?: RerunResult;
+        rate_limit?: RerunRateLimit;
       };
       if (!response.ok) {
         setDecisionState({ status: "error", message: normalizeErrorMessage(response.status, body) });
@@ -375,13 +381,14 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
       }
 
       if (action === "approve") {
-        setManualRerunState({ status: "idle", attemptsRemaining: null });
         setDecisionState({
           status: "approved",
           receiptId: body.receipt_id ?? null,
           hasPr: body.has_pr ?? false,
           rerunResult: body.rerun_result ?? null,
+          rateLimit: body.rate_limit ?? null,
         });
+        setManualRerunState({ status: "idle" });
         void loadRequest(true);
         return;
       }
@@ -477,6 +484,12 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const githubPrUrl = getGithubPrUrl(request);
   const isPending = request?.status === "pending";
   const isSuperseded = Boolean(request?.supersededByRequestId);
+  const isAlreadyDecided =
+    request?.status === "approved" ||
+    request?.status === "denied" ||
+    request?.status === "expired" ||
+    request?.status === "superseded" ||
+    request?.status === "cancelled";
   const showAuditTrailLink = Boolean(
     request?.id && (request.status === "approved" || request.status === "denied" || request.status === "expired")
   );
@@ -526,6 +539,21 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const isSummaryStale = Boolean(summarySha && currentHeadSha && summarySha !== currentHeadSha);
   const stateMeta = statusCopy(request?.status);
   const StateIcon = stateMeta.icon;
+  const rerunRateLimit =
+    decisionState.status === "approved"
+      ? manualRerunState.status === "success" || manualRerunState.status === "error"
+        ? manualRerunState.rateLimit
+        : decisionState.rateLimit
+      : manualRerunState.status === "success" || manualRerunState.status === "error"
+        ? manualRerunState.rateLimit
+        : null;
+  const rerunLimited = Boolean(rerunRateLimit?.limited);
+  const showManualRerunButton =
+    decisionState.status === "approved" &&
+    decisionState.hasPr &&
+    Boolean(decisionState.rerunResult) &&
+    !decisionState.rerunResult?.ok &&
+    manualRerunState.status !== "success";
   const authorTrustCopy = authorTrackRecord && authorTrackRecord.clean_deploys > 0
     ? `✅ Author: ${authorTrackRecord.clean_deploys} clean deploy${authorTrackRecord.clean_deploys === 1 ? "" : "s"} (streak: ${authorTrackRecord.streak})`
     : "⚠️ New author: first deploy";
@@ -651,67 +679,6 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
     window.location.href = `/login?callbackUrl=${encodeURIComponent(`/review/${id}`)}`;
   }
 
-  async function rerunDeployGate() {
-    setManualRerunState((current) => ({
-      status: "submitting",
-      attemptsRemaining: current.attemptsRemaining,
-    }));
-
-    try {
-      const response = await fetch(`/api/review/${id}/rerun`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      const body = (await response.json().catch(() => ({}))) as {
-        error?: string;
-        rerun_result?: RerunResult;
-        attempts_remaining?: number;
-        retry_after_seconds?: number;
-      };
-
-      if (response.status === 429) {
-        setManualRerunState({
-          status: "limited",
-          message:
-            body.error ??
-            `Retry limit reached. Try again in ${body.retry_after_seconds ?? 0} seconds.`,
-          attemptsRemaining: 0,
-        });
-        return;
-      }
-
-      if (!response.ok) {
-        setManualRerunState({
-          status: "error",
-          message: body.error ?? "Unable to rerun Deploy Gate.",
-          attemptsRemaining: body.attempts_remaining ?? null,
-        });
-        return;
-      }
-
-      if (body.rerun_result?.ok) {
-        setManualRerunState({
-          status: "success",
-          message: `Deploy Gate re-triggered (${body.rerun_result.strategy === "check_run" ? "check re-run" : "workflow re-run"})`,
-          attemptsRemaining: body.attempts_remaining ?? 0,
-        });
-        return;
-      }
-
-      setManualRerunState({
-        status: "error",
-        message: body.rerun_result?.error ?? "Deploy Gate rerun failed.",
-        attemptsRemaining: body.attempts_remaining ?? null,
-      });
-    } catch {
-      setManualRerunState((current) => ({
-        status: "error",
-        message: "Network error while retrying Deploy Gate.",
-        attemptsRemaining: current.attemptsRemaining,
-      }));
-    }
-  }
-
   async function regenerateSummary() {
     setRegenerateState({ status: "submitting" });
     try {
@@ -727,6 +694,49 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
       await loadRequest(true);
     } catch {
       setRegenerateState({ status: "error", message: "Network error while regenerating summary." });
+    }
+  }
+
+  async function rerunDeployGate() {
+    setManualRerunState({ status: "submitting" });
+
+    try {
+      const response = await fetch(`/api/review/${id}/rerun`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const body = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        rerun_result?: RerunResult;
+        rate_limit?: RerunRateLimit;
+      };
+
+      if (!response.ok) {
+        setManualRerunState({
+          status: "error",
+          message: body.error ?? "Unable to rerun Deploy Gate.",
+          rateLimit: body.rate_limit ?? null,
+        });
+        return;
+      }
+
+      if (body.rerun_result?.ok) {
+        setManualRerunState({
+          status: "success",
+          result: body.rerun_result,
+          rateLimit: body.rate_limit ?? null,
+        });
+        void loadRequest(true);
+        return;
+      }
+
+      setManualRerunState({
+        status: "error",
+        message: body.rerun_result?.error ?? "Unable to rerun Deploy Gate.",
+        rateLimit: body.rate_limit ?? null,
+      });
+    } catch {
+      setManualRerunState({ status: "error", message: "Network error while rerunning Deploy Gate.", rateLimit: null });
     }
   }
 
@@ -990,6 +1000,20 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                   ) : null}
                 </div>
 
+                {isSuperseded && request.supersededByRequestId ? (
+                  <div className="mt-4 rounded-2xl border border-warning/40 bg-warning/10 p-4">
+                    <p className="text-sm font-semibold text-warning">
+                      This request has been superseded by a newer deploy request.
+                    </p>
+                    <Link
+                      href={`/review/${request.supersededByRequestId}`}
+                      className="mt-3 inline-flex min-h-11 items-center rounded-2xl border border-warning px-4 text-sm font-semibold text-warning"
+                    >
+                      View latest request
+                    </Link>
+                  </div>
+                ) : null}
+
                 {isSummaryStale ? (
                   <div className="mt-4 rounded-2xl border border-warning/40 bg-warning/10 p-4">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1108,33 +1132,31 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                   {decisionState.rerunResult?.ok ? (
                     <p className="mt-2 text-sm text-permit">✅ Deploy Gate re-triggered ({decisionState.rerunResult.strategy === "check_run" ? "check re-run" : "workflow re-run"})</p>
                   ) : decisionState.rerunResult && !decisionState.rerunResult.ok ? (
-                    <div className="mt-2 space-y-3">
-                      <p className="text-sm text-warning">⚠️ Could not auto-rerun Deploy Gate: {decisionState.rerunResult.error ?? "unknown error"}.</p>
-                      {manualRerunState.status !== "success" ? (
-                        <button
-                          type="button"
-                          disabled={manualRerunState.status === "submitting" || manualRerunState.attemptsRemaining === 0}
-                          onClick={() => void rerunDeployGate()}
-                          className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-warning px-4 py-2 text-sm font-semibold text-warning disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {manualRerunState.status === "submitting" ? "Retrying..." : "Retry Deploy Gate"}
-                        </button>
-                      ) : null}
-                      {manualRerunState.status === "success" ? (
-                        <p className="text-sm text-permit">{manualRerunState.message}</p>
-                      ) : null}
-                      {manualRerunState.status === "error" ? (
-                        <p className="text-sm text-warning">
-                          {manualRerunState.message}
-                          {manualRerunState.attemptsRemaining != null
-                            ? ` ${manualRerunState.attemptsRemaining} attempt${manualRerunState.attemptsRemaining === 1 ? "" : "s"} remaining.`
-                            : ""}
-                        </p>
-                      ) : null}
-                      {manualRerunState.status === "limited" ? (
-                        <p className="text-sm text-warning">{manualRerunState.message}</p>
-                      ) : null}
-                    </div>
+                    <>
+                      <p className="mt-2 text-sm text-warning">⚠️ Could not auto-rerun Deploy Gate: {decisionState.rerunResult.error ?? "unknown error"}.</p>
+                      <div className="mt-3 space-y-2">
+                        {showManualRerunButton ? (
+                          <button
+                            type="button"
+                            disabled={manualRerunState.status === "submitting" || rerunLimited}
+                            onClick={() => void rerunDeployGate()}
+                            className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-warning bg-warning/10 px-4 py-3 text-sm font-semibold text-warning disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {manualRerunState.status === "submitting" ? "Retrying..." : "Retry Deploy Gate"}
+                          </button>
+                        ) : null}
+                        {manualRerunState.status === "success" && manualRerunState.result?.ok ? (
+                          <p className="text-sm text-permit">
+                            Deploy Gate re-triggered ({manualRerunState.result.strategy === "check_run" ? "check re-run" : "workflow re-run"}).
+                          </p>
+                        ) : null}
+                        {manualRerunState.status === "error" ? (
+                          <p className={`text-sm ${rerunLimited ? "text-danger" : "text-warning"}`}>
+                            {rerunLimited ? "Too many retries" : manualRerunState.message}
+                          </p>
+                        ) : null}
+                      </div>
+                    </>
                   ) : null}
                 </div>
               ) : null}
@@ -1298,17 +1320,6 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                 </details>
               ) : null}
 
-              {request.supersededByRequestId ? (
-                <div className="rounded-3xl border border-warning/40 bg-warning/10 p-4">
-                  <p className="text-sm font-semibold text-warning">This request has been superseded by a newer deploy request.</p>
-                  <Link
-                    href={`/review/${request.supersededByRequestId}`}
-                    className="mt-3 inline-flex min-h-11 items-center rounded-2xl border border-warning px-4 text-sm font-semibold text-warning"
-                  >
-                    View latest request
-                  </Link>
-                </div>
-              ) : null}
             </>
           ) : null}
         </motion.article>
@@ -1421,11 +1432,11 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                     <button
                       type="button"
                       disabled={!canApprove || decisionState.status === "submitting"}
-                      onClick={needsHoldToApprove ? undefined : () => queueApproval()}
-                      onPointerDown={needsHoldToApprove ? startHold : undefined}
-                      onPointerUp={needsHoldToApprove ? cancelHold : undefined}
-                      onPointerLeave={needsHoldToApprove ? cancelHold : undefined}
-                      onPointerCancel={needsHoldToApprove ? cancelHold : undefined}
+                      onClick={!canApprove || needsHoldToApprove ? undefined : () => queueApproval()}
+                      onPointerDown={canApprove && needsHoldToApprove ? startHold : undefined}
+                      onPointerUp={canApprove && needsHoldToApprove ? cancelHold : undefined}
+                      onPointerLeave={canApprove && needsHoldToApprove ? cancelHold : undefined}
+                      onPointerCancel={canApprove && needsHoldToApprove ? cancelHold : undefined}
                       className="relative inline-flex min-h-11 w-full touch-none items-center justify-center overflow-hidden rounded-2xl bg-[#10B981] px-4 py-4 text-base font-semibold text-void disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {needsHoldToApprove && holdProgress > 0 ? (
@@ -1439,7 +1450,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                         {decisionState.status === "submitting" && decisionState.action === "approve"
                           ? "Approving..."
                           : isSuperseded
-                            ? "Approve disabled"
+                            ? "Superseded by newer request"
                           : needsHoldToApprove
                             ? holdProgress > 0
                               ? "Keep holding..."

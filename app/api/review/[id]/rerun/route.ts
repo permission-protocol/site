@@ -1,15 +1,10 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/src/lib/auth";
-import {
-  manualRerunLimit,
-  manualRerunWindowMs,
-  takeManualRerunAttempt,
-  triggerGitHubRerun,
-} from "../../lib/github-rerun";
+import { getRerunRateLimit, recordRerunAttempt, triggerGitHubRerun } from "../../lib/rerun";
 import { fetchRequestDetails } from "../../lib/shared";
 
-export async function POST(_request: Request, { params }: { params: { id: string } }) {
+export async function POST(_: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
     const username = session?.user?.name?.trim();
@@ -23,41 +18,35 @@ export async function POST(_request: Request, { params }: { params: { id: string
     }
 
     if (requestDetails.status !== "approved") {
-      return NextResponse.json(
-        { error: "Request must be approved before retrying Deploy Gate." },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: "Only approved requests can rerun the deploy gate." }, { status: 409 });
     }
 
     const repo = requestDetails.repo as string | undefined;
     const prNumber = requestDetails.prNumber as number | undefined;
-    const owner = repo?.split("/")[0];
-    const repoName = repo?.split("/")[1];
+    const [owner, repoName] = (repo ?? "").split("/");
+
     if (!owner || !repoName || typeof prNumber !== "number") {
-      return NextResponse.json(
-        { error: "This request does not have GitHub PR context for a Deploy Gate rerun." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "This request does not have enough GitHub context to rerun." }, { status: 400 });
     }
 
     const githubToken = process.env.GITHUB_TOKEN;
     if (!githubToken) {
-      return NextResponse.json({ error: "GitHub rerun is not configured on this site." }, { status: 503 });
+      return NextResponse.json({ error: "GITHUB_TOKEN is not configured." }, { status: 500 });
     }
 
-    const attempt = takeManualRerunAttempt(params.id);
-    if (!attempt.allowed) {
-      const retryAfterSeconds = Math.max(1, Math.ceil(attempt.retryAfterMs / 1000));
+    const currentLimit = getRerunRateLimit(params.id);
+    if (currentLimit.limited) {
       return NextResponse.json(
         {
-          error: `Retry limit reached. Max ${manualRerunLimit} attempts per ${Math.floor(manualRerunWindowMs / 60000)} minutes.`,
-          attempts_remaining: 0,
-          retry_after_seconds: retryAfterSeconds,
+          error: "Too many retries",
+          rerun_result: { ok: false, error: "Too many retries" },
+          rate_limit: currentLimit,
         },
-        { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } }
+        { status: 429 }
       );
     }
 
+    const nextLimit = recordRerunAttempt(params.id);
     const rerunResult = await triggerGitHubRerun({
       owner,
       repo: repoName,
@@ -69,11 +58,11 @@ export async function POST(_request: Request, { params }: { params: { id: string
 
     return NextResponse.json({
       rerun_result: rerunResult,
-      attempts_remaining: attempt.attemptsRemaining,
+      rate_limit: nextLimit,
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Unable to rerun Deploy Gate.", details: (error as Error).message },
+      { error: "Unable to rerun deploy gate.", details: (error as Error).message },
       { status: 500 }
     );
   }

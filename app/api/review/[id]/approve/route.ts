@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/src/lib/auth";
 import { getPPAuthHeaders } from "../../auth";
-import { triggerGitHubRerun } from "../../lib/github-rerun";
+import { triggerGitHubRerun } from "../../lib/rerun";
 import { PP_BASE_URL, GH_API, ghHeaders, fetchRequestDetails } from "../../lib/shared";
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
@@ -141,6 +141,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
       receipt_id: receiptId,
       commit_status: statusResult,
       rerun_result: rerunResult,
+      rate_limit: null,
       has_pr: hasPrContext,
       github_pr: hasPrContext ? { owner, repo: repoName, pr_number: prNumber } : null,
     });

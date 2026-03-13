@@ -2,30 +2,55 @@ import { GH_API, ghHeaders } from "./shared";
 
 const RERUN_RETRY_DELAYS = [1500, 3000];
 const DEPLOY_GATE_CHECK_NAME = "Deploy Gate / Permission Protocol";
-const MANUAL_RERUN_WINDOW_MS = 5 * 60 * 1000;
-const MANUAL_RERUN_LIMIT = 5;
+const RERUN_WINDOW_MS = 5 * 60 * 1000;
+const RERUN_MAX_ATTEMPTS = 5;
+
+const rerunAttempts = new Map<string, number[]>();
 
 export type RerunResult = { ok: boolean; strategy?: string; error?: string };
 
-const manualRerunAttempts = new Map<string, number[]>();
+export type RerunRateLimit = {
+  attempts: number;
+  remaining: number;
+  limited: boolean;
+  retryAfterMs: number;
+};
 
-async function tryRerun(url: string, token: string, strategy: string): Promise<RerunResult> {
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-    });
-    if (res.ok || res.status === 201) {
-      return { ok: true, strategy };
-    }
-    return { ok: false, strategy, error: `${strategy} returned ${res.status}` };
-  } catch (err) {
-    return { ok: false, strategy, error: (err as Error).message };
+type TriggerGitHubRerunParams = {
+  owner: string;
+  repo: string;
+  prNumber: number;
+  githubToken: string;
+  checkRunId: string | null;
+  runId: string | null;
+};
+
+function getValidAttempts(requestId: string, now: number) {
+  const recent = (rerunAttempts.get(requestId) ?? []).filter((timestamp) => now - timestamp < RERUN_WINDOW_MS);
+  if (recent.length > 0) {
+    rerunAttempts.set(requestId, recent);
+  } else {
+    rerunAttempts.delete(requestId);
   }
+  return recent;
+}
+
+function tryRerun(url: string, token: string, strategy: string): Promise<RerunResult> {
+  return fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+  })
+    .then(async (res) => {
+      if (res.ok || res.status === 201) {
+        return { ok: true, strategy };
+      }
+      return { ok: false, strategy, error: `${strategy} returned ${res.status}` };
+    })
+    .catch((error) => ({ ok: false, strategy, error: (error as Error).message }));
 }
 
 async function findDeployGateCheckRun(params: {
@@ -40,6 +65,7 @@ async function findDeployGateCheckRun(params: {
       { headers: ghHeaders(params.githubToken) }
     );
     if (!res.ok) return null;
+
     const data = (await res.json()) as {
       check_runs?: Array<{
         id?: number;
@@ -47,12 +73,14 @@ async function findDeployGateCheckRun(params: {
         details_url?: string;
       }>;
     };
+
     const deployGateRun = data.check_runs?.find(
-      (cr) =>
-        cr.name?.includes("Deploy Gate") ||
-        cr.name?.includes("Permission Protocol") ||
-        cr.name === DEPLOY_GATE_CHECK_NAME
+      (checkRun) =>
+        checkRun.name?.includes("Deploy Gate") ||
+        checkRun.name?.includes("Permission Protocol") ||
+        checkRun.name === DEPLOY_GATE_CHECK_NAME
     );
+
     if (!deployGateRun?.id) return null;
 
     const runIdMatch = deployGateRun.details_url?.match(/\/actions\/runs\/(\d+)/);
@@ -65,21 +93,13 @@ async function findDeployGateCheckRun(params: {
   }
 }
 
-export async function triggerGitHubRerun(params: {
-  owner: string;
-  repo: string;
-  prNumber: number;
-  githubToken: string;
-  checkRunId: string | null;
-  runId: string | null;
-}): Promise<RerunResult> {
+export async function triggerGitHubRerun(params: TriggerGitHubRerunParams): Promise<RerunResult> {
   let { checkRunId, runId } = params;
 
   if (!checkRunId && !runId) {
-    const prRes = await fetch(
-      `${GH_API}/repos/${params.owner}/${params.repo}/pulls/${params.prNumber}`,
-      { headers: ghHeaders(params.githubToken) }
-    );
+    const prRes = await fetch(`${GH_API}/repos/${params.owner}/${params.repo}/pulls/${params.prNumber}`, {
+      headers: ghHeaders(params.githubToken),
+    });
     const prData = (await prRes.json().catch(() => ({}))) as { head?: { sha?: string } };
     const sha = prData.head?.sha;
     if (sha) {
@@ -97,15 +117,17 @@ export async function triggerGitHubRerun(params: {
   }
 
   if (checkRunId) {
-    for (let attempt = 0; attempt <= RERUN_RETRY_DELAYS.length; attempt++) {
+    for (let attempt = 0; attempt <= RERUN_RETRY_DELAYS.length; attempt += 1) {
       if (attempt > 0) {
         await new Promise((resolve) => setTimeout(resolve, RERUN_RETRY_DELAYS[attempt - 1]));
       }
+
       const result = await tryRerun(
         `${GH_API}/repos/${params.owner}/${params.repo}/check-runs/${checkRunId}/rerequest`,
         params.githubToken,
         "check_run"
       );
+
       if (result.ok) return result;
       if (result.error?.includes("404")) break;
       if (!result.error?.includes("429") && !result.error?.includes("50")) break;
@@ -113,15 +135,17 @@ export async function triggerGitHubRerun(params: {
   }
 
   if (runId) {
-    for (let attempt = 0; attempt <= RERUN_RETRY_DELAYS.length; attempt++) {
+    for (let attempt = 0; attempt <= RERUN_RETRY_DELAYS.length; attempt += 1) {
       if (attempt > 0) {
         await new Promise((resolve) => setTimeout(resolve, RERUN_RETRY_DELAYS[attempt - 1]));
       }
+
       const result = await tryRerun(
         `${GH_API}/repos/${params.owner}/${params.repo}/actions/runs/${runId}/rerun`,
         params.githubToken,
         "actions_run"
       );
+
       if (result.ok) return result;
       if (!result.error?.includes("429") && !result.error?.includes("50")) break;
     }
@@ -130,31 +154,24 @@ export async function triggerGitHubRerun(params: {
   if (!checkRunId && !runId) {
     return { ok: false, error: "No check run or workflow run ID available for rerun" };
   }
+
   return { ok: false, error: "All rerun strategies exhausted" };
 }
 
-export function takeManualRerunAttempt(requestId: string) {
-  const now = Date.now();
-  const recentAttempts = (manualRerunAttempts.get(requestId) ?? []).filter(
-    (timestamp) => now - timestamp < MANUAL_RERUN_WINDOW_MS
-  );
-
-  if (recentAttempts.length >= MANUAL_RERUN_LIMIT) {
-    manualRerunAttempts.set(requestId, recentAttempts);
-    return {
-      allowed: false as const,
-      attemptsRemaining: 0,
-      retryAfterMs: MANUAL_RERUN_WINDOW_MS - (now - recentAttempts[0]),
-    };
-  }
-
-  recentAttempts.push(now);
-  manualRerunAttempts.set(requestId, recentAttempts);
+export function getRerunRateLimit(requestId: string, now = Date.now()): RerunRateLimit {
+  const attempts = getValidAttempts(requestId, now);
+  const retryAfterMs = attempts.length >= RERUN_MAX_ATTEMPTS ? Math.max(0, RERUN_WINDOW_MS - (now - attempts[0]!)) : 0;
   return {
-    allowed: true as const,
-    attemptsRemaining: MANUAL_RERUN_LIMIT - recentAttempts.length,
+    attempts: attempts.length,
+    remaining: Math.max(0, RERUN_MAX_ATTEMPTS - attempts.length),
+    limited: attempts.length >= RERUN_MAX_ATTEMPTS,
+    retryAfterMs,
   };
 }
 
-export const manualRerunLimit = MANUAL_RERUN_LIMIT;
-export const manualRerunWindowMs = MANUAL_RERUN_WINDOW_MS;
+export function recordRerunAttempt(requestId: string, now = Date.now()): RerunRateLimit {
+  const attempts = getValidAttempts(requestId, now);
+  attempts.push(now);
+  rerunAttempts.set(requestId, attempts);
+  return getRerunRateLimit(requestId, now);
+}
