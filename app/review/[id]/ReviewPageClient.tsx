@@ -15,6 +15,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { getFreshStaleReviewIds } from "@/lib/review-stale";
 import { formatTimestamp, timeAgo } from "@/lib/time";
 
 type GithubPrMetadata = {
@@ -98,8 +99,13 @@ type ReviewRequest = {
   scope?: string | string[];
   timestamp?: string;
   created_at?: string;
+  updated_at?: string | null;
+  decided_at?: string | null;
+  decided_by?: string | null;
   status?: string;
   supersededByRequestId?: string | null;
+  commit_status?: { ok: boolean; error?: string } | null;
+  rerun_result?: RerunResult;
   pr_merged?: boolean;
   pr_merge_sha?: string | null;
   pr_state?: string | null;
@@ -149,6 +155,14 @@ type TrustSignal = {
   summary: string;
   tone: "failure" | "warning" | "success" | "neutral";
   details: string[];
+};
+
+type TimelineEvent = {
+  id: string;
+  label: string;
+  detail: string;
+  timestamp?: string | null;
+  tone: "neutral" | "success" | "warning" | "danger";
 };
 
 const reasonPresets = ["Reviewed", "LGTM", "Routine deploy"] as const;
@@ -288,6 +302,17 @@ function statusCopy(status?: string) {
   return { label: "Review required", tone: "text-warning", icon: ShieldCheck };
 }
 
+function timelineToneClasses(tone: TimelineEvent["tone"]) {
+  if (tone === "success") return "border-permit/40 bg-permit text-permit shadow-[0_0_0_4px_rgba(16,185,129,0.12)]";
+  if (tone === "warning") return "border-warning/40 bg-warning text-warning shadow-[0_0_0_4px_rgba(245,158,11,0.12)]";
+  if (tone === "danger") return "border-danger/40 bg-danger text-danger shadow-[0_0_0_4px_rgba(239,68,68,0.12)]";
+  return "border-border bg-card text-secondary";
+}
+
+function formatTimelineTimestamp(value?: string | null) {
+  return value ? formatTimestamp(value, { includeSeconds: false }) : "Pending";
+}
+
 export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const { data: session, status: sessionStatus } = useSession();
   const [request, setRequest] = useState<ReviewRequest | null>(null);
@@ -304,6 +329,9 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const [holdProgress, setHoldProgress] = useState(0);
   const [undoExpiresAt, setUndoExpiresAt] = useState<number | null>(null);
   const [undoCountdown, setUndoCountdown] = useState(0);
+  const [isTimelineMobile, setIsTimelineMobile] = useState(false);
+  const [timelineExpanded, setTimelineExpanded] = useState(true);
+  const [isStaleReconciled, setIsStaleReconciled] = useState(false);
   const holdFrameRef = useRef<number | null>(null);
   const holdStartedAtRef = useRef<number | null>(null);
 
@@ -380,6 +408,21 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
       setDecisionState({ status: "error", message: "Network error while submitting decision." });
     }
   }, [id, loadRequest, reason]);
+
+  useEffect(() => {
+    setIsStaleReconciled(getFreshStaleReviewIds().includes(id));
+  }, [id]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)");
+    const applyMode = () => {
+      setIsTimelineMobile(media.matches);
+      setTimelineExpanded(!media.matches);
+    };
+    applyMode();
+    media.addEventListener("change", applyMode);
+    return () => media.removeEventListener("change", applyMode);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -521,6 +564,77 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const authorTrustCopy = authorTrackRecord && authorTrackRecord.clean_deploys > 0
     ? `✅ Author: ${authorTrackRecord.clean_deploys} clean deploy${authorTrackRecord.clean_deploys === 1 ? "" : "s"} (streak: ${authorTrackRecord.streak})`
     : "⚠️ New author: first deploy";
+  const timelineEvents = useMemo<TimelineEvent[]>(() => {
+    if (!request) return [];
+
+    const events: TimelineEvent[] = [
+      {
+        id: "created",
+        label: "Created",
+        detail: "Request opened for review",
+        timestamp: request.created_at ?? request.timestamp,
+        tone: "neutral",
+      },
+    ];
+
+    if (request.status === "approved" || request.status === "denied" || request.decided_at) {
+      const wasApproved = request.status === "approved";
+      events.push({
+        id: "decision",
+        label: wasApproved ? "Approved" : "Denied",
+        detail: request.decided_by ? `Decision recorded by ${request.decided_by}` : "Decision recorded",
+        timestamp: request.decided_at,
+        tone: wasApproved ? "success" : "danger",
+      });
+    }
+
+    if (request.rerun_result) {
+      events.push({
+        id: "rerun",
+        label: "Rerun Triggered",
+        detail: request.rerun_result.ok
+          ? `Deploy Gate re-run via ${request.rerun_result.strategy === "check_run" ? "check run" : "workflow run"}`
+          : `Rerun failed: ${request.rerun_result.error ?? "unknown error"}`,
+        timestamp: request.decided_at,
+        tone: request.rerun_result.ok ? "success" : "warning",
+      });
+    } else if (request.commit_status?.ok && request.status === "approved") {
+      events.push({
+        id: "rerun",
+        label: "Rerun Triggered",
+        detail: "Commit status marked ready for GitHub follow-up.",
+        timestamp: request.decided_at,
+        tone: "neutral",
+      });
+    }
+
+    if (request.status === "approved" && (mergeState.status !== "idle" || request.pr_state === "closed" || request.pr_merged)) {
+      events.push({
+        id: "merge-attempt",
+        label: "Merge Attempted",
+        detail:
+          mergeState.status === "error"
+            ? mergeState.message ?? "Merge attempt failed."
+            : request.pr_state === "closed" && !request.pr_merged
+              ? "PR was closed on GitHub before merge."
+              : "Merge action has been initiated.",
+        timestamp: request.updated_at ?? request.decided_at,
+        tone: mergeState.status === "error" || (request.pr_state === "closed" && !request.pr_merged) ? "warning" : "neutral",
+      });
+    }
+
+    if (request.pr_merged || mergeState.status === "merged") {
+      events.push({
+        id: "merged",
+        label: "Merged",
+        detail: request.pr_merge_sha ? `Merge commit ${request.pr_merge_sha.slice(0, 7)}` : "PR merged on GitHub",
+        timestamp: request.updated_at ?? request.decided_at,
+        tone: "success",
+      });
+    }
+
+    return events;
+  }, [mergeState, request]);
 
   const trustSignals = useMemo<TrustSignal[]>(() => {
     const items: TrustSignal[] = [];
@@ -879,6 +993,13 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
           </a>
         ) : null}
 
+        {isStaleReconciled ? (
+          <div className="mb-4 rounded-3xl border border-warning/40 bg-warning/10 p-4">
+            <p className="text-sm font-semibold text-warning">This PR has been merged/closed on GitHub</p>
+            <p className="mt-1 text-sm text-secondary">This request is stale locally and should no longer be treated as pending review.</p>
+          </div>
+        ) : null}
+
         <motion.article
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
@@ -965,6 +1086,49 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                     <p className="mt-1 text-sm text-secondary">Affected surfaces inferred from changed paths.</p>
                   </div>
                 </div>
+              </section>
+
+              <section className="rounded-3xl border border-border bg-card p-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isTimelineMobile) {
+                      setTimelineExpanded((current) => !current);
+                    }
+                  }}
+                  className={`flex w-full items-center justify-between gap-3 ${isTimelineMobile ? "min-h-11" : ""}`}
+                  aria-expanded={timelineExpanded}
+                >
+                  <div className="text-left">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Request timeline</p>
+                    <p className="mt-1 text-sm text-secondary">
+                      Created, decision, rerun, and merge milestones from the current request state.
+                    </p>
+                  </div>
+                  {isTimelineMobile ? (
+                    <span className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border text-secondary">
+                      <ChevronDown className={`h-4 w-4 transition-transform ${timelineExpanded ? "rotate-180" : ""}`} />
+                    </span>
+                  ) : null}
+                </button>
+
+                {timelineExpanded ? (
+                  <div className="relative mt-5 pl-5">
+                    <div className="absolute bottom-2 left-[11px] top-2 w-px bg-border" />
+                    <div className="space-y-5">
+                      {timelineEvents.map((event) => (
+                        <div key={event.id} className="relative grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-4">
+                          <div className="relative">
+                            <span className={`absolute -left-5 top-1 h-3 w-3 rounded-full border ${timelineToneClasses(event.tone)}`} />
+                            <p className="text-sm font-semibold text-signal">{event.label}</p>
+                            <p className="mt-1 text-sm text-secondary">{event.detail}</p>
+                          </div>
+                          <p className="text-xs text-muted sm:pt-0.5 sm:text-right">{formatTimelineTimestamp(event.timestamp)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </section>
 
               <section className="rounded-3xl border border-border bg-card p-4">

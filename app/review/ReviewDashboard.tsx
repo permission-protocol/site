@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { AlertTriangle, CheckCircle2, Clock, GitPullRequest, Plus, ShieldCheck } from "lucide-react";
-import { FormEvent, TouchEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, TouchEvent, useEffect, useMemo, useRef, useState } from "react";
 import { timeAgo } from "@/lib/time";
+import { getFreshStaleReviewIds, shouldReconcileStaleReviews, writeStaleReviewState } from "@/lib/review-stale";
 
 type RequestSummary = {
   id: string;
@@ -103,6 +104,7 @@ function statusIcon(status: string) {
 
 export function ReviewDashboard() {
   const [requests, setRequests] = useState<RequestSummary[]>([]);
+  const [staleRequestIds, setStaleRequestIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [repoFilter, setRepoFilter] = useState<string>("all");
@@ -122,6 +124,7 @@ export function ReviewDashboard() {
   const [manualSubmitState, setManualSubmitState] = useState<{ status: "idle" | "submitting" | "success" | "error"; message?: string }>({
     status: "idle",
   });
+  const reconcileTimeoutRef = useRef<number | null>(null);
 
   function upsertRequest(item: RequestSummary) {
     setRequests((prev) => {
@@ -132,6 +135,10 @@ export function ReviewDashboard() {
       return [item, ...prev];
     });
   }
+
+  useEffect(() => {
+    setStaleRequestIds(getFreshStaleReviewIds());
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -226,9 +233,14 @@ export function ReviewDashboard() {
     });
   }, [requests, repoFilter, statusFilter]);
 
-  const pending = filtered.filter((r) => r.status === "pending");
-  const approved = filtered.filter((r) => r.status === "approved");
-  const denied = filtered.filter((r) => r.status === "denied");
+  const visibleRequests = useMemo(
+    () => filtered.filter((request) => request.status !== "pending" || !staleRequestIds.includes(request.id)),
+    [filtered, staleRequestIds]
+  );
+  const pending = visibleRequests.filter((r) => r.status === "pending");
+  const approved = visibleRequests.filter((r) => r.status === "approved");
+  const denied = visibleRequests.filter((r) => r.status === "denied");
+  const hiddenStaleCount = filtered.filter((request) => request.status === "pending" && staleRequestIds.includes(request.id)).length;
   const canApproveAll = pending.length > 0 && pending.every((r) => r.risk_tier === "low" && r.env !== "production");
   const lastApprovedAt = approved
     .slice()
@@ -245,6 +257,38 @@ export function ReviewDashboard() {
       setStackIndex(0);
     }
   }, [pending.length, stackIndex]);
+
+  useEffect(() => {
+    if (loading) return;
+    if (requests.every((request) => request.status !== "pending")) return;
+    if (!shouldReconcileStaleReviews()) return;
+
+    reconcileTimeoutRef.current = window.setTimeout(async () => {
+      try {
+        const response = await fetch("/api/reviews/reconcile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        if (!response.ok) return;
+
+        const body = (await response.json()) as { stale_ids?: string[]; reconciled_at?: string };
+        const staleIds = Array.isArray(body.stale_ids) ? body.stale_ids : [];
+        const nextStaleIds = Array.from(new Set([...getFreshStaleReviewIds(), ...staleIds]));
+        const updatedAt = body.reconciled_at ? new Date(body.reconciled_at).getTime() : Date.now();
+        writeStaleReviewState(nextStaleIds, Number.isFinite(updatedAt) ? updatedAt : Date.now());
+        setStaleRequestIds(nextStaleIds);
+      } catch {
+        // Best-effort only; stale reconciliation should not block the dashboard.
+      }
+    }, 400);
+
+    return () => {
+      if (reconcileTimeoutRef.current != null) {
+        window.clearTimeout(reconcileTimeoutRef.current);
+        reconcileTimeoutRef.current = null;
+      }
+    };
+  }, [loading, requests]);
 
   async function approveAllPending() {
     setApproveAllState({ status: "submitting" });
@@ -372,11 +416,13 @@ export function ReviewDashboard() {
         <div className="rounded-xl border border-danger/50 bg-danger/10 p-6 text-center">
           <p className="text-sm text-danger">{error}</p>
         </div>
-      ) : requests.length === 0 ? (
+      ) : visibleRequests.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-12 text-center">
           <CheckCircle2 className="mx-auto h-12 w-12 text-[#10B981]/50" />
           <p className="mt-4 text-lg font-semibold text-signal">All clear</p>
-          <p className="mt-1 text-sm text-secondary">No pending requests. You&apos;re up to date.</p>
+          <p className="mt-1 text-sm text-secondary">
+            {requests.length === 0 ? "No pending requests. You're up to date." : "No requests match the current filters."}
+          </p>
         </div>
       ) : (
         <div className="space-y-6">
@@ -395,9 +441,15 @@ export function ReviewDashboard() {
             </div>
             <div className="rounded-xl border border-border bg-card px-4 py-3">
               <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Total shown</p>
-              <p className="mt-2 text-lg font-semibold text-signal">{filtered.length}</p>
+              <p className="mt-2 text-lg font-semibold text-signal">{visibleRequests.length}</p>
             </div>
           </div>
+
+          {hiddenStaleCount > 0 ? (
+            <div className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning">
+              Filtered {hiddenStaleCount} stale pending request{hiddenStaleCount === 1 ? "" : "s"} whose PRs were already merged or closed on GitHub.
+            </div>
+          ) : null}
 
           <div className="space-y-3">
             <div className="flex flex-wrap gap-2">
