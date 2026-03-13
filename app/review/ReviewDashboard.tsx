@@ -226,7 +226,8 @@ export function ReviewDashboard() {
     });
   }, [requests, repoFilter, statusFilter]);
 
-  const pending = filtered.filter((r) => r.status === "pending");
+  const pendingSectionHiddenStatuses = new Set(["superseded", "expired"]);
+  const pending = filtered.filter((r) => r.status === "pending" && !pendingSectionHiddenStatuses.has(r.status));
   const approved = filtered.filter((r) => r.status === "approved");
   const denied = filtered.filter((r) => r.status === "denied");
   const canApproveAll = pending.length > 0 && pending.every((r) => r.risk_tier === "low" && r.env !== "production");
