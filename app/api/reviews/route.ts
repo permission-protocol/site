@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getPPAuthHeaders } from "../review/auth";
 import { PP_BASE_URL, GH_API, ghHeaders } from "../review/lib/shared";
 
-type PrMeta = { title: string; author: string };
+type PrMeta = { title: string; author: string; merged: boolean; state: string };
 type CreateReviewBody = {
   repo?: string;
   prNumber?: number;
@@ -25,6 +25,8 @@ async function fetchPrMeta(repo: string, prNumber: number): Promise<PrMeta | nul
     return {
       title: data.title ?? `PR #${prNumber}`,
       author: data.user?.login ?? "unknown",
+      merged: data.merged ?? false,
+      state: data.state ?? "unknown",
     };
   } catch {
     return null;
@@ -43,6 +45,8 @@ function buildRequestSummary(raw: any, prMeta?: PrMeta | null) {
     capability: raw.capability ?? raw.action ?? "deploy",
     risk_tier: raw.env === "production" ? "high" : raw.env === "staging" ? "medium" : "low",
     created_at: raw.createdAt,
+    pr_merged: prMeta?.merged ?? false,
+    pr_state: prMeta?.state ?? null,
   };
 }
 

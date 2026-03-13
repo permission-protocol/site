@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { AlertTriangle, CheckCircle2, Clock, GitPullRequest, Plus, ShieldCheck } from "lucide-react";
-import { FormEvent, TouchEvent, useEffect, useMemo, useRef, useState } from "react";
-import { timeAgo } from "@/lib/time";
+import { FormEvent, TouchEvent, useEffect, useMemo, useState } from "react";
 import { getFreshStaleReviewIds, shouldReconcileStaleReviews, writeStaleReviewState } from "@/lib/review-stale";
+import { timeAgo } from "@/lib/time";
 
 type RequestSummary = {
   id: string;
@@ -18,6 +18,8 @@ type RequestSummary = {
   capability: string;
   risk_tier: string;
   created_at: string;
+  pr_merged?: boolean;
+  pr_state?: string | null;
 };
 
 type ManualRequestState = {
@@ -54,6 +56,10 @@ type StackRequestDetail = {
     ai_summary?: string | null;
   } | null;
 };
+
+function isRequestStale(request: Pick<RequestSummary, "id" | "pr_merged" | "pr_state">, staleIds: Set<string>) {
+  return staleIds.has(request.id) || request.pr_merged === true || request.pr_state === "closed";
+}
 
 const inputClass =
   "mt-1 w-full rounded-lg border border-border bg-ash px-3 py-2 text-sm text-signal placeholder:text-secondary/70 focus:border-permit focus:outline-none focus:ring-2 focus:ring-permit/30";
@@ -104,7 +110,8 @@ function statusIcon(status: string) {
 
 export function ReviewDashboard() {
   const [requests, setRequests] = useState<RequestSummary[]>([]);
-  const [staleRequestIds, setStaleRequestIds] = useState<string[]>([]);
+  const [staleRequestIds, setStaleRequestIds] = useState<Set<string>>(new Set());
+  const [showStalePending, setShowStalePending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [repoFilter, setRepoFilter] = useState<string>("all");
@@ -124,8 +131,6 @@ export function ReviewDashboard() {
   const [manualSubmitState, setManualSubmitState] = useState<{ status: "idle" | "submitting" | "success" | "error"; message?: string }>({
     status: "idle",
   });
-  const reconcileTimeoutRef = useRef<number | null>(null);
-
   function upsertRequest(item: RequestSummary) {
     setRequests((prev) => {
       const exists = prev.some((r) => r.id === item.id);
@@ -137,7 +142,7 @@ export function ReviewDashboard() {
   }
 
   useEffect(() => {
-    setStaleRequestIds(getFreshStaleReviewIds());
+    setStaleRequestIds(new Set(getFreshStaleReviewIds()));
   }, []);
 
   useEffect(() => {
@@ -233,14 +238,10 @@ export function ReviewDashboard() {
     });
   }, [requests, repoFilter, statusFilter]);
 
-  const visibleRequests = useMemo(
-    () => filtered.filter((request) => request.status !== "pending" || !staleRequestIds.includes(request.id)),
-    [filtered, staleRequestIds]
-  );
-  const pending = visibleRequests.filter((r) => r.status === "pending");
-  const approved = visibleRequests.filter((r) => r.status === "approved");
-  const denied = visibleRequests.filter((r) => r.status === "denied");
-  const hiddenStaleCount = filtered.filter((request) => request.status === "pending" && staleRequestIds.includes(request.id)).length;
+  const pending = filtered.filter((r) => r.status === "pending" && !isRequestStale(r, staleRequestIds));
+  const stalePending = filtered.filter((r) => r.status === "pending" && isRequestStale(r, staleRequestIds));
+  const approved = filtered.filter((r) => r.status === "approved");
+  const denied = filtered.filter((r) => r.status === "denied");
   const canApproveAll = pending.length > 0 && pending.every((r) => r.risk_tier === "low" && r.env !== "production");
   const lastApprovedAt = approved
     .slice()
@@ -260,33 +261,42 @@ export function ReviewDashboard() {
 
   useEffect(() => {
     if (loading) return;
-    if (requests.every((request) => request.status !== "pending")) return;
+    const pendingCandidates = requests.filter((request) => request.status === "pending" && request.repo && request.pr_number);
+    if (pendingCandidates.length === 0) return;
     if (!shouldReconcileStaleReviews()) return;
 
-    reconcileTimeoutRef.current = window.setTimeout(async () => {
+    let cancelled = false;
+
+    void (async () => {
       try {
         const response = await fetch("/api/reviews/reconcile", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            requests: pendingCandidates.map((request) => ({
+              id: request.id,
+              repo: request.repo,
+              pr_number: request.pr_number,
+            })),
+          }),
         });
         if (!response.ok) return;
 
-        const body = (await response.json()) as { stale_ids?: string[]; reconciled_at?: string };
+        const body = (await response.json()) as { stale_ids?: string[]; checked_at?: string };
+        if (cancelled) return;
+
         const staleIds = Array.isArray(body.stale_ids) ? body.stale_ids : [];
         const nextStaleIds = Array.from(new Set([...getFreshStaleReviewIds(), ...staleIds]));
-        const updatedAt = body.reconciled_at ? new Date(body.reconciled_at).getTime() : Date.now();
+        const updatedAt = body.checked_at ? new Date(body.checked_at).getTime() : Date.now();
         writeStaleReviewState(nextStaleIds, Number.isFinite(updatedAt) ? updatedAt : Date.now());
-        setStaleRequestIds(nextStaleIds);
+        setStaleRequestIds(new Set(nextStaleIds));
       } catch {
         // Best-effort only; stale reconciliation should not block the dashboard.
       }
-    }, 400);
+    })();
 
     return () => {
-      if (reconcileTimeoutRef.current != null) {
-        window.clearTimeout(reconcileTimeoutRef.current);
-        reconcileTimeoutRef.current = null;
-      }
+      cancelled = true;
     };
   }, [loading, requests]);
 
@@ -416,7 +426,7 @@ export function ReviewDashboard() {
         <div className="rounded-xl border border-danger/50 bg-danger/10 p-6 text-center">
           <p className="text-sm text-danger">{error}</p>
         </div>
-      ) : visibleRequests.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-12 text-center">
           <CheckCircle2 className="mx-auto h-12 w-12 text-[#10B981]/50" />
           <p className="mt-4 text-lg font-semibold text-signal">All clear</p>
@@ -426,7 +436,7 @@ export function ReviewDashboard() {
         </div>
       ) : (
         <div className="space-y-6">
-          <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
             <div className="rounded-xl border border-border bg-card px-4 py-3">
               <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Pending</p>
               <p className={`mt-2 text-3xl font-bold ${pending.length > 0 ? "text-warning" : "text-signal"}`}>{pending.length}</p>
@@ -441,13 +451,17 @@ export function ReviewDashboard() {
             </div>
             <div className="rounded-xl border border-border bg-card px-4 py-3">
               <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Total shown</p>
-              <p className="mt-2 text-lg font-semibold text-signal">{visibleRequests.length}</p>
+              <p className="mt-2 text-lg font-semibold text-signal">{filtered.length}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card px-4 py-3 col-span-2 sm:col-span-1">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-muted">PR Closed</p>
+              <p className="mt-2 text-lg font-semibold text-secondary">{stalePending.length}</p>
             </div>
           </div>
 
-          {hiddenStaleCount > 0 ? (
+          {stalePending.length > 0 ? (
             <div className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning">
-              Filtered {hiddenStaleCount} stale pending request{hiddenStaleCount === 1 ? "" : "s"} whose PRs were already merged or closed on GitHub.
+              Filtered {stalePending.length} stale pending request{stalePending.length === 1 ? "" : "s"} whose PRs were already merged or closed on GitHub.
             </div>
           ) : null}
 
@@ -568,6 +582,31 @@ export function ReviewDashboard() {
                   ))}
                 </div>
               )}
+            </div>
+          ) : null}
+
+          {stalePending.length > 0 ? (
+            <div>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-secondary">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  PR Closed ({stalePending.length})
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setShowStalePending((current) => !current)}
+                  className="min-h-11 rounded-full border border-border bg-card px-4 py-2 text-xs text-secondary transition-colors hover:border-permit/40 hover:text-signal"
+                >
+                  {showStalePending ? "Hide" : "Show"}
+                </button>
+              </div>
+              {showStalePending ? (
+                <div className="space-y-2">
+                  {stalePending.map((r, i) => (
+                    <RequestCard key={r.id} request={r} index={i} isStale />
+                  ))}
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -813,7 +852,7 @@ function StackReviewCard({
   );
 }
 
-function RequestCard({ request: r, index }: { request: RequestSummary; index: number }) {
+function RequestCard({ request: r, index, isStale = false }: { request: RequestSummary; index: number; isStale?: boolean }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
@@ -823,7 +862,7 @@ function RequestCard({ request: r, index }: { request: RequestSummary; index: nu
       <Link
         href={`/review/${r.id}`}
         className={`group block rounded-xl border border-border bg-card px-4 py-5 transition-all hover:border-permit/40 hover:bg-card/80 ${
-          r.status === "pending" ? "border-l-4 border-l-warning pl-3" : ""
+          r.status === "pending" && !isStale ? "border-l-4 border-l-warning pl-3" : ""
         }`}
       >
         <div className="flex items-start justify-between gap-3">
@@ -847,6 +886,11 @@ function RequestCard({ request: r, index }: { request: RequestSummary; index: nu
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {isStale ? (
+              <span className="inline-flex rounded-md border border-secondary/30 bg-void/50 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-secondary">
+                PR Closed
+              </span>
+            ) : null}
             <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${riskBadge(r.risk_tier)}`}>
               {r.risk_tier}
             </span>

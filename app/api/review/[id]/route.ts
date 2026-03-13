@@ -6,6 +6,8 @@ type PrInfo = {
   author: string | null;
   merged: boolean;
   merge_commit_sha: string | null;
+  merged_at: string | null;
+  closed_at: string | null;
   head_sha: string | null;
   state: string; // "open" | "closed"
   title: string | null;
@@ -26,6 +28,8 @@ async function fetchPrInfo(repo: string, prNumber: number): Promise<PrInfo | nul
       user?: { login?: string };
       merged?: boolean;
       merge_commit_sha?: string;
+      merged_at?: string | null;
+      closed_at?: string | null;
       head?: { sha?: string };
       state?: string;
       title?: string;
@@ -34,6 +38,8 @@ async function fetchPrInfo(repo: string, prNumber: number): Promise<PrInfo | nul
       author: data.user?.login ?? null,
       merged: data.merged ?? false,
       merge_commit_sha: data.merge_commit_sha ?? null,
+      merged_at: data.merged_at ?? null,
+      closed_at: data.closed_at ?? null,
       head_sha: data.head?.sha ?? null,
       state: data.state ?? "unknown",
       title: data.title ?? null,
@@ -63,13 +69,15 @@ function mapToReviewRequest(raw: any, prInfo?: PrInfo | null) {
     decided_at: raw.decidedAt || raw.decided_at || raw.updatedAt || raw.updated_at || null,
     decided_by: raw.decidedBy || raw.decided_by || raw.approvedBy || raw.approved_by || null,
     status: raw.status,
+    rerun_result: raw.rerunResult || raw.rerun_result || null,
     supersededByRequestId: raw.supersededByRequestId ?? null,
     approval_status: raw.approvalStatus,
     commit_sha: raw.commitSha,
     commit_status: raw.commit_status ?? null,
-    rerun_result: raw.rerun_result ?? null,
     pr_merged: prInfo?.merged ?? false,
     pr_merge_sha: prInfo?.merge_commit_sha ?? null,
+    pr_merged_at: prInfo?.merged_at ?? null,
+    pr_closed_at: prInfo?.closed_at ?? null,
     pr_state: prInfo?.state ?? null,
     github_pr: raw.prNumber
       ? {

@@ -1,14 +1,23 @@
 import { NextResponse } from "next/server";
 import { fetchDeployRequestsByStatuses, GH_API, ghHeaders } from "../../review/lib/shared";
 
-type ReconciledItem = {
-  id: string;
-  state: "closed" | "merged";
-  repo: string;
-  pr_number: number;
+type ReconcileCandidate = {
+  id?: string;
+  repo?: string;
+  pr_number?: number | null;
 };
 
-async function fetchPrState(repo: string, prNumber: number) {
+type ReconcileRequest = {
+  requests?: ReconcileCandidate[];
+};
+
+type ReconciledReview = {
+  id: string;
+  state: string;
+  merged: boolean;
+};
+
+async function fetchPrState(repo: string, prNumber: number): Promise<{ state: string; merged: boolean } | null> {
   const githubToken = process.env.GITHUB_TOKEN;
   if (!githubToken) return null;
 
@@ -20,47 +29,60 @@ async function fetchPrState(repo: string, prNumber: number) {
     if (!response.ok) return null;
 
     const body = (await response.json()) as { state?: string; merged?: boolean };
-    if (body.merged) return "merged" as const;
-    if (body.state === "closed") return "closed" as const;
-    return null;
+    return {
+      state: body.state ?? "unknown",
+      merged: body.merged ?? false,
+    };
   } catch {
     return null;
   }
 }
 
-export async function POST() {
+async function loadCandidates(request: Request): Promise<ReconcileCandidate[]> {
+  const body = (await request.json().catch(() => ({}))) as ReconcileRequest;
+  if (Array.isArray(body.requests) && body.requests.length > 0) {
+    return body.requests;
+  }
+
+  const pendingRequests = await fetchDeployRequestsByStatuses(["pending"], 100);
+  return pendingRequests.map((item) => ({
+    id: typeof item.id === "string" ? item.id : undefined,
+    repo: typeof item.repo === "string" ? item.repo : undefined,
+    pr_number: typeof item.prNumber === "number" ? item.prNumber : null,
+  }));
+}
+
+export async function POST(request: Request) {
   try {
-    const pendingRequests = await fetchDeployRequestsByStatuses(["pending"], 100);
-    const reconciled = (
+    const candidates = await loadCandidates(request);
+    const uniqueCandidates = candidates.filter((candidate, index, list) => {
+      if (!candidate?.id || !candidate.repo || !candidate.pr_number) return false;
+      return list.findIndex((item) => item.id === candidate.id) === index;
+    });
+
+    const stale = (
       await Promise.all(
-        pendingRequests.map(async (request) => {
-          const repo = typeof request.repo === "string" ? request.repo : null;
-          const prNumber = typeof request.prNumber === "number" ? request.prNumber : null;
-          const id = typeof request.id === "string" ? request.id : null;
-
-          if (!repo || !prNumber || !id) return null;
-
-          const state = await fetchPrState(repo, prNumber);
-          if (!state) return null;
-
+        uniqueCandidates.map(async (candidate) => {
+          const prState = await fetchPrState(candidate.repo!, candidate.pr_number!);
+          if (!prState) return null;
+          if (!prState.merged && prState.state !== "closed") return null;
           return {
-            id,
-            state,
-            repo,
-            pr_number: prNumber,
-          } satisfies ReconciledItem;
+            id: candidate.id!,
+            state: prState.state,
+            merged: prState.merged,
+          } satisfies ReconciledReview;
         })
       )
-    ).filter((item): item is ReconciledItem => item !== null);
+    ).filter((item): item is ReconciledReview => item !== null);
 
     return NextResponse.json({
-      stale_ids: reconciled.map((item) => item.id),
-      requests: reconciled,
-      reconciled_at: new Date().toISOString(),
+      stale,
+      stale_ids: stale.map((item) => item.id),
+      checked_at: new Date().toISOString(),
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Unable to reconcile pending requests.", details: (error as Error).message },
+      { error: "Unable to reconcile review requests.", details: (error as Error).message },
       { status: 500 }
     );
   }
