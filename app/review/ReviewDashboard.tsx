@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { AlertTriangle, CheckCircle2, Clock, GitPullRequest, Plus, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, GitPullRequest, Plus, RefreshCw, ShieldCheck } from "lucide-react";
 import { FormEvent, TouchEvent, useEffect, useMemo, useState } from "react";
 import { timeAgo } from "@/lib/time";
 
@@ -36,6 +36,12 @@ type AuthorTrackRecord = {
   recent_deploys: number;
   avg_approval_time_seconds: number | null;
   streak: number;
+};
+
+type OptimisticDecisionState = {
+  previousStatus: string;
+  status: string;
+  pending: boolean;
 };
 
 type StackRequestDetail = {
@@ -109,11 +115,18 @@ export function ReviewDashboard() {
   const [requests, setRequests] = useState<RequestSummary[]>([]);
   const [staleIds, setStaleIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const [repoFilter, setRepoFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [stackIndex, setStackIndex] = useState(0);
+  const [optimisticDecisions, setOptimisticDecisions] = useState<Record<string, OptimisticDecisionState>>({});
+  const [actionErrors, setActionErrors] = useState<Record<string, string>>({});
+  const [isTouchViewport, setIsTouchViewport] = useState(false);
+  const [pullStartY, setPullStartY] = useState<number | null>(null);
+  const [pullDistance, setPullDistance] = useState(0);
   const [approveAllState, setApproveAllState] = useState<{ status: "idle" | "submitting" | "error"; message?: string }>({
     status: "idle",
   });
@@ -138,27 +151,44 @@ export function ReviewDashboard() {
     });
   }
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await fetch("/api/reviews", { cache: "no-store" });
-        if (!res.ok) {
-          setError("Failed to load requests.");
-          return;
-        }
-        const data = (await res.json()) as { requests: RequestSummary[] };
-        setRequests(data.requests);
-      } catch {
-        setError("Network error.");
-      } finally {
-        setLoading(false);
-      }
+  async function refreshReviews(mode: "initial" | "refresh" = "refresh") {
+    if (mode === "initial") {
+      setLoading(true);
+      setError(null);
+    } else {
+      setRefreshing(true);
+      setRefreshError(null);
     }
-    void load();
+
+    try {
+      const res = await fetch("/api/reviews", { cache: "no-store" });
+      if (!res.ok) {
+        const message = "Failed to load requests.";
+        if (mode === "initial") setError(message);
+        else setRefreshError(message);
+        return;
+      }
+
+      const data = (await res.json()) as { requests: RequestSummary[] };
+      setRequests(data.requests);
+      setError(null);
+      setRefreshError(null);
+    } catch {
+      const message = "Network error.";
+      if (mode === "initial") setError(message);
+      else setRefreshError(message);
+    } finally {
+      if (mode === "initial") setLoading(false);
+      else setRefreshing(false);
+    }
+  }
+
+  useEffect(() => {
+    void refreshReviews("initial");
   }, []);
 
   useEffect(() => {
-    const pendingIds = requests.filter((request) => request.status === "pending").map((request) => request.id);
+    const pendingIds = requests.filter((request) => request.status === "pending" && !optimisticDecisions[request.id]).map((request) => request.id);
     if (pendingIds.length === 0) {
       cachedStaleIds = new Set();
       setStaleIds([]);
@@ -202,11 +232,14 @@ export function ReviewDashboard() {
 
     void reconcilePending();
     return () => controller.abort();
-  }, [requests]);
+  }, [optimisticDecisions, requests]);
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 767px)");
-    const applyMode = () => setViewMode(media.matches ? "stack" : "list");
+    const applyMode = () => {
+      setViewMode(media.matches ? "stack" : "list");
+      setIsTouchViewport(media.matches && (navigator.maxTouchPoints > 0 || "ontouchstart" in window));
+    };
     applyMode();
     media.addEventListener("change", applyMode);
     return () => media.removeEventListener("change", applyMode);
@@ -227,6 +260,55 @@ export function ReviewDashboard() {
     });
     setShowManualCreate(true);
   }, []);
+
+  async function submitDecision(requestId: string, action: "approve" | "reject") {
+    const request = requests.find((item) => item.id === requestId);
+    if (!request) return;
+
+    const nextStatus = action === "approve" ? "approved" : "denied";
+    setActionErrors((prev) => {
+      const next = { ...prev };
+      delete next[requestId];
+      return next;
+    });
+    setOptimisticDecisions((prev) => ({
+      ...prev,
+      [requestId]: {
+        previousStatus: request.status,
+        status: nextStatus,
+        pending: true,
+      },
+    }));
+
+    try {
+      const response = await fetch(`/api/review/${requestId}/${action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: `Dashboard ${action}` }),
+      });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? `Unable to ${action} request.`);
+      }
+
+      setRequests((prev) => prev.map((item) => (item.id === requestId ? { ...item, status: nextStatus } : item)));
+      setOptimisticDecisions((prev) => {
+        const next = { ...prev };
+        delete next[requestId];
+        return next;
+      });
+    } catch (actionError) {
+      setOptimisticDecisions((prev) => {
+        const next = { ...prev };
+        delete next[requestId];
+        return next;
+      });
+      setActionErrors((prev) => ({
+        ...prev,
+        [requestId]: actionError instanceof Error ? actionError.message : `Network error while attempting to ${action} request.`,
+      }));
+    }
+  }
 
   async function submitManualRequest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -266,17 +348,32 @@ export function ReviewDashboard() {
   }
 
   const repos = useMemo(() => {
-    const set = new Set(requests.map((r) => r.repo));
+    const set = new Set(
+      requests.map((request) => {
+        const optimistic = optimisticDecisions[request.id];
+        return { ...request, status: optimistic?.status ?? request.status };
+      }).map((r) => r.repo),
+    );
     return Array.from(set).sort();
-  }, [requests]);
+  }, [optimisticDecisions, requests]);
+
+  const displayRequests = useMemo(() => {
+    return requests.map((request) => {
+      const optimistic = optimisticDecisions[request.id];
+      return {
+        ...request,
+        status: optimistic?.status ?? request.status,
+      };
+    });
+  }, [optimisticDecisions, requests]);
 
   const filtered = useMemo(() => {
-    return requests.filter((r) => {
+    return displayRequests.filter((r) => {
       if (repoFilter !== "all" && r.repo !== repoFilter) return false;
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
       return true;
     });
-  }, [requests, repoFilter, statusFilter]);
+  }, [displayRequests, repoFilter, statusFilter]);
 
   const pendingSectionHiddenStatuses = new Set(["superseded", "expired"]);
   const pending = filtered.filter((r) => r.status === "pending" && !pendingSectionHiddenStatuses.has(r.status));
@@ -302,6 +399,9 @@ export function ReviewDashboard() {
     }
   }, [activePending.length, stackIndex]);
 
+  const currentStackIndex = Math.min(stackIndex, Math.max(0, activePending.length - 1));
+  const currentStackRequest = activePending[currentStackIndex];
+
   async function approveAllPending() {
     setApproveAllState({ status: "submitting" });
 
@@ -319,17 +419,50 @@ export function ReviewDashboard() {
         }
       }
 
-      const response = await fetch("/api/reviews", { cache: "no-store" });
-      const data = (await response.json()) as { requests: RequestSummary[] };
-      setRequests(data.requests);
+      await refreshReviews();
       setApproveAllState({ status: "idle" });
     } catch {
       setApproveAllState({ status: "error", message: "Network error while approving pending requests." });
     }
   }
 
+  function handleQueueTouchStart(event: TouchEvent<HTMLDivElement>) {
+    if (!isTouchViewport || loading || refreshing || window.scrollY > 0) return;
+    setPullStartY(event.touches[0]?.clientY ?? null);
+  }
+
+  function handleQueueTouchMove(event: TouchEvent<HTMLDivElement>) {
+    if (!isTouchViewport || pullStartY == null || loading || refreshing || window.scrollY > 0) return;
+    const deltaY = (event.touches[0]?.clientY ?? pullStartY) - pullStartY;
+    if (deltaY <= 0) {
+      setPullDistance(0);
+      return;
+    }
+    event.preventDefault();
+    setPullDistance(Math.min(deltaY * 0.6, 96));
+  }
+
+  function handleQueueTouchEnd() {
+    if (!isTouchViewport) return;
+    const shouldRefresh = pullDistance > 60 && !loading && !refreshing;
+    setPullStartY(null);
+    setPullDistance(0);
+    if (shouldRefresh) {
+      void refreshReviews();
+    }
+  }
+
+  const showSkeleton = loading || refreshing;
+  const refreshProgress = Math.min(pullDistance / 60, 1);
+  const refreshIndicatorVisible = isTouchViewport && (refreshing || pullDistance > 0);
+
   return (
-    <section className="mx-auto max-w-3xl px-4 pt-20 pb-12 sm:px-6">
+    <section
+      className="mx-auto max-w-3xl px-4 pt-20 pb-12 sm:px-6"
+      onTouchStart={handleQueueTouchStart}
+      onTouchMove={handleQueueTouchMove}
+      onTouchEnd={handleQueueTouchEnd}
+    >
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center">
         <ShieldCheck className="h-8 w-8 text-permit" />
         <div className="flex-1">
@@ -420,11 +553,23 @@ export function ReviewDashboard() {
         </form>
       ) : null}
 
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-permit border-t-transparent" />
-        </div>
-      ) : error ? (
+      <div
+        className="relative transition-transform duration-200 ease-out"
+        style={{ transform: `translateY(${pullDistance}px)` }}
+      >
+        {refreshIndicatorVisible ? (
+          <div
+            className="pointer-events-none absolute left-1/2 top-0 z-10 flex -translate-x-1/2 -translate-y-8 items-center gap-2 rounded-full border border-border bg-card/95 px-3 py-1.5 text-xs text-secondary shadow-[0_10px_30px_rgba(0,0,0,0.25)]"
+            style={{ opacity: refreshing ? 1 : refreshProgress }}
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} style={{ transform: refreshing ? undefined : `rotate(${refreshProgress * 180}deg)` }} />
+            <span>{refreshing ? "Refreshing..." : pullDistance > 60 ? "Release to refresh" : "Pull to refresh"}</span>
+          </div>
+        ) : null}
+
+        {showSkeleton ? (
+          <ReviewSkeletonCards />
+        ) : error ? (
         <div className="rounded-xl border border-danger/50 bg-danger/10 p-6 text-center">
           <p className="text-sm text-danger">{error}</p>
         </div>
@@ -436,6 +581,11 @@ export function ReviewDashboard() {
         </div>
       ) : (
         <div className="space-y-6">
+          {refreshError ? (
+            <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
+              {refreshError}
+            </div>
+          ) : null}
           <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
             <div className="rounded-xl border border-border bg-card px-4 py-3">
               <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Pending</p>
@@ -551,24 +701,27 @@ export function ReviewDashboard() {
                 <Clock className="h-3.5 w-3.5" />
                 Pending Approval ({activePending.length})
               </h2>
-              {viewMode === "stack" && activePending.length >= 2 ? (
+              {viewMode === "stack" && activePending.length >= 2 && currentStackRequest ? (
                 <StackReviewCard
-                  request={activePending[stackIndex]}
-                  index={stackIndex}
+                  request={currentStackRequest}
+                  index={currentStackIndex}
                   total={activePending.length}
                   onAdvance={() => setStackIndex((current) => (current + 1) % activePending.length)}
                   onSelect={(nextIndex) => setStackIndex(nextIndex)}
-                  onRefresh={async () => {
-                    const response = await fetch("/api/reviews", { cache: "no-store" });
-                    if (!response.ok) return;
-                    const data = (await response.json()) as { requests: RequestSummary[] };
-                    setRequests(data.requests);
-                  }}
+                  onDecision={submitDecision}
+                  pendingDecision={Boolean(optimisticDecisions[currentStackRequest.id]?.pending)}
+                  errorMessage={actionErrors[currentStackRequest.id]}
                 />
               ) : (
                 <div className="space-y-2">
                   {activePending.map((r, i) => (
-                    <RequestCard key={r.id} request={r} index={i} />
+                    <RequestCard
+                      key={r.id}
+                      request={r}
+                      index={i}
+                      pendingDecision={Boolean(optimisticDecisions[r.id]?.pending)}
+                      errorMessage={actionErrors[r.id]}
+                    />
                   ))}
                 </div>
               )}
@@ -583,7 +736,14 @@ export function ReviewDashboard() {
               </summary>
               <div className="mt-3 space-y-2">
                 {stalePending.map((request, index) => (
-                  <RequestCard key={request.id} request={request} index={index} variant="stale" />
+                  <RequestCard
+                    key={request.id}
+                    request={request}
+                    index={index}
+                    variant="stale"
+                    pendingDecision={Boolean(optimisticDecisions[request.id]?.pending)}
+                    errorMessage={actionErrors[request.id]}
+                  />
                 ))}
               </div>
             </details>
@@ -597,7 +757,13 @@ export function ReviewDashboard() {
               </h2>
               <div className="space-y-2">
                 {approved.map((r, i) => (
-                  <RequestCard key={r.id} request={r} index={i} />
+                  <RequestCard
+                    key={r.id}
+                    request={r}
+                    index={i}
+                    pendingDecision={Boolean(optimisticDecisions[r.id]?.pending)}
+                    errorMessage={actionErrors[r.id]}
+                  />
                 ))}
               </div>
             </div>
@@ -611,13 +777,20 @@ export function ReviewDashboard() {
               </h2>
               <div className="space-y-2">
                 {denied.map((r, i) => (
-                  <RequestCard key={r.id} request={r} index={i} />
+                  <RequestCard
+                    key={r.id}
+                    request={r}
+                    index={i}
+                    pendingDecision={Boolean(optimisticDecisions[r.id]?.pending)}
+                    errorMessage={actionErrors[r.id]}
+                  />
                 ))}
               </div>
             </div>
           ) : null}
         </div>
       )}
+      </div>
     </section>
   );
 }
@@ -628,30 +801,30 @@ function StackReviewCard({
   total,
   onAdvance,
   onSelect,
-  onRefresh,
+  onDecision,
+  pendingDecision,
+  errorMessage,
 }: {
   request: RequestSummary;
   index: number;
   total: number;
   onAdvance: () => void;
   onSelect: (index: number) => void;
-  onRefresh: () => Promise<void>;
+  onDecision: (requestId: string, action: "approve" | "reject") => Promise<void>;
+  pendingDecision: boolean;
+  errorMessage?: string;
 }) {
   const [detail, setDetail] = useState<StackRequestDetail | null>(null);
   const [authorTrackRecord, setAuthorTrackRecord] = useState<AuthorTrackRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [translateX, setTranslateX] = useState(0);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [actionState, setActionState] = useState<{ status: "idle" | "submitting" | "error"; message?: string }>({
-    status: "idle",
-  });
 
   useEffect(() => {
     const controller = new AbortController();
 
     async function load() {
       setLoading(true);
-      setActionState({ status: "idle" });
 
       try {
         const response = await fetch(`/api/review/${request.id}`, { signal: controller.signal });
@@ -719,27 +892,6 @@ function StackReviewCard({
     setTranslateX(0);
   }
 
-  async function submitDecision(action: "approve" | "reject") {
-    setActionState({ status: "submitting" });
-    try {
-      const response = await fetch(`/api/review/${request.id}/${action}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: `Dashboard ${action}` }),
-      });
-      if (!response.ok) {
-        const body = (await response.json().catch(() => ({}))) as { error?: string };
-        setActionState({ status: "error", message: body.error ?? `Unable to ${action} request.` });
-        return;
-      }
-
-      await onRefresh();
-      onAdvance();
-    } catch {
-      setActionState({ status: "error", message: `Network error while attempting to ${action} request.` });
-    }
-  }
-
   return (
     <div className="space-y-3">
       <motion.div
@@ -766,6 +918,17 @@ function StackReviewCard({
             <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${riskBadge(request.risk_tier)}`}>
               {request.risk_tier}
             </span>
+            <span
+              className={`inline-flex rounded-md border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+                request.status === "approved"
+                  ? "border-[#10B981]/40 bg-[#10B981]/10 text-[#10B981]"
+                  : request.status === "denied"
+                    ? "border-danger/40 bg-danger/10 text-danger"
+                    : "border-warning/40 bg-warning/10 text-warning"
+              } ${pendingDecision ? "opacity-60" : ""}`}
+            >
+              {request.status}
+            </span>
             <span className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-medium ${
               request.env === "production"
                 ? "border-danger/30 bg-danger/5 text-danger"
@@ -790,23 +953,23 @@ function StackReviewCard({
           )}
         </div>
 
-        {actionState.status === "error" ? (
-          <p className="mt-3 text-sm text-danger">{actionState.message}</p>
+        {errorMessage ? (
+          <p className="mt-3 text-sm text-danger">{errorMessage}</p>
         ) : null}
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <button
             type="button"
-            disabled={actionState.status === "submitting"}
-            onClick={() => void submitDecision("approve")}
+            disabled={pendingDecision}
+            onClick={() => void onDecision(request.id, "approve")}
             className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#10B981] px-4 py-3 text-sm font-semibold text-void disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {actionState.status === "submitting" ? "Working..." : "Approve"}
+            {pendingDecision ? "Working..." : "Approve"}
           </button>
           <button
             type="button"
-            disabled={actionState.status === "submitting"}
-            onClick={() => void submitDecision("reject")}
+            disabled={pendingDecision}
+            onClick={() => void onDecision(request.id, "reject")}
             className="inline-flex min-h-11 items-center justify-center rounded-xl border border-danger bg-danger/10 px-4 py-3 text-sm font-semibold text-danger disabled:cursor-not-allowed disabled:opacity-60"
           >
             Reject
@@ -831,7 +994,41 @@ function StackReviewCard({
   );
 }
 
-function RequestCard({ request: r, index, variant = "default" }: { request: RequestSummary; index: number; variant?: CardVariant }) {
+function ReviewSkeletonCards() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div key={index} className="rounded-xl border border-border bg-card px-4 py-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1 space-y-3">
+              <div className="h-3 w-28 animate-pulse rounded bg-border/50" />
+              <div className="h-5 w-3/4 animate-pulse rounded bg-border/50" />
+              <div className="h-3 w-1/2 animate-pulse rounded bg-border/50" />
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <div className="h-6 w-16 animate-pulse rounded-full bg-border/50" />
+              <div className="h-6 w-20 animate-pulse rounded-full bg-border/50" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RequestCard({
+  request: r,
+  index,
+  variant = "default",
+  pendingDecision = false,
+  errorMessage,
+}: {
+  request: RequestSummary;
+  index: number;
+  variant?: CardVariant;
+  pendingDecision?: boolean;
+  errorMessage?: string;
+}) {
   const isStale = variant === "stale";
   return (
     <motion.div
@@ -847,7 +1044,7 @@ function RequestCard({ request: r, index, variant = "default" }: { request: Requ
             : "border-border bg-card hover:border-permit/40 hover:bg-card/80"
         } ${
           r.status === "pending" && !isStale ? "border-l-4 border-l-warning pl-3" : ""
-        }`}
+        } ${pendingDecision ? "opacity-60" : ""}`}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">
@@ -873,6 +1070,17 @@ function RequestCard({ request: r, index, variant = "default" }: { request: Requ
             <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${riskBadge(r.risk_tier)}`}>
               {r.risk_tier}
             </span>
+            <span
+              className={`inline-flex rounded-md border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+                r.status === "approved"
+                  ? "border-[#10B981]/40 bg-[#10B981]/10 text-[#10B981]"
+                  : r.status === "denied"
+                    ? "border-danger/40 bg-danger/10 text-danger"
+                    : "border-warning/40 bg-warning/10 text-warning"
+              }`}
+            >
+              {r.status}
+            </span>
             <span className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-medium ${
               r.env === "production"
                 ? "border-danger/30 bg-danger/5 text-danger"
@@ -883,6 +1091,7 @@ function RequestCard({ request: r, index, variant = "default" }: { request: Requ
           </div>
         </div>
       </Link>
+      {errorMessage ? <p className="mt-2 px-1 text-sm text-danger">{errorMessage}</p> : null}
     </motion.div>
   );
 }
