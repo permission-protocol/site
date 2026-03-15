@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import {
   AlertTriangle,
@@ -11,6 +11,7 @@ import {
   ExternalLink,
   FileCode2,
   GitPullRequest,
+  LoaderCircle,
   RefreshCw,
   ShieldCheck,
 } from "lucide-react";
@@ -139,7 +140,7 @@ type DecisionState =
   | { status: "submitting"; action: "approve" | "reject" }
   | { status: "approved"; receiptId: string | null; hasPr: boolean; rerunResult: RerunResult }
   | { status: "rejected" }
-  | { status: "error"; message: string };
+  | { status: "error"; action: "approve" | "reject"; message: string };
 
 type ReviewPageClientProps = {
   id: string;
@@ -174,6 +175,16 @@ const reasonPresets = ["Reviewed", "LGTM", "Routine deploy"] as const;
 const rejectReasonPresets = ["Not ready", "Needs tests", "Wrong branch", "Needs discussion"] as const;
 const HOLD_DURATION_MS = 1000;
 const UNDO_DURATION_MS = 5000;
+const CONTENT_FADE_SECONDS = 0.2;
+const successPulse = {
+  initial: { scale: 0.96, opacity: 0 },
+  animate: { scale: [0.96, 1.02, 1], opacity: 1 },
+  transition: { duration: 0.35, ease: "easeOut" as const },
+};
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function getEnvironmentLabel(request: ReviewRequest | null): string {
   const rawScope = Array.isArray(request?.scope) ? request?.scope[0] : request?.scope;
@@ -307,6 +318,19 @@ function statusCopy(status?: string) {
   return { label: "Review required", tone: "text-warning", icon: ShieldCheck };
 }
 
+function statusPillPalette(status?: string) {
+  if (status === "approved") {
+    return { backgroundColor: "rgba(16, 185, 129, 0.14)", color: "#10B981", borderColor: "rgba(16, 185, 129, 0.45)" };
+  }
+  if (status === "denied") {
+    return { backgroundColor: "rgba(239, 68, 68, 0.14)", color: "#EF4444", borderColor: "rgba(239, 68, 68, 0.45)" };
+  }
+  if (status === "superseded" || status === "expired" || status === "cancelled") {
+    return { backgroundColor: "rgba(245, 158, 11, 0.14)", color: "#F59E0B", borderColor: "rgba(245, 158, 11, 0.45)" };
+  }
+  return { backgroundColor: "rgba(245, 158, 11, 0.14)", color: "#F59E0B", borderColor: "rgba(245, 158, 11, 0.45)" };
+}
+
 function timelineToneClasses(tone: TimelineTone, isFuture: boolean) {
   if (isFuture) {
     return {
@@ -398,6 +422,82 @@ function RequestTimeline({ items, defaultOpen }: { items: TimelineItem[]; defaul
   );
 }
 
+function SkeletonLine({ className }: { className: string }) {
+  return <div className={`rounded-full bg-white/6 ${className}`} />;
+}
+
+function ReviewSkeleton() {
+  return (
+    <>
+      <div className="space-y-3 rounded-3xl border border-border bg-card p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 flex-1 space-y-3">
+            <SkeletonLine className="h-3 w-24" />
+            <SkeletonLine className="h-7 w-4/5 max-w-[24rem]" />
+            <SkeletonLine className="h-4 w-2/3 max-w-[18rem]" />
+          </div>
+          <SkeletonLine className="h-11 w-24 shrink-0" />
+        </div>
+        <SkeletonLine className="h-5 w-full" />
+        <SkeletonLine className="h-5 w-11/12" />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl border border-border bg-void/40 p-4">
+            <SkeletonLine className="h-3 w-20" />
+            <SkeletonLine className="mt-3 h-5 w-24" />
+            <SkeletonLine className="mt-2 h-4 w-full" />
+          </div>
+          <div className="rounded-2xl border border-border bg-void/40 p-4">
+            <SkeletonLine className="h-3 w-24" />
+            <SkeletonLine className="mt-3 h-5 w-32" />
+            <SkeletonLine className="mt-2 h-4 w-4/5" />
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-border bg-card p-4">
+        <SkeletonLine className="h-3 w-28" />
+        <div className="mt-4 grid gap-3 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="rounded-2xl border border-border bg-void/40 p-4">
+              <SkeletonLine className="h-3 w-20" />
+              <SkeletonLine className="mt-3 h-5 w-12" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-border bg-card p-4">
+        <SkeletonLine className="h-3 w-24" />
+        <div className="mt-4 space-y-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={index} className="rounded-2xl border border-border bg-void/40 p-4">
+              <SkeletonLine className="h-4 w-36" />
+              <SkeletonLine className="mt-2 h-4 w-full" />
+              <SkeletonLine className="mt-2 h-4 w-5/6" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-border bg-card p-4">
+        <SkeletonLine className="h-3 w-24" />
+        <SkeletonLine className="mt-4 h-11 w-full" />
+        <SkeletonLine className="mt-3 h-11 w-full" />
+        <SkeletonLine className="mt-3 h-24 w-full rounded-2xl" />
+      </div>
+
+      <div className="rounded-3xl border border-border bg-card p-4">
+        <SkeletonLine className="h-3 w-20" />
+        <div className="mt-4 space-y-3">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <SkeletonLine key={index} className="h-16 w-full rounded-2xl" />
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
 export function ReviewPageClient({ id }: ReviewPageClientProps) {
   const { data: session, status: sessionStatus } = useSession();
   const [request, setRequest] = useState<ReviewRequest | null>(null);
@@ -417,6 +517,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
     result: null,
     failedAttempts: 0,
   });
+  const [celebrateApproval, setCelebrateApproval] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0);
   const [undoExpiresAt, setUndoExpiresAt] = useState<number | null>(null);
   const [undoCountdown, setUndoCountdown] = useState(0);
@@ -475,12 +576,14 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
         rerun_result?: RerunResult;
       };
       if (!response.ok) {
-        setDecisionState({ status: "error", message: normalizeErrorMessage(response.status, body) });
+        setDecisionState({ status: "error", action, message: normalizeErrorMessage(response.status, body) });
         return;
       }
 
       if (action === "approve") {
         const rerunResult = body.rerun_result ?? null;
+        setCelebrateApproval(true);
+        await wait(550);
         setDecisionState({
           status: "approved",
           receiptId: body.receipt_id ?? null,
@@ -501,16 +604,23 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
         return;
       }
 
+      await wait(220);
       setDecisionState({ status: "rejected" });
       setShowRejectSheet(false);
     } catch {
-      setDecisionState({ status: "error", message: "Network error while submitting decision." });
+      setDecisionState({ status: "error", action, message: "Network error while submitting decision." });
     }
   }, [id, loadRequest, reason]);
 
   useEffect(() => {
     setManualRerunState({ status: "idle", result: null, failedAttempts: 0 });
   }, [id]);
+
+  useEffect(() => {
+    if (!celebrateApproval) return;
+    const timeout = window.setTimeout(() => setCelebrateApproval(false), 800);
+    return () => window.clearTimeout(timeout);
+  }, [celebrateApproval]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -757,12 +867,20 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
     request?.status,
     request?.timestamp,
   ]);
-  const stateMeta = statusCopy(request?.status);
+  const displayedStatus =
+    decisionState.status === "approved"
+      ? "approved"
+      : decisionState.status === "rejected"
+        ? "denied"
+        : request?.status;
+  const stateMeta = statusCopy(displayedStatus);
   const StateIcon = stateMeta.icon;
   const effectiveRerunResult =
     manualRerunState.result ?? (decisionState.status === "approved" ? decisionState.rerunResult : null);
   const canTriggerManualRerun = isApproved && hasLinkedPr && !effectiveRerunResult?.ok;
   const rerunRetryDisabled = manualRerunState.status === "rate_limited" || manualRerunState.failedAttempts >= 5;
+  const approveError = decisionState.status === "error" && decisionState.action === "approve" ? decisionState.message : null;
+  const rejectError = decisionState.status === "error" && decisionState.action === "reject" ? decisionState.message : null;
   const authorTrustCopy = authorTrackRecord && authorTrackRecord.clean_deploys > 0
     ? `✅ Author: ${authorTrackRecord.clean_deploys} clean deploy${authorTrackRecord.clean_deploys === 1 ? "" : "s"} (streak: ${authorTrackRecord.streak})`
     : "⚠️ New author: first deploy";
@@ -848,6 +966,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
     if (isSupersededByNewerRequest) return;
     navigator.vibrate?.(50);
     setDecisionState((current) => (current.status === "error" ? { status: "idle" } : current));
+    setShowRejectSheet(false);
     setUndoExpiresAt(Date.now() + UNDO_DURATION_MS);
     setUndoCountdown(Math.ceil(UNDO_DURATION_MS / 1000));
   }
@@ -1180,45 +1299,66 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
           transition={{ duration: 0.25, ease: "easeOut" }}
           className="sticky top-3 z-30 mb-4 rounded-3xl border border-border bg-card/95 p-4 shadow-[0_16px_36px_rgba(0,0,0,0.45)] backdrop-blur"
         >
-          {loading ? (
-            <div className="space-y-2 animate-pulse">
-              <div className="h-4 w-24 rounded bg-ash" />
-              <div className="h-6 w-40 rounded bg-ash" />
-              <div className="h-4 w-48 rounded bg-ash" />
-            </div>
-          ) : request ? (
-            <div className="space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Requested by</p>
-                  <p className="truncate text-lg font-semibold text-signal">{request.actor ?? request.requested_by ?? "Unknown requester"}</p>
-                  <p className="mt-1 text-sm text-secondary">
-                    {relativeTimestamp}
-                    <span className="mx-1.5 text-muted">•</span>
-                    {createdAt}
-                  </p>
+          <AnimatePresence mode="wait" initial={false}>
+            {loading ? (
+              <motion.div
+                key="header-loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: CONTENT_FADE_SECONDS }}
+                className="space-y-2 animate-pulse"
+              >
+                <div className="h-4 w-24 rounded bg-ash" />
+                <div className="h-6 w-40 rounded bg-ash" />
+                <div className="h-4 w-48 rounded bg-ash" />
+              </motion.div>
+            ) : request ? (
+              <motion.div
+                key="header-content"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: CONTENT_FADE_SECONDS, ease: "easeOut" }}
+                className="space-y-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Requested by</p>
+                    <p className="truncate text-lg font-semibold text-signal">{request.actor ?? request.requested_by ?? "Unknown requester"}</p>
+                    <p className="mt-1 text-sm text-secondary">
+                      {relativeTimestamp}
+                      <span className="mx-1.5 text-muted">•</span>
+                      {createdAt}
+                    </p>
+                  </div>
+                  <span className={`inline-flex min-h-11 items-center rounded-full px-3 text-xs font-semibold uppercase tracking-[0.14em] ${environmentPillClasses(environmentLabel)}`}>
+                    {environmentLabel}
+                  </span>
                 </div>
-                <span className={`inline-flex min-h-11 items-center rounded-full px-3 text-xs font-semibold uppercase tracking-[0.14em] ${environmentPillClasses(environmentLabel)}`}>
-                  {environmentLabel}
-                </span>
-              </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex min-h-11 items-center rounded-full border border-border px-3 text-xs font-medium text-secondary">
-                  {request.github_pr?.owner && request.github_pr?.repo
-                    ? `${request.github_pr.owner}/${request.github_pr.repo}`
-                    : request.resource ?? "Unknown repository"}
-                </span>
-                <span className={`inline-flex min-h-11 items-center rounded-full border px-3 text-xs font-semibold uppercase ${riskPillClasses(request.risk_tier)}`}>
-                  {request.risk_tier ?? "unknown"} risk
-                </span>
-                <span className={`inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-xs font-semibold ${stateMeta.tone}`}>
-                  <StateIcon className="h-4 w-4" />
-                  {stateMeta.label}
-                </span>
-              </div>
-            </div>
-          ) : null}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex min-h-11 items-center rounded-full border border-border px-3 text-xs font-medium text-secondary">
+                    {request.github_pr?.owner && request.github_pr?.repo
+                      ? `${request.github_pr.owner}/${request.github_pr.repo}`
+                      : request.resource ?? "Unknown repository"}
+                  </span>
+                  <span className={`inline-flex min-h-11 items-center rounded-full border px-3 text-xs font-semibold uppercase ${riskPillClasses(request.risk_tier)}`}>
+                    {request.risk_tier ?? "unknown"} risk
+                  </span>
+                  <motion.span
+                    layout
+                    animate={statusPillPalette(displayedStatus)}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                    className="inline-flex min-h-11 items-center gap-2 rounded-full border px-3 text-xs font-semibold"
+                  >
+                    <StateIcon className="h-4 w-4" />
+                    {stateMeta.label}
+                  </motion.span>
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </motion.div>
 
         {showAuditTrailLink ? (
@@ -1238,20 +1378,38 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
           transition={{ duration: 0.3, ease: "easeOut", delay: 0.04 }}
           className="space-y-4 rounded-[28px] border border-border bg-ash p-4 shadow-[0_20px_60px_rgba(0,0,0,0.45)] sm:p-6"
         >
-          {loading ? (
-            <div className="space-y-3 animate-pulse">
-              <div className="h-28 rounded-3xl bg-card" />
-              <div className="h-24 rounded-3xl bg-card" />
-              <div className="h-24 rounded-3xl bg-card" />
-            </div>
-          ) : null}
-
-          {!loading && fetchError ? (
-            <div className="rounded-3xl border border-danger/50 bg-danger/10 p-4 text-sm text-danger">{fetchError}</div>
-          ) : null}
-
-          {!loading && !fetchError && request ? (
-            <>
+          <AnimatePresence mode="wait" initial={false}>
+            {loading ? (
+              <motion.div
+                key="review-loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: CONTENT_FADE_SECONDS }}
+                className="animate-pulse space-y-4"
+              >
+                <ReviewSkeleton />
+              </motion.div>
+            ) : fetchError ? (
+              <motion.div
+                key="review-error"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: CONTENT_FADE_SECONDS, ease: "easeOut" }}
+                className="rounded-3xl border border-danger/50 bg-danger/10 p-4 text-sm text-danger"
+              >
+                {fetchError}
+              </motion.div>
+            ) : request ? (
+              <motion.div
+                key="review-content"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: CONTENT_FADE_SECONDS, ease: "easeOut" }}
+                className="space-y-4"
+              >
               {renderRequestBanner()}
 
               <section className="rounded-3xl border border-border bg-card p-5">
@@ -1390,7 +1548,10 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
               ) : null}
 
               {decisionState.status === "approved" ? (
-                <div className="rounded-3xl border border-permit/50 bg-permit/10 p-4">
+                <motion.div
+                  {...successPulse}
+                  className={`rounded-3xl border border-permit/50 bg-permit/10 p-4 ${celebrateApproval ? "shadow-[0_0_0_1px_rgba(16,185,129,0.15),0_0_28px_rgba(16,185,129,0.12)]" : ""}`}
+                >
                   <p className="text-sm font-semibold text-permit">Request approved</p>
                   {decisionState.receiptId ? (
                     <Link className="mt-1 inline-block text-sm font-semibold text-permit hover:underline" href={`/r/${decisionState.receiptId}`}>
@@ -1404,7 +1565,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                   ) : effectiveRerunResult && !effectiveRerunResult.ok ? (
                     <p className="mt-2 text-sm text-warning">⚠️ Could not auto-rerun Deploy Gate: {effectiveRerunResult.error ?? "unknown error"}. You may need to re-run it manually on GitHub.</p>
                   ) : null}
-                </div>
+                </motion.div>
               ) : null}
 
               {canTriggerManualRerun ? (
@@ -1451,12 +1612,6 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
               {decisionState.status === "rejected" ? (
                 <div className="rounded-3xl border border-danger/50 bg-danger/10 p-4 text-sm font-semibold text-danger">
                   Request rejected and blocked.
-                </div>
-              ) : null}
-
-              {decisionState.status === "error" ? (
-                <div className="rounded-3xl border border-danger/50 bg-danger/10 p-4 text-sm font-semibold text-danger">
-                  {decisionState.message}
                 </div>
               ) : null}
 
@@ -1608,75 +1763,11 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                   </div>
                 </details>
               ) : null}
-
-            </>
-          ) : null}
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </motion.article>
       </div>
-
-      {showRejectSheet ? (
-        <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={() => setShowRejectSheet(false)}>
-          <div
-            className="absolute inset-x-0 bottom-0 rounded-t-[28px] border border-border bg-card p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-[0_-16px_40px_rgba(0,0,0,0.45)]"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-border" />
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-lg font-semibold text-signal">Reject request</p>
-                <p className="mt-1 text-sm text-secondary">Choose a reason or add your own note.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowRejectSheet(false)}
-                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border text-secondary"
-              >
-                <CircleX className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              {rejectReasonPresets.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setReason(preset)}
-                  className={`inline-flex min-h-11 items-center rounded-full border px-4 text-sm ${
-                    reason === preset
-                      ? "border-danger bg-danger/10 text-danger"
-                      : "border-border bg-void/40 text-secondary"
-                  }`}
-                >
-                  {preset}
-                </button>
-              ))}
-            </div>
-
-            <textarea
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              rows={4}
-              placeholder="Why should this not go live?"
-              className="mt-4 w-full rounded-2xl border border-border bg-void/50 px-4 py-3 text-sm text-signal placeholder:text-secondary/70 focus:border-danger focus:outline-none"
-            />
-
-            <button
-              type="button"
-              disabled={!canReview || decisionState.status === "submitting"}
-              onClick={() => {
-                if (!isAuthenticated) {
-                  redirectToLogin();
-                  return;
-                }
-                void submitDecision("reject");
-              }}
-              className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-2xl border border-danger bg-danger/10 px-4 py-3 text-sm font-semibold text-danger disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {decisionState.status === "submitting" && decisionState.action === "reject" ? "Rejecting..." : "Confirm reject"}
-            </button>
-          </div>
-        </div>
-      ) : null}
 
       {showReviewActions ? (
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur">
@@ -1731,7 +1822,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                       </p>
                     </div>
 
-                    <button
+                    <motion.button
                       type="button"
                       disabled={!canReview || decisionState.status === "submitting" || isSupersededByNewerRequest}
                       onClick={needsHoldToApprove ? undefined : () => queueApproval()}
@@ -1739,6 +1830,8 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                       onPointerUp={needsHoldToApprove ? cancelHold : undefined}
                       onPointerLeave={needsHoldToApprove ? cancelHold : undefined}
                       onPointerCancel={needsHoldToApprove ? cancelHold : undefined}
+                      animate={approveError ? { x: [0, -8, 8, -6, 6, 0] } : { x: 0 }}
+                      transition={{ duration: 0.35 }}
                       className="relative inline-flex min-h-11 w-full touch-none items-center justify-center overflow-hidden rounded-2xl bg-[#10B981] px-4 py-4 text-base font-semibold text-void disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-200 disabled:opacity-100"
                     >
                       {needsHoldToApprove && holdProgress > 0 ? (
@@ -1747,19 +1840,52 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                           style={{ width: `${holdProgress * 100}%` }}
                         />
                       ) : null}
-                      <span className="relative inline-flex items-center gap-2">
-                        <CheckCircle2 className="h-5 w-5" />
-                        {decisionState.status === "submitting" && decisionState.action === "approve"
-                          ? "Approving..."
-                          : isSupersededByNewerRequest
-                            ? "Approval disabled"
-                          : needsHoldToApprove
-                            ? holdProgress > 0
-                              ? "Keep holding..."
-                              : "Hold to approve"
-                            : "Approve"}
-                      </span>
-                    </button>
+                      <AnimatePresence mode="wait" initial={false}>
+                        <motion.span
+                          key={
+                            decisionState.status === "submitting" && decisionState.action === "approve"
+                              ? "approve-submitting"
+                              : celebrateApproval
+                                ? "approve-success"
+                                : "approve-idle"
+                          }
+                          initial={{ opacity: 0, scale: 0.96 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.96 }}
+                          transition={{ duration: 0.15 }}
+                          className="relative inline-flex items-center gap-2"
+                        >
+                          {decisionState.status === "submitting" && decisionState.action === "approve" ? (
+                            <>
+                              <LoaderCircle className="h-5 w-5 animate-spin" />
+                              Approving...
+                            </>
+                          ) : celebrateApproval ? (
+                            <>
+                              <motion.span
+                                initial={{ scale: 0.7 }}
+                                animate={{ scale: [0.7, 1.12, 1] }}
+                                transition={{ duration: 0.24 }}
+                              >
+                                <CheckCircle2 className="h-5 w-5" />
+                              </motion.span>
+                              Approved
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="h-5 w-5" />
+                              {isSupersededByNewerRequest
+                                ? "Approval disabled"
+                                : needsHoldToApprove
+                                  ? holdProgress > 0
+                                    ? "Keep holding..."
+                                    : "Hold to approve"
+                                  : "Approve"}
+                            </>
+                          )}
+                        </motion.span>
+                      </AnimatePresence>
+                    </motion.button>
                   </>
                 ) : (
                   <button
@@ -1771,7 +1897,7 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                   </button>
                 )}
 
-                <button
+                <motion.button
                   type="button"
                   disabled={!canReview || decisionState.status === "submitting"}
                   onClick={() => {
@@ -1779,13 +1905,133 @@ export function ReviewPageClient({ id }: ReviewPageClientProps) {
                       redirectToLogin();
                       return;
                     }
-                    setShowRejectSheet(true);
+                    setDecisionState((current) => (current.status === "error" ? { status: "idle" } : current));
+                    setShowRejectSheet((current) => !current);
                   }}
+                  animate={rejectError ? { x: [0, -8, 8, -6, 6, 0] } : { x: 0 }}
+                  transition={{ duration: 0.35 }}
                   className="inline-flex min-h-11 w-full items-center justify-center rounded-2xl border border-danger bg-danger/10 px-4 py-3 text-sm font-semibold text-danger disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <CircleX className="mr-2 h-4 w-4" />
-                  Reject
-                </button>
+                  {showRejectSheet ? "Hide reject reason" : "Reject"}
+                </motion.button>
+
+                <AnimatePresence initial={false}>
+                  {showRejectSheet ? (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="rounded-3xl border border-danger/30 bg-danger/5 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-signal">Reject request</p>
+                            <p className="mt-1 text-sm text-secondary">Choose a reason or add your own note.</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowRejectSheet(false)}
+                            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-border text-secondary"
+                          >
+                            <CircleX className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {rejectReasonPresets.map((preset) => (
+                            <button
+                              key={preset}
+                              type="button"
+                              onClick={() => setReason(preset)}
+                              className={`inline-flex min-h-11 items-center rounded-full border px-4 text-sm ${
+                                reason === preset
+                                  ? "border-danger bg-danger/10 text-danger"
+                                  : "border-border bg-void/40 text-secondary"
+                              }`}
+                            >
+                              {preset}
+                            </button>
+                          ))}
+                        </div>
+
+                        <textarea
+                          value={reason}
+                          onChange={(event) => setReason(event.target.value)}
+                          rows={4}
+                          placeholder="Why should this not go live?"
+                          className="mt-4 w-full rounded-2xl border border-border bg-void/50 px-4 py-3 text-sm text-signal placeholder:text-secondary/70 focus:border-danger focus:outline-none"
+                        />
+
+                        <motion.button
+                          type="button"
+                          disabled={!canReview || decisionState.status === "submitting"}
+                          onClick={() => {
+                            if (!isAuthenticated) {
+                              redirectToLogin();
+                              return;
+                            }
+                            void submitDecision("reject");
+                          }}
+                          animate={rejectError ? { x: [0, -8, 8, -6, 6, 0] } : { x: 0 }}
+                          transition={{ duration: 0.35 }}
+                          className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-2xl border border-danger bg-danger/10 px-4 py-3 text-sm font-semibold text-danger disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <AnimatePresence mode="wait" initial={false}>
+                            <motion.span
+                              key={decisionState.status === "submitting" && decisionState.action === "reject" ? "reject-submitting" : "reject-idle"}
+                              initial={{ opacity: 0, scale: 0.96 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.96 }}
+                              transition={{ duration: 0.15 }}
+                              className="inline-flex items-center gap-2"
+                            >
+                              {decisionState.status === "submitting" && decisionState.action === "reject" ? (
+                                <>
+                                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                                  Rejecting...
+                                </>
+                              ) : (
+                                <>
+                                  <CircleX className="h-4 w-4" />
+                                  Confirm reject
+                                </>
+                              )}
+                            </motion.span>
+                          </AnimatePresence>
+                        </motion.button>
+                      </div>
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
+
+                <AnimatePresence initial={false}>
+                  {decisionState.status === "error" ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 8 }}
+                      transition={{ duration: 0.18 }}
+                      className="rounded-2xl border border-danger/40 bg-danger/10 px-4 py-3"
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-danger">{decisionState.message}</p>
+                          <p className="mt-1 text-sm text-secondary">Retry inline without leaving this review.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => void submitDecision(decisionState.action)}
+                          className="inline-flex min-h-11 items-center justify-center rounded-full border border-danger px-4 text-sm font-semibold text-danger"
+                        >
+                          Retry {decisionState.action}
+                        </button>
+                      </div>
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
               </div>
             )}
           </div>
