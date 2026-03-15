@@ -106,7 +106,7 @@ export default function HomePage() {
         </div>
       </SectionBlock>
 
-      <section className="section-shell py-8">
+      <section className="section-shell py-4 md:py-6">
         <div className="rounded-2xl border border-border bg-card/70 px-4 py-4 sm:px-5">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <div className="flex items-center gap-2 rounded-xl border border-border/80 bg-ash/60 px-3 py-3">
