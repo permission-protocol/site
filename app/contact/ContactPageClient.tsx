@@ -49,6 +49,12 @@ export function ContactPageClient() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const handleReset = () => {
+    setForm(defaultState);
+    setSubmitted(false);
+    setError(null);
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitting(true);
@@ -99,107 +105,118 @@ export function ContactPageClient() {
 
         <motion.section {...reveal} className="mt-10 rounded-2xl border border-border bg-card p-6">
           {submitted ? (
-            <div className="flex items-center gap-2 rounded-xl border border-permit/50 bg-permit/10 p-4 text-sm font-semibold text-permit">
-              <CheckCircle2 className="h-5 w-5 text-[#10B981]" />
-              <span>Thanks! We will be in touch within 24 hours.</span>
+            <div className="flex flex-col items-center rounded-2xl border border-permit/40 bg-permit/10 px-6 py-10 text-center">
+              <CheckCircle2 className="h-14 w-14 text-[#10B981]" />
+              <h2 className="mt-5 text-2xl font-semibold text-signal">
+                Thanks, {form.name}! We&apos;ll be in touch within 24 hours.
+              </h2>
+              <button
+                type="button"
+                onClick={handleReset}
+                className="mt-6 text-sm font-semibold text-permit transition hover:text-[#6ac9b7]"
+              >
+                Submit another
+              </button>
             </div>
-          ) : null}
+          ) : (
+            <>
+              {error ? (
+                <p className="text-sm text-red-400">{error}</p>
+              ) : null}
 
-          {error ? (
-            <p className="mt-4 text-sm text-red-400">{error}</p>
-          ) : null}
+              <form className="mt-4 grid gap-4" onSubmit={handleSubmit}>
+                <label className="text-sm text-secondary" htmlFor="name">
+                  Name
+                  <input
+                    id="name"
+                    value={form.name}
+                    onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+                    className={inputClass}
+                    type="text"
+                    required
+                  />
+                </label>
 
-          <form className="mt-4 grid gap-4" onSubmit={handleSubmit}>
-            <label className="text-sm text-secondary" htmlFor="name">
-              Name
-              <input
-                id="name"
-                value={form.name}
-                onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-                className={inputClass}
-                type="text"
-                required
-              />
-            </label>
+                <label className="text-sm text-secondary" htmlFor="email">
+                  Email
+                  <input
+                    id="email"
+                    value={form.email}
+                    onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
+                    className={inputClass}
+                    type="email"
+                    required
+                  />
+                </label>
 
-            <label className="text-sm text-secondary" htmlFor="email">
-              Email
-              <input
-                id="email"
-                value={form.email}
-                onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
-                className={inputClass}
-                type="email"
-                required
-              />
-            </label>
+                <label className="text-sm text-secondary" htmlFor="company">
+                  Company
+                  <input
+                    id="company"
+                    value={form.company}
+                    onChange={(event) => setForm((prev) => ({ ...prev, company: event.target.value }))}
+                    className={inputClass}
+                    type="text"
+                  />
+                </label>
 
-            <label className="text-sm text-secondary" htmlFor="company">
-              Company
-              <input
-                id="company"
-                value={form.company}
-                onChange={(event) => setForm((prev) => ({ ...prev, company: event.target.value }))}
-                className={inputClass}
-                type="text"
-              />
-            </label>
+                <label className="text-sm text-secondary" htmlFor="use-case">
+                  Use Case
+                  <select
+                    id="use-case"
+                    value={form.useCase}
+                    onChange={(event) => setForm((prev) => ({ ...prev, useCase: event.target.value }))}
+                    className={inputClass}
+                  >
+                    <option>CI/CD Deploys</option>
+                    <option>Database Operations</option>
+                    <option>Financial Transactions</option>
+                    <option>Data Access</option>
+                    <option>API Security</option>
+                    <option>Multi-Agent Orchestration</option>
+                    <option>Other</option>
+                  </select>
+                </label>
 
-            <label className="text-sm text-secondary" htmlFor="use-case">
-              Use Case
-              <select
-                id="use-case"
-                value={form.useCase}
-                onChange={(event) => setForm((prev) => ({ ...prev, useCase: event.target.value }))}
-                className={inputClass}
-              >
-                <option>CI/CD Deploys</option>
-                <option>Database Operations</option>
-                <option>Financial Transactions</option>
-                <option>Data Access</option>
-                <option>API Security</option>
-                <option>Multi-Agent Orchestration</option>
-                <option>Other</option>
-              </select>
-            </label>
+                <label className="text-sm text-secondary" htmlFor="environment">
+                  Environment
+                  <select
+                    id="environment"
+                    value={form.environment}
+                    onChange={(event) => setForm((prev) => ({ ...prev, environment: event.target.value }))}
+                    className={inputClass}
+                  >
+                    <option>AWS</option>
+                    <option>GCP</option>
+                    <option>Azure</option>
+                    <option>Multi-cloud</option>
+                    <option>On-premise</option>
+                    <option>Other</option>
+                  </select>
+                </label>
 
-            <label className="text-sm text-secondary" htmlFor="environment">
-              Environment
-              <select
-                id="environment"
-                value={form.environment}
-                onChange={(event) => setForm((prev) => ({ ...prev, environment: event.target.value }))}
-                className={inputClass}
-              >
-                <option>AWS</option>
-                <option>GCP</option>
-                <option>Azure</option>
-                <option>Multi-cloud</option>
-                <option>On-premise</option>
-                <option>Other</option>
-              </select>
-            </label>
+                <label className="text-sm text-secondary" htmlFor="message">
+                  Message
+                  <textarea
+                    id="message"
+                    value={form.message}
+                    onChange={(event) => setForm((prev) => ({ ...prev, message: event.target.value }))}
+                    className={inputClass}
+                    rows={5}
+                    placeholder="Tell us about your agent infrastructure..."
+                  />
+                </label>
 
-            <label className="text-sm text-secondary" htmlFor="message">
-              Message
-              <textarea
-                id="message"
-                value={form.message}
-                onChange={(event) => setForm((prev) => ({ ...prev, message: event.target.value }))}
-                className={inputClass}
-                rows={5}
-                placeholder="Tell us about your agent infrastructure..."
-              />
-            </label>
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="mt-2 w-full rounded-xl bg-permit px-4 py-3 font-semibold text-void hover:brightness-110"
-            >
-              {submitting ? "Sending..." : "Send"}
-            </button>
-          </form>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="mt-2 w-full rounded-xl bg-permit px-4 py-3 font-semibold text-void hover:brightness-110"
+                >
+                  {submitting ? "Sending..." : "Send"}
+                </button>
+              </form>
+            </>
+          )}
         </motion.section>
 
         <motion.section {...reveal} className="mt-10">
