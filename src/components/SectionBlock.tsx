@@ -18,7 +18,7 @@ export function SectionBlock({ id, headline, subheadline, children }: SectionBlo
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="section-shell relative py-32 md:py-40"
+      className="section-shell relative py-20 md:py-24 lg:py-28"
     >
       <h2 className="max-w-3xl text-5xl font-medium tracking-tight md:text-6xl">{headline}</h2>
       {subheadline ? <p className="mt-5 max-w-3xl text-lg leading-relaxed text-secondary">{subheadline}</p> : null}
