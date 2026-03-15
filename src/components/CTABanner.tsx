@@ -3,7 +3,7 @@ import { ArrowRight } from "lucide-react";
 
 export function CTABanner() {
   return (
-    <section className="section-shell pb-24">
+    <div>
       <div className="grid gap-4 rounded-3xl border border-border bg-ash p-5 md:grid-cols-2 md:p-8">
         <article className="rounded-2xl border border-border bg-card p-6">
           <h3 className="text-2xl font-semibold">For Developers</h3>
@@ -20,6 +20,6 @@ export function CTABanner() {
           </Link>
         </article>
       </div>
-    </section>
+    </div>
   );
 }
