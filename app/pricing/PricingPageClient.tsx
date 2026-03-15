@@ -31,9 +31,9 @@ const tiers = [
   },
   {
     name: "Team",
-    price: "Private Beta",
-    suffix: "",
-    subtitle: "For teams shipping with agents",
+    price: "$49",
+    suffix: "/month",
+    subtitle: "Beta pricing — locked in for early adopters",
     features: [
       "Everything in Open Source",
       "Unlimited receipts",
@@ -49,7 +49,7 @@ const tiers = [
   },
   {
     name: "Enterprise",
-    price: "Custom",
+    price: "Custom pricing",
     suffix: "",
     subtitle: "For organizations at scale",
     features: [
