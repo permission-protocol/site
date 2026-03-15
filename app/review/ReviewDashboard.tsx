@@ -28,6 +28,8 @@ type ManualRequestState = {
 
 type ViewMode = "list" | "stack";
 type CardVariant = "default" | "stale";
+type PendingSortMode = "urgency" | "newest";
+type PulseTier = "red" | "amber" | null;
 
 type AuthorTrackRecord = {
   username: string;
@@ -84,6 +86,32 @@ function averageWait(pending: RequestSummary[]): string {
   return remHours > 0 ? `${days}d ${remHours}h` : `${days}d`;
 }
 
+function ageMinutes(dateStr: string): number {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  return Math.max(1, Math.floor(diff / 60000));
+}
+
+function urgencyScore(request: RequestSummary): number {
+  const envWeight = request.env === "production" ? 10 : request.env === "staging" ? 3 : 1;
+  const riskWeight = request.risk_tier === "critical" ? 10 : request.risk_tier === "high" ? 5 : request.risk_tier === "medium" ? 2 : 1;
+  return envWeight * riskWeight * ageMinutes(request.created_at);
+}
+
+function pulseTier(request: RequestSummary): PulseTier {
+  const waitMinutes = ageMinutes(request.created_at);
+  const highRisk = request.risk_tier === "critical" || request.risk_tier === "high";
+
+  if (request.env === "production" && highRisk && waitMinutes > 15) {
+    return "red";
+  }
+
+  if ((request.env === "production" && waitMinutes > 30) || (request.env === "staging" && highRisk && waitMinutes > 60)) {
+    return "amber";
+  }
+
+  return null;
+}
+
 function riskBadge(tier: string) {
   switch (tier) {
     case "critical":
@@ -113,6 +141,7 @@ export function ReviewDashboard() {
   const [repoFilter, setRepoFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [pendingSortMode, setPendingSortMode] = useState<PendingSortMode>("urgency");
   const [stackIndex, setStackIndex] = useState(0);
   const [approveAllState, setApproveAllState] = useState<{ status: "idle" | "submitting" | "error"; message?: string }>({
     status: "idle",
@@ -282,6 +311,21 @@ export function ReviewDashboard() {
   const pending = filtered.filter((r) => r.status === "pending" && !pendingSectionHiddenStatuses.has(r.status));
   const staleIdSet = useMemo(() => new Set(staleIds), [staleIds]);
   const activePending = pending.filter((r) => !staleIdSet.has(r.id));
+  const newestPending = useMemo(
+    () => activePending.slice().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    [activePending]
+  );
+  const listPending = useMemo(() => {
+    if (pendingSortMode === "newest") {
+      return newestPending;
+    }
+
+    return activePending.slice().sort((a, b) => {
+      const scoreDiff = urgencyScore(b) - urgencyScore(a);
+      if (scoreDiff !== 0) return scoreDiff;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [activePending, newestPending, pendingSortMode]);
   const stalePending = pending.filter((r) => staleIdSet.has(r.id));
   const approved = filtered.filter((r) => r.status === "approved");
   const denied = filtered.filter((r) => r.status === "denied");
@@ -547,16 +591,49 @@ export function ReviewDashboard() {
 
           {activePending.length > 0 ? (
             <div>
-              <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-warning">
-                <Clock className="h-3.5 w-3.5" />
-                Pending Approval ({activePending.length})
-              </h2>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-warning">
+                  <Clock className="h-3.5 w-3.5" />
+                  Pending Approval ({activePending.length})
+                  {viewMode === "list" && pendingSortMode === "urgency" ? (
+                    <span className="rounded-full border border-warning/40 bg-warning/10 px-2 py-1 text-[10px] text-warning">
+                      sorted by urgency
+                    </span>
+                  ) : null}
+                </h2>
+                {viewMode === "list" ? (
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPendingSortMode("urgency")}
+                      className={`min-h-11 rounded-full border px-4 py-2 text-xs transition-colors ${
+                        pendingSortMode === "urgency"
+                          ? "border-warning bg-warning/15 text-warning"
+                          : "border-border bg-card text-secondary hover:border-warning/40 hover:text-signal"
+                      }`}
+                    >
+                      Urgency
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPendingSortMode("newest")}
+                      className={`min-h-11 rounded-full border px-4 py-2 text-xs transition-colors ${
+                        pendingSortMode === "newest"
+                          ? "border-permit bg-permit/15 text-permit"
+                          : "border-border bg-card text-secondary hover:border-permit/40 hover:text-signal"
+                      }`}
+                    >
+                      Newest first
+                    </button>
+                  </div>
+                ) : null}
+              </div>
               {viewMode === "stack" && activePending.length >= 2 ? (
                 <StackReviewCard
-                  request={activePending[stackIndex]}
+                  request={newestPending[stackIndex]}
                   index={stackIndex}
-                  total={activePending.length}
-                  onAdvance={() => setStackIndex((current) => (current + 1) % activePending.length)}
+                  total={newestPending.length}
+                  onAdvance={() => setStackIndex((current) => (current + 1) % newestPending.length)}
                   onSelect={(nextIndex) => setStackIndex(nextIndex)}
                   onRefresh={async () => {
                     const response = await fetch("/api/reviews", { cache: "no-store" });
@@ -567,7 +644,7 @@ export function ReviewDashboard() {
                 />
               ) : (
                 <div className="space-y-2">
-                  {activePending.map((r, i) => (
+                  {listPending.map((r, i) => (
                     <RequestCard key={r.id} request={r} index={i} />
                   ))}
                 </div>
@@ -833,6 +910,8 @@ function StackReviewCard({
 
 function RequestCard({ request: r, index, variant = "default" }: { request: RequestSummary; index: number; variant?: CardVariant }) {
   const isStale = variant === "stale";
+  const urgencyPulse = !isStale && r.status === "pending" ? pulseTier(r) : null;
+  const waitTone = urgencyPulse === "red" ? "text-danger" : urgencyPulse === "amber" ? "text-warning" : "text-secondary";
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
@@ -846,16 +925,31 @@ function RequestCard({ request: r, index, variant = "default" }: { request: Requ
             ? "border-border/70 bg-card/40 hover:border-border hover:bg-card/50"
             : "border-border bg-card hover:border-permit/40 hover:bg-card/80"
         } ${
-          r.status === "pending" && !isStale ? "border-l-4 border-l-warning pl-3" : ""
+          r.status === "pending" && !isStale ? "border-l-4 pl-3" : ""
+        } ${
+          urgencyPulse === "red"
+            ? "queue-card-pulse-red relative z-10 border-l-danger shadow-[0_12px_30px_rgba(239,68,68,0.14)]"
+            : urgencyPulse === "amber"
+              ? "queue-card-pulse-amber relative z-10 border-l-warning shadow-[0_12px_26px_rgba(245,158,11,0.12)]"
+              : r.status === "pending" && !isStale
+                ? "border-l-warning"
+                : ""
         }`}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">
             {isStale ? <AlertTriangle className="h-4 w-4 text-muted" /> : statusIcon(r.status)}
             <div className="min-w-0">
-              <p className={`truncate text-sm font-semibold transition-colors ${isStale ? "text-secondary group-hover:text-signal" : "text-signal group-hover:text-permit"}`}>
-                {r.pr_title ?? r.capability}
-              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className={`truncate text-sm font-semibold transition-colors ${isStale ? "text-secondary group-hover:text-signal" : "text-signal group-hover:text-permit"}`}>
+                  {r.pr_title ?? r.capability}
+                </p>
+                {urgencyPulse === "red" ? (
+                  <span className="inline-flex rounded-full border border-danger/50 bg-danger/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-danger">
+                    urgent
+                  </span>
+                ) : null}
+              </div>
               <p className="mt-0.5 flex items-center gap-2 text-xs text-secondary">
                 <span className="inline-flex items-center gap-1">
                   <GitPullRequest className="h-3 w-3" />
@@ -865,7 +959,9 @@ function RequestCard({ request: r, index, variant = "default" }: { request: Requ
                 <span>·</span>
                 <span>{r.actor}</span>
                 <span>·</span>
-                <span>{isStale ? "PR closed or merged" : r.status === "pending" ? `waiting ${waitLabel(r.created_at)}` : timeAgo(r.created_at)}</span>
+                <span className={isStale ? "text-secondary" : waitTone}>
+                  {isStale ? "PR closed or merged" : r.status === "pending" ? `waiting ${waitLabel(r.created_at)}` : timeAgo(r.created_at)}
+                </span>
               </p>
             </div>
           </div>
